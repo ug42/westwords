@@ -15,7 +15,7 @@
         let socket = io({ autoconnect: true });
         let username = document.getElementById('username');
         let clear_username = document.getElementById('clear_username');
-        let username_change = document.getElementById('username_change');
+        let change_username = document.getElementById('username_change');
         if (localStorage.getItem("username") != null) {
             username.defaultValue = localStorage.getItem("username");
         } else {
@@ -31,9 +31,8 @@
             localStorage.removeItem('username');
             username.value = "";
         }
-        username_change.onclick = function() {
+        change_username.onclick = function() {
             localStorage.set('username', username.value);
-
         }
     </script>
 </body>
