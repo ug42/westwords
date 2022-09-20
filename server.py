@@ -18,6 +18,7 @@ def connect():
 @SOCKET.on('disconnect')
 def disconn():
     print("[CLIENT DISCONNECTED]:", request.sid)
+    emit('data', 'Client connected at %s' % request.sid)
 
 
 @SOCKET.on('notify')
