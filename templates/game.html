@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Social Wordssss</title>
+</head>
+
+<body>
+    <div id="game">Test game board</div>
+    <p>Username: <input type="text" id="username"><button id="username_change">Change username</button></p>
+    <p><button type="submit" id="clear_username">Clear username</button></p>
+    <script src="../static/js/jquery-3.6.0.min.js"></script>
+    <script src="../static/js/socket.io.js"></script>
+    <script>
+        let socket = io({ autoconnect: true });
+        let username = document.getElementById('username');
+        let clear_username = document.getElementById('clear_username');
+        let username_change = document.getElementById('username_change');
+        if (localStorage.getItem("username") != null) {
+            username.defaultValue = localStorage.getItem("username");
+        } else {
+            let default_username = 'Not_a_wolf_' + Math.floor(Math.random() * 10000 % 9999);
+            username.defaultValue = default_username;
+            localStorage.setItem('username', default_username);
+        }
+        let user = username.value;
+        socket.on('connect', function () {
+            console.log('You are like connected and stuff.');
+        })
+        clear_username.onclick = function () {
+            localStorage.removeItem('username');
+            username.value = "";
+        }
+        username_change.onclick = function() {
+            localStorage.set('username', username.value);
+
+        }
+    </script>
+</body>

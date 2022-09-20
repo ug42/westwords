@@ -1,34 +1,36 @@
-from flask import Flask, request, render_template
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template
+from flask_socketio import SocketIO, ConnectionRefusedError
 
-APP = Flask(__name__)
-SOCKET = SocketIO(APP)
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
-
-@APP.route('/')
-def index():
-    return render_template('client.html')
-
-
-@SOCKET.on('connect')
-def connect():
-    print("[CLIENT CONNECTED]:", request.sid)
+config = {
+    'DEBUG': True,
+}
 
 
-@SOCKET.on('disconnect')
-def disconn():
-    print("[CLIENT DISCONNECTED]:", request.sid)
-    emit('data', 'Client connected at %s' % request.sid)
+@app.route('/')
+def game():
+    render_template('game.html')
 
 
-@SOCKET.on('notify')
-def notify(user):
-    emit('notify', user, broadcast=True, skip_sid=request.sid)
+@socketio.on('connect')
+def connect(auth):
+    emit('my response', {'data': 'Connected'})
+    print('Auth details: ' + str(auth))
 
 
-@SOCKET.on('data')
-def emitback(data):
-    emit('returndata', data, broadcast=True)
+@socketio.on('disconnect')
+def disconnect():
+    print('Client disconnected')
 
-if __name__ == "__main__":
-    SOCKET.run(APP)
+
+@socket.on('question')
+def question(json):
+    print('received question: ' + str(json))
+    emit('mayor question', json, broadcast=True)
+
+
+if __name__ == '__main__':
+    socketio.run(app)
