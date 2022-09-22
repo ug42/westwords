@@ -26,6 +26,12 @@ $(document).ready(function () {
         game_status.value = game_state;
         console.log(game_state);
     });
+    var timer = new easytimer.Timer();
+    timer.addEventListener("secondsUpdated", function (e) {
+        $("#game_timer").html(timer.getTimeValues().toString());
+    });
+    // timer.start({countdown: true, seconds: 300});
+    timer.start();
 
     $('#question_submit').on('click', function () {
         console.log('emitting question: ' + question.value);
@@ -36,6 +42,9 @@ $(document).ready(function () {
     $('#game_start').on('click', game_start_resume);
     $('#game_pause').on('click', game_pause);
     $('#game_reset').on('click', game_reset);
+    $('#get_game_state').on('click', get_game_state);
+    $('#proper_noun').on('click', function () { 
+        socket.emit('data', "[" + user + "]: Is it a proper noun?") })
     function game_start_resume() {
         console.log('Attempting to start game');
         socket.emit('game_start', 'defaultgame');
@@ -60,8 +69,17 @@ $(document).ready(function () {
         game_reset_btn.disabled = false;
         game_start_btn.disabled = false;
     }
+    function get_game_state() {
+        socket.emit('get_game_state', 'defaultgame');
+    }
     $('#username_change').on('click', function () {
-        localStorage.setItem('username', username.value);
+        if (username.value != "") {
+            localStorage.setItem("username", username.value)
+            socket.connect();
+        } else {
+            alert("Username can not be blank.");
+            console.log("Username blank");
+        }
     });
     $('#username_clear').on('click', function () {
         localStorage.removeItem('username');

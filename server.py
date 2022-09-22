@@ -77,10 +77,6 @@ def game():
     return render_template('game.html')
 
 
-# @app.route('/game/<game_id>')
-# def join_game(game_id):
-#     return render_template('game.html')
-
 @socketio.on('connect')
 def connect(auth):
     emit('my response', {'data': 'Connected'})
@@ -128,22 +124,21 @@ def update_game(game_updates, game_id):
     if (game_id in Games) and Games[game_id].admin == 'all':
         Games[game_id].update_state_json(game_updates)
 
-
 @socketio.on('get_game_state')
-def update_game(game_id):
-    if (game_id in Games) and Games[game_id].admin == 'all':
-        # emit('game_state', jsonify({game_id: Games[game_id].get_state()}))
-        emit('game_state', jsonify({game_id: 'started'}))
-
+def game_status(game_id):
+    socketio.emit('game_state', Games[game_id].get_state())
 
 @socketio.on('game_start')
 def start_game(game_id):
     Games[game_id].start()
-    socketio.emit('game_state', Games[game_id].get_state())
+
+@socketio.on('game_pause')
+def start_game(game_id):
     Games[game_id].pause()
-    socketio.emit('game_state', Games[game_id].get_state())
-    Games[game_id].finish()
-    socketio.emit('game_state', Games[game_id].get_state())
+
+@socketio.on('game_reset')
+def start_game(game_id):
+    Games[game_id].reset()
 
 
 if __name__ == '__main__':

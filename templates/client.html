@@ -18,17 +18,7 @@
     <button type="submit" id="clear">Clear username</button>
     <button type="submit" id="proper_noun" disabled>Is it a proper noun?</button>
 
-    <script src="../static/js/jquery-3.6.0.min.js"></script>
-    <script src="../static/js/socket.io.js"></script>
     <script>
-        let chat = document.getElementById('chat');
-        let inp_message = document.getElementById('inp_message');
-        let send = document.getElementById('send');
-        let username = document.getElementById('username');
-        let user_clear = document.getElementById('clear');
-        let btn_connect = document.getElementById('connect');
-        let btn_disconnect = document.getElementById('disconnect');
-        let proper_noun = document.getElementById('proper_noun');
         proper_noun.disabled = true
         if (localStorage.getItem("username") != null) {
             username.defaultValue = localStorage.getItem("username");

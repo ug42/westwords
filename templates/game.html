@@ -6,16 +6,20 @@
 </head>
 
 <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <div id="game">Not a test game board</div>
     <textarea id="game_status" style="width:150px; height:50px;"></textarea>
-    <textarea id="game_timer">5:00</textarea>
+    <div id="game_timer">5:00</div>
     <p>Username: <input type="text" id="username"><button id="username_change">Change username</button></p>
     <p><button id="username_clear">Clear username</button></p>
     <p><button id="game_start">Start game</button></p>
     <p><button id="game_pause" disabled>Pause game</button></p>
-    <p><button type="submit" id="game_reset">Reset game</button></p>
-    <p>Question: <input type="text" id="question"><button id="question_submit">Submit question</button></p>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <p><button id="game_reset">Reset game</button></p>
+    <p><button id="get_game_state">Get game state</button></p>
+    <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
+    <p>Question: <input type="text" id="question"><button id="question_submit">
+        Submit question</button></p>
 </body>
