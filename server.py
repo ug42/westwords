@@ -1,12 +1,15 @@
 from datetime import datetime
 import enum
 from telnetlib import GA
-from flask import Flask, render_template, request, jsonify, make_response
+from flask import Flask, render_template, request, jsonify, make_response, session
 from flask_socketio import SocketIO, emit
+from flask_session import Session
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+app.config['SESSION_TYPE'] = 'filesystem'
 app.config['DEBUG'] = True
+Session(app)
 socketio = SocketIO(app)
 
 
