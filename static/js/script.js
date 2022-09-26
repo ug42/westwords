@@ -11,16 +11,6 @@ $(document).ready(function () {
     let game_pause_btn = document.getElementById('game_pause');
     let game_reset_btn = document.getElementById('game_reset');
 
-    // if (localStorage.getItem("username") == null |
-    //     localStorage.getItem("username") == "") {
-    //     let default_username = 'Not_a_wolf_' + Math.floor(Math.random() * 10000 % 9999);
-    //     username.defaultValue = default_username;
-    //     localStorage.setItem('username', default_username);
-    //     localStorage.setItem('role', 'spectator');
-    // } else {
-    //     username.defaultValue = localStorage.getItem("username");
-    // }
-    // var user = username.value;
     var local_game_state = {};
     var default_game_state = { 'game_state': 'SETUP', 'players': [], 'time': 300 };
 
@@ -101,18 +91,9 @@ function parse_game_state(game_state) {
         reset_game_timer(default_game_state)
         $('#game_timer').timer('start')
     }
-
 }
-// $('#username_change').on('click', function () {
-//     if (username.value != "") {
-//         localStorage.setItem("username", username.value);
-//     } else {
-//         alert("Username can not be blank.");
-//         console.log("Username blank");
-//     }
-// });
-// $('#username_clear').on('click', function () {
-//     localStorage.removeItem('username');
-//     username.value = "";
+// TODO: make this so it puts the most recent question at the top...
+// socket.on('returndata', function (data) {
+//     chat.innerHTML = "<pre>" + data + "</pre>" + chat.innerHTML;
 // });
 });

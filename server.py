@@ -86,6 +86,7 @@ def game():
         print('Requesting / URL')
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+        return redirect('/login')
     if 'players' not in session:
         session['players'] = Games['defaultgame'].players
     return render_template('game.html')
@@ -101,6 +102,10 @@ def username():
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
     return redirect('/')
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
 
 
 @socketio.on('connect')

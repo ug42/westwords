@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Enter a username</title>
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <form action="/username" method="POST">
+        <p>Enter a username: <input id="username" name="username" value="{{ session.username }}">
+            <button type="submit" id="username_change">Submit</button>
+        </p>
+    </form>
+</body>
+
+</html>
