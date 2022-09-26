@@ -103,11 +103,21 @@ def username():
         session['username'] = request.form.get('username')
     return redirect('/')
 
+
 @app.route('/login')
 def login():
     return render_template('login.html')
 
 
+@app.route('/logout')
+def login():
+    response = make_response(render_template('logout.html'))
+    response.set_cookie(app.session_cookie_name, expires=0)
+    session.clear()
+    return response
+
+
+# Socket control functions
 @socketio.on('connect')
 def connect(auth):
     emit('my response', {'data': 'Connected'})
