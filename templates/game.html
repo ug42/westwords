@@ -3,6 +3,63 @@
 
 <head>
     <title>Social Words</title>
+    <style>
+        body {
+            font-family: "Lato", sans-serif;
+        }
+
+        .sidenav {
+            display: none;
+            height: 100%;
+            width: 250px;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            background-color: #111;
+            overflow-x: hidden;
+            padding-top: 60px;
+        }
+
+        .sidenav div {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+        }
+
+        .sidenav a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+        }
+
+        .sidenav a:hover {
+            color: #f1f1f1;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+
+        @media screen and (max-height: 450px) {
+            .sidenav {
+                padding-top: 15px;
+            }
+
+            .sidenav a {
+                font-size: 18px;
+            }
+        }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
@@ -16,13 +73,33 @@
     <div id="game">Not a test game board</div>
     <textarea id="game_status" style="width:150px; height:50px;"></textarea>
     <div id="game_timer"></div>
-    <p>Username: <input type="text" id="username"><button id="username_change">Change username</button></p>
-    <p><button id="username_clear">Clear username</button></p>
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <div>Username: {{ session.username }}</div>
+        <form action="/username" method="POST">
+            Username: <input type="text" name="username" id="username">
+            <button type="submit" id="username_change">Change username</button>
+         </form>
+        <a href="#">Players</a>
+        <div>{{ session.players }}</div>
+    </div>
+
+
+    <span style="font-size:30px;cursor:pointer" onclick="openNav()">&#9776; Settings</span>
+    <script>
+        function openNav() {
+            document.getElementById("mySidenav").style.display = "block";
+        }
+
+        function closeNav() {
+            document.getElementById("mySidenav").style.display = "none";
+        }
+    </script>
     <p><button id="game_start">Start game</button></p>
     <p><button id="game_pause" disabled>Pause game</button></p>
     <p><button id="game_reset">Reset game</button></p>
     <p><button id="get_game_state">Get game state</button></p>
     <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
     <p>Question: <input type="text" id="question"><button id="question_submit">
-        Submit question</button></p>
+            Submit question</button></p>
 </body>

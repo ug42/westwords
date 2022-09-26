@@ -11,16 +11,16 @@ $(document).ready(function () {
     let game_pause_btn = document.getElementById('game_pause');
     let game_reset_btn = document.getElementById('game_reset');
 
-    if (localStorage.getItem("username") == null |
-        localStorage.getItem("username") == "") {
-        let default_username = 'Not_a_wolf_' + Math.floor(Math.random() * 10000 % 9999);
-        username.defaultValue = default_username;
-        localStorage.setItem('username', default_username);
-        localStorage.setItem('role', 'spectator');
-    } else {
-        username.defaultValue = localStorage.getItem("username");
-    }
-    var user = username.value;
+    // if (localStorage.getItem("username") == null |
+    //     localStorage.getItem("username") == "") {
+    //     let default_username = 'Not_a_wolf_' + Math.floor(Math.random() * 10000 % 9999);
+    //     username.defaultValue = default_username;
+    //     localStorage.setItem('username', default_username);
+    //     localStorage.setItem('role', 'spectator');
+    // } else {
+    //     username.defaultValue = localStorage.getItem("username");
+    // }
+    // var user = username.value;
     var local_game_state = {};
     var default_game_state = { 'game_state': 'SETUP', 'players': [], 'time': 300 };
 
@@ -38,18 +38,6 @@ $(document).ready(function () {
         timer.addEventListener('targetAchieved', function (e) {
             $('#game_timer').html('KABOOM!!');
         });
-        // var timer = new easytimer.Timer({
-        //     countdown: true,
-        //     startValues: { seconds: seconds }
-        // });
-        // $('#game_timer').timer({
-        //     seconds: seconds,
-        //     countdown: true,
-        //     callback: function () {
-        //         console.log('Timer completed locally.');
-        //     },
-        // });
-        // $('#game_timer').timer('pause');
     }
 
 socket.on('connect', function () {
@@ -115,16 +103,16 @@ function parse_game_state(game_state) {
     }
 
 }
-$('#username_change').on('click', function () {
-    if (username.value != "") {
-        localStorage.setItem("username", username.value);
-    } else {
-        alert("Username can not be blank.");
-        console.log("Username blank");
-    }
-});
-$('#username_clear').on('click', function () {
-    localStorage.removeItem('username');
-    username.value = "";
-});
+// $('#username_change').on('click', function () {
+//     if (username.value != "") {
+//         localStorage.setItem("username", username.value);
+//     } else {
+//         alert("Username can not be blank.");
+//         console.log("Username blank");
+//     }
+// });
+// $('#username_clear').on('click', function () {
+//     localStorage.removeItem('username');
+//     username.value = "";
+// });
 });

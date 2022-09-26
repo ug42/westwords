@@ -1,14 +1,18 @@
 from datetime import datetime
 import enum
-from telnetlib import GA
-from flask import Flask, render_template, request, jsonify, make_response, session
+from random import randint
+from flask import Flask, render_template, request, redirect, jsonify, make_response, session
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 
+# TODO: remove or factor out so only set if flag is set.
+DEBUG = True
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['DEBUG'] = True
+if DEBUG:
+    app.config['DEBUG'] = True
+# TODO: add session key login and get rid of a ton of logic grown here
 Session(app)
 socketio = SocketIO(app)
 
@@ -71,13 +75,32 @@ class Game(object):
 
 
 Games = {
-    'defaultgame': Game(),
+    # TODO: replace with real player objects associated with session
+    'defaultgame': Game(timer=120, players=['me', 'you']),
 }
 
 
 @app.route('/')
 def game():
+    if DEBUG:
+        print('Requesting / URL')
+    if 'username' not in session:
+        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+    if 'players' not in session:
+        session['players'] = Games['defaultgame'].players
     return render_template('game.html')
+
+
+@app.route('/username', methods=['GET', 'POST'])
+def username():
+    if DEBUG and request.method == 'POST':
+        print(f'Request: {request.data}')
+        print('Requesting /username URL')
+    print('Username requested: {}'.format(request.form.get('username')))
+    if request.method == 'POST' and request.form.get('username'):
+        print(f'Username registered:{session["username"]}')
+        session['username'] = request.form.get('username')
+    return redirect('/')
 
 
 @socketio.on('connect')
