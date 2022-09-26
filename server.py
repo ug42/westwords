@@ -110,7 +110,7 @@ def login():
 
 
 @app.route('/logout')
-def login():
+def logout():
     response = make_response(render_template('logout.html'))
     response.set_cookie(app.session_cookie_name, expires=0)
     session.clear()
