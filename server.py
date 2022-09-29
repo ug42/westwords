@@ -1,8 +1,13 @@
-from datetime import datetime
 import enum
+import random
+from datetime import datetime
 from random import randint
-from flask import Flask, render_template, request, redirect, jsonify, make_response, session
+from string import ascii_uppercase
+
+from flask import (Flask, jsonify, make_response, redirect, render_template,
+                   request, session)
 from flask_socketio import SocketIO, emit
+
 from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
@@ -10,6 +15,8 @@ DEBUG = True
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
+app.config['USE_PERMANENT_SESSION'] = True
+
 if DEBUG:
     app.config['DEBUG'] = True
 # TODO: add session key login and get rid of a ton of logic grown here
@@ -73,17 +80,35 @@ class Game(object):
         # Could be used for future updates to write out to data store
         pass
 
+    def get_player_names(self):
+        return [player.name for player in self.players]
+
+    def get_player_sessions(self):
+        # TODO: determine if this is used.
+        return [player.session_id for player in self.players]
+
+
+class Player(object):
+    """Simple class for player"""
+
+    def __init__(self, name, session_id):
+        self.name = name
+        # Figure out how to emit to a given user here for transmission directly,
+        # if needed.
+        self.session_id = session_id
+
 
 Games = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=120, players=['me', 'you']),
+    'defaultgame': Game(timer=120, players=[
+        Player('Matt', 012),
+        Player('Test', 013),
+    ])
 }
 
 
 @app.route('/')
 def game():
-    if DEBUG:
-        print('Requesting / URL')
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
         return redirect('/login')
@@ -94,14 +119,26 @@ def game():
 
 @app.route('/username', methods=['GET', 'POST'])
 def username():
-    if DEBUG and request.method == 'POST':
-        print(f'Request: {request.data}')
-        print('Requesting /username URL')
-    print('Username requested: {}'.format(request.form.get('username')))
+    # if DEBUG and request.method == 'POST':
+    #     print(f'Request: {request.data}')
+    #     print('Requesting /username URL')
+    # print('Username requested: {}'.format(request.form.get('username')))
     if request.method == 'POST' and request.form.get('username'):
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
     return redirect('/')
+
+
+@app.route('/join/<game>')
+def join_game(game):
+    if game in Games:
+        Games[game].players.append(Player(session['username'], session.id))
+
+
+@app.route('/create', methods=['POST', 'GET']):
+def create_game():
+    if request.method == 'GET':
+        game_id = ''.join(random.choice(ascii_uppercase) for i in range(4))
 
 
 @app.route('/login')
@@ -165,17 +202,21 @@ def update_game(game_updates, game_id):
     if (game_id in Games) and Games[game_id].admin == 'all':
         Games[game_id].update_state_json(game_updates)
 
+
 @socketio.on('get_game_state')
 def game_status(game_id):
     socketio.emit('game_state', Games[game_id].get_state())
+
 
 @socketio.on('game_start')
 def start_game(game_id):
     Games[game_id].start()
 
+
 @socketio.on('game_pause')
 def start_game(game_id):
     Games[game_id].pause()
+
 
 @socketio.on('game_reset')
 def start_game(game_id):
