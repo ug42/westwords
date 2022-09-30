@@ -1,5 +1,6 @@
 import enum
 import random
+from uuid import uuid4
 from datetime import datetime
 from random import randint
 from string import ascii_uppercase
@@ -33,7 +34,13 @@ class GameState(enum.Enum):
 
 
 class Game(object):
-    """Simple game object for recording status of game."""
+    """Simple game object for recording status of game.
+        12 role tiles
+        36 Yes/No tokens
+        10 Maybe tokens
+        1 So Close token
+        1 Correct token
+    """
 
     def __init__(self, timer=300, players=[]):
         # TODO: Add concept of a game admin and management of users in that space
@@ -44,6 +51,15 @@ class Game(object):
         self.admin = 'all'
         # TODO: Make this to a dict so it can contain roles
         self.players = players
+        self.tokens = {
+            'yes_no': 36,
+            'maybe': 10,
+            'so_close': 1,
+            'so_far': 1,
+            # Purpose is generally unknown even by laramie.
+            'laramie': 1,
+            'correct': 1,
+        }
 
     def start(self):
         self.game_state = GameState.STARTED
@@ -91,29 +107,40 @@ class Game(object):
 class Player(object):
     """Simple class for player"""
 
-    def __init__(self, name, session_id):
+    def __init__(self, name, session_id, game_id):
         self.name = name
         # Figure out how to emit to a given user here for transmission directly,
         # if needed.
         self.session_id = session_id
+        self.game_id = game_id
 
 
 Games = {
     # TODO: replace with real player objects associated with session
     'defaultgame': Game(timer=120, players=[
-        Player('Matt', 012),
-        Player('Test', 013),
+        Player('Me', 12, 'defaultgame'),
+        Player('Test', 13, 'defaultgame'),
     ])
 }
 
 
+def verify_player_session():
+    # TODO: make this actually work and plumb in to check the session for
+    # reconnect purposes.
+    if session['player'].session_id != session.id:
+        print(f'Updating session id for {session["username"]}:  {session.id}')
+        session['player'].session_id = session.id
+
+# TODO: figure out if the socket channel and the HTTP channel share the same
+# session info
+
+# URL routing
 @app.route('/')
 def game():
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        return redirect('/login')
-    if 'players' not in session:
-        session['players'] = Games['defaultgame'].players
+    if 'player' not in session:
+        session['player'] = Games['defaultgame'].players
     return render_template('game.html')
 
 
@@ -126,19 +153,23 @@ def username():
     if request.method == 'POST' and request.form.get('username'):
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
+        if session['']
     return redirect('/')
 
 
 @app.route('/join/<game>')
 def join_game(game):
     if game in Games:
-        Games[game].players.append(Player(session['username'], session.id))
+        Games[game].players.append(Player(session['username'], session['sid']))
+    return redirect('/')
 
 
-@app.route('/create', methods=['POST', 'GET']):
+@app.route('/create', methods=['POST', 'GET'])
 def create_game():
     if request.method == 'GET':
         game_id = ''.join(random.choice(ascii_uppercase) for i in range(4))
+        Games[game_id] = Game(players=Player(session['username'], session.id))
+    return redirect('/')
 
 
 @app.route('/login')
@@ -157,15 +188,12 @@ def logout():
 # Socket control functions
 @socketio.on('connect')
 def connect(auth):
+    session['sid'] = str(uuid.uuid4())
+    session['username']
     emit('my response', {'data': 'Connected'})
     print('Client connected')
     if auth:
         print('Auth details: ' + str(auth))
-
-
-@socketio.on('disconnect')
-def disconnect():
-    print('Client disconnected')
 
 
 @socketio.on('question')
@@ -173,28 +201,11 @@ def question(json):
     print('got a question: ' + str(json))
     emit('mayor question', json, broadcast=True)
 
-# Add a jquery function that will return tableData as a JSON of the game state
-# for each connected user. Ideally with some logic to find the mayor, werewolfs,
-# seer, etc.
-# Supposedly we can then add this to js?
-# See https://stackoverflow.com/questions/61458593/how-to-pass-data-from-flask-to-javascript
-# $.getJSON(url_of_flask_script, function(tableData) {
-#     table.setData(tableData)
-#     .then(function(){
-#         //run code after table has been successfuly updated
-#     })
-#     .catch(function(error){
-#         //handle error loading data
-#     });
-# });
 
-
-@socketio.on('create_game')
-def create_game():
-    # Guaranteed to be random blah blah blah. Update this later.
-    game_id = 4
-    # encapsulate this in a JSON, maybe convert dict to JSON?
-    emit('room_data', 'blah')
+@socketio.on('answer_question')
+def answer_question(question_id):
+    if session['game'] Games and Games[session['game']]
+        if 
 
 
 @socketio.on('update_game')
