@@ -33,6 +33,24 @@ class GameState(enum.Enum):
     FINISHED = 5
 
 
+class AnswerTokens(enum.Enum):
+    YES = 1
+    NO = 2
+    MAYBE = 3
+    SO_CLOSE = 4
+    SO_FAR = 5
+    CORRECT = 6
+    LARAMIE = 7
+
+
+class Question(object):
+    """Simple question construct for named variables"""
+
+    def __init__(question_text):
+        self.question_text
+        self.answer
+
+
 class Game(object):
     """Simple game object for recording status of game.
         12 role tiles
@@ -56,16 +74,21 @@ class Game(object):
             'maybe': 10,
             'so_close': 1,
             'so_far': 1,
-            # Purpose is generally unknown even by laramie.
+            # Purpose is generally unknown even by lar.
             'laramie': 1,
             'correct': 1,
         }
+        self.mayor = None
+        self.questions = []
 
     def start(self):
         self.game_state = GameState.STARTED
 
     def pause(self):
         self.game_state = GameState.PAUSED
+
+    def start_vote(self):
+        self.game_state = GameState.VOTING
 
     def set_timer(self, time_in_seconds):
         self.timer = time_in_seconds
@@ -103,26 +126,25 @@ class Game(object):
         # TODO: determine if this is used.
         return [player.session_id for player in self.players]
 
-
+# TODO: Make all references use the SID to reference player info
 class Player(object):
     """Simple class for player"""
 
-    def __init__(self, name, session_id, game_id):
+    def __init__(self, name):
         self.name = name
-        # Figure out how to emit to a given user here for transmission directly,
-        # if needed.
-        self.session_id = session_id
-        self.game_id = game_id
+
+
+Players = {
+    # Keyed by session ID
+    '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
+    '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
+}
 
 
 Games = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=120, players=[
-        Player('Me', 12, 'defaultgame'),
-        Player('Test', 13, 'defaultgame'),
-    ])
+    'defaultgame': Game(timer=120, players=[Players])
 }
-
 
 def verify_player_session():
     # TODO: make this actually work and plumb in to check the session for
@@ -153,14 +175,15 @@ def username():
     if request.method == 'POST' and request.form.get('username'):
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
-        if session['']
+        if session['sid'] in Players:
+            Players[session['sid']].username = session['username']
     return redirect('/')
 
 
 @app.route('/join/<game>')
 def join_game(game):
     if game in Games:
-        Games[game].players.append(Player(session['username'], session['sid']))
+        Games[game].players.append(Players[session['sid']]))
     return redirect('/')
 
 
@@ -203,11 +226,38 @@ def question(json):
 
 
 @socketio.on('answer_question')
-def answer_question(question_id):
-    if session['game'] Games and Games[session['game']]
-        if 
+def answer_question(question_id, answer):
+    """Answer the question for a given game, if the user is the mayor.
+
+    Args:
+        question_id: An integer ID for the question in the game object
+        answer: A string for the answer type
+        
+        (Yes/No/Maybe/So Close/So Far/Correct)
+    """
+    if session['game'] not in Games:
+        print('Unable to find game: ' + session['game'])
+        return
+    if Games[session['game']].mayor != session['sid']:
+        print('User is not mayor!')
+        return
+    if question_id not in Games[session['game']].questions:
+        print(f'Question {question_id} not in Games construct')
+    if answer.upper() not in [token.name for token in AnswerTokens]:
+        print(f'Unknown answer type: {answer}')
+    if answer in ['yes', 'no']:
+        if Games[session['game']].tokens['yes_no'] == 1:
+            Games[session['game']].start_vote()
+    else:
+        if Games[session['game']].tokens[answer] <= 0:
+            print('Unable to apply')
+            emit('mayor_error', 'Out of tokens')
+
+    Games[session['game']].questions[question_id].answer = answer
+            
 
 
+# TODO: determine if this is needed.
 @socketio.on('update_game')
 def update_game(game_updates, game_id):
     if (game_id in Games) and Games[game_id].admin == 'all':
