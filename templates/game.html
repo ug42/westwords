@@ -27,10 +27,10 @@
             document.getElementById("mySidenav").style.display = "none";
         }
     </script>
-    <div id="game">Not a test game board</div>
+    <div id="game">Game board</div>
     <textarea id="game_status" style="width:150px; height:50px;"></textarea>
-    <div id="game_timer"></div>
-    <div id="mySidenav" class="sidenav">
+    <!-- <div id="game_timer"></div> -->
+    <nav id="mySidenav" class="sidenav">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
         <div>Username: {{ session.username }}</div>
         <form action="/username" method="POST">
@@ -39,7 +39,7 @@
          </form>
         <a href="#">Players</a>
         <div>{{ session.players }}</div>
-    </div>
+    </nav>
     <p><button id="game_start">Start game</button></p>
     <p><button id="game_pause" disabled>Pause game</button></p>
     <p><button id="game_reset">Reset game</button></p>

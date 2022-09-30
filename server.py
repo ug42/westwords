@@ -33,22 +33,29 @@ class GameState(enum.Enum):
     FINISHED = 5
 
 
-class AnswerTokens(enum.Enum):
-    YES = 1
-    NO = 2
-    MAYBE = 3
-    SO_CLOSE = 4
-    SO_FAR = 5
-    CORRECT = 6
-    LARAMIE = 7
+class AnswerToken(enum.Enum):
+    YES = "yes"
+    NO = "no"
+    MAYBE = "maybe"
+    SO_CLOSE = "so_close"
+    SO_FAR = "so_far"
+    CORRECT = "correct"
+    LARAMIE = "laramie"
 
 
 class Question(object):
     """Simple question construct for named variables"""
 
-    def __init__(question_text):
-        self.question_text
-        self.answer
+    def __init__(self, player_sid, question_text):
+        self.player_name = Players[player_sid].name
+        self.question_text = question_text
+        self.answer = ''
+
+    def __repr__(self):
+        return 'Question()'
+
+    def __str__(self):
+        return f'{self.player_name}: {self.question_text} ({self.answer})'
 
 
 class Game(object):
@@ -64,9 +71,9 @@ class Game(object):
         # TODO: Add concept of a game admin and management of users in that space
         self.game_state = GameState.SETUP
         self.timer = timer
-        self.time_start = None
+        self.time = timer
         # TODO: Plumb in user objects to this
-        self.admin = 'all'
+        self.admin = players
         # TODO: Make this to a dict so it can contain roles
         self.players = players
         self.tokens = {
@@ -79,7 +86,22 @@ class Game(object):
             'correct': 1,
         }
         self.mayor = None
-        self.questions = []
+        self.questions = {}
+
+    def __repr__(self):
+        return f'Game({self.timer}, {self.players})'
+
+    def __str__(self):
+        return ('Game with state: {game_state}\n'
+                'Timer: {timer}\n'
+                'Time left: {time}\n'
+                'Questions:\n{questions}\n'
+                'Players: {players}').format(
+                    game_state=self.game_state,
+                    timer=self.timer,
+                    time=self.time,
+                    questions=self.get_questions(),
+                    players=self.get_player_names())
 
     def start(self):
         self.game_state = GameState.STARTED
@@ -107,31 +129,39 @@ class Game(object):
     def get_state(self):
         game_status = {
             'game_state': self.game_state.name,
-            'players': self.players,
+            'players': self.get_player_names(),
             'time': self.timer,
+            'questions': self.get_questions(),
         }
         if app.config['DEBUG'] == True:
             print(game_status)
         return game_status
 
-    def set_state(self, json):
-        # TODO: parse and set the game state based on this.
-        # Could be used for future updates to write out to data store
-        pass
+    def get_questions(self):
+        return [f'{id}: {str(question)}' for id, question in enumerate(self.questions)]
 
     def get_player_names(self):
-        return [player.name for player in self.players]
+        return [Players[sid].name for sid in self.players]
 
     def get_player_sessions(self):
         # TODO: determine if this is used.
         return [player.session_id for player in self.players]
 
 # TODO: Make all references use the SID to reference player info
+
+
 class Player(object):
     """Simple class for player"""
 
-    def __init__(self, name):
+    def __init__(self, name, game=None):
         self.name = name
+        self.game = game
+
+    # def __repr__(self):
+    #     return f'Player({self.name}, {self.game})'
+
+    def __str__(self):
+        return f'Player name: {self.name}, in game id: {self.game}'
 
 
 Players = {
@@ -143,8 +173,9 @@ Players = {
 
 Games = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=120, players=[Players])
+    'defaultgame': Game(timer=120, players=Players.keys())
 }
+
 
 def verify_player_session():
     # TODO: make this actually work and plumb in to check the session for
@@ -157,12 +188,14 @@ def verify_player_session():
 # session info
 
 # URL routing
+
+
 @app.route('/')
 def game():
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-    if 'player' not in session:
-        session['player'] = Games['defaultgame'].players
+    if 'sid' not in session:
+        session['sid'] = str(uuid4())
     return render_template('game.html')
 
 
@@ -183,7 +216,8 @@ def username():
 @app.route('/join/<game>')
 def join_game(game):
     if game in Games:
-        Games[game].players.append(Players[session['sid']]))
+        Games[game].players.append(Players[session['sid']])
+        Players[session['sid']].game = game
     return redirect('/')
 
 
@@ -191,7 +225,7 @@ def join_game(game):
 def create_game():
     if request.method == 'GET':
         game_id = ''.join(random.choice(ascii_uppercase) for i in range(4))
-        Games[game_id] = Game(players=Player(session['username'], session.id))
+        Games[game_id] = Game(players=[session['id']])
     return redirect('/')
 
 
@@ -211,18 +245,22 @@ def logout():
 # Socket control functions
 @socketio.on('connect')
 def connect(auth):
-    session['sid'] = str(uuid.uuid4())
-    session['username']
-    emit('my response', {'data': 'Connected'})
+    print(session)
+    if session['sid'] not in Players:
+        Players[session['sid']] = Player(session['username'])
+    # emit('my response', {'data': 'Connected'})
     print('Client connected')
     if auth:
         print('Auth details: ' + str(auth))
 
 
 @socketio.on('question')
-def question(json):
-    print('got a question: ' + str(json))
-    emit('mayor question', json, broadcast=True)
+def question(question_text):
+    print(f'got a question: {question_text}')
+    print(str(Players[session['sid']]))
+    print('Session: ' + session['sid'])
+    if Players[session['sid']].game in Games:
+        Games[game].questions.append(Question(session['sid'], question_text))
 
 
 @socketio.on('answer_question')
@@ -232,7 +270,7 @@ def answer_question(question_id, answer):
     Args:
         question_id: An integer ID for the question in the game object
         answer: A string for the answer type
-        
+
         (Yes/No/Maybe/So Close/So Far/Correct)
     """
     if session['game'] not in Games:
@@ -243,7 +281,7 @@ def answer_question(question_id, answer):
         return
     if question_id not in Games[session['game']].questions:
         print(f'Question {question_id} not in Games construct')
-    if answer.upper() not in [token.name for token in AnswerTokens]:
+    if answer.upper() not in [token.name for token in AnswerToken]:
         print(f'Unknown answer type: {answer}')
     if answer in ['yes', 'no']:
         if Games[session['game']].tokens['yes_no'] == 1:
@@ -254,33 +292,41 @@ def answer_question(question_id, answer):
             emit('mayor_error', 'Out of tokens')
 
     Games[session['game']].questions[question_id].answer = answer
-            
 
 
-# TODO: determine if this is needed.
-@socketio.on('update_game')
-def update_game(game_updates, game_id):
-    if (game_id in Games) and Games[game_id].admin == 'all':
-        Games[game_id].update_state_json(game_updates)
+# # TODO: determine if this is needed.
+# @socketio.on('update_game')
+# def update_game(game_updates, game_id):
+#     if (game_id in Games) and Games[game_id].admin == 'all':
+#         Games[game_id].update_state_json(game_updates)
 
 
 @socketio.on('get_game_state')
 def game_status(game_id):
+    response = app.response_class(response=jsonify(Games[game_id].get_state()),
+                                  status=200,
+                                  mimetype='application/json')
     socketio.emit('game_state', Games[game_id].get_state())
+
+# TODO: implement all the scenarios around this
+# Timer functions
 
 
 @socketio.on('game_start')
 def start_game(game_id):
+    print('Starting timer')
     Games[game_id].start()
 
 
 @socketio.on('game_pause')
 def start_game(game_id):
+    print('Pausing timer')
     Games[game_id].pause()
 
 
 @socketio.on('game_reset')
 def start_game(game_id):
+    print('Resetting game')
     Games[game_id].reset()
 
 
