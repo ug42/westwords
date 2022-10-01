@@ -43,6 +43,9 @@ $(document).ready(function () {
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
     });
+    socket.on('disconnect', function () {
+        console.log('Socket disconnected.');
+    });
     socket.on('game_state', function (game_state) {
         local_game_state = game_state;
         $('#game_status').html(print_game_state_html());
