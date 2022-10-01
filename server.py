@@ -12,7 +12,7 @@ from flask_socketio import SocketIO, emit
 from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
-DEBUG = True
+DEBUG = False
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
