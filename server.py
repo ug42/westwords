@@ -12,7 +12,7 @@ from flask_socketio import SocketIO, emit
 from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
-DEBUG = False
+DEBUG = True
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -133,8 +133,8 @@ class Game(object):
             'time': self.timer,
             'questions': self.get_questions(),
         }
-        if app.config['DEBUG'] == True:
-            print(game_status)
+        if app.config['DEBUG']:
+            print(f'DEBUG ENABLED! Current game state: {game_status}')
         return game_status
 
     def get_questions(self):
@@ -237,7 +237,7 @@ def login():
 @app.route('/logout')
 def logout():
     response = make_response(render_template('logout.html'))
-    response.set_cookie(app.session_cookie_name, expires=0)
+    response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
     session.clear()
     return response
 
@@ -245,7 +245,8 @@ def logout():
 # Socket control functions
 @socketio.on('connect')
 def connect(auth):
-    print(session)
+    if app.config['DEBUG']:
+        print(session)
     if session['sid'] not in Players:
         Players[session['sid']] = Player(session['username'])
     # emit('my response', {'data': 'Connected'})
