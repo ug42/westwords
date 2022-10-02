@@ -1,7 +1,6 @@
 import enum
 import random
 from uuid import uuid4
-from datetime import datetime
 from random import randint
 from string import ascii_uppercase
 
@@ -47,7 +46,7 @@ class Question(object):
     """Simple question construct for named variables"""
 
     def __init__(self, player_sid, question_text):
-        self.player_name = Players[player_sid].name
+        self.player_name = PLAYERS[player_sid].name
         self.question_text = question_text
         self.answer = ''
 
@@ -67,15 +66,15 @@ class Game(object):
         1 Correct token
     """
 
-    def __init__(self, timer=300, players=[]):
+    def __init__(self, timer=300, player_sids=[], admin=None):
         # TODO: Add concept of a game admin and management of users in that space
         self.game_state = GameState.SETUP
         self.timer = timer
         self.time = timer
         # TODO: Plumb in user objects to this
-        self.admin = players
+        self.admin = admin
         # TODO: Make this to a dict so it can contain roles
-        self.players = players
+        self.player_sids = player_sids
         self.tokens = {
             'yes_no': 36,
             'maybe': 10,
@@ -86,10 +85,10 @@ class Game(object):
             'correct': 1,
         }
         self.mayor = None
-        self.questions = {}
+        self.questions = []
 
     def __repr__(self):
-        return f'Game({self.timer}, {self.players})'
+        return f'Game({self.timer}, {self.player_sids})'
 
     def __str__(self):
         return ('Game with state: {game_state}\n'
@@ -141,11 +140,11 @@ class Game(object):
         return [f'{id}: {str(question)}' for id, question in enumerate(self.questions)]
 
     def get_player_names(self):
-        return [Players[sid].name for sid in self.players]
+        return [PLAYERS[sid].name for sid in self.player_sids]
 
     def get_player_sessions(self):
         # TODO: determine if this is used.
-        return [player.session_id for player in self.players]
+        return self.player_sids
 
 # TODO: Make all references use the SID to reference player info
 
@@ -156,6 +155,23 @@ class Player(object):
     def __init__(self, name, game=None):
         self.name = name
         self.game = game
+        self.tokens = {
+            "yes": 0,
+            "no": 0,            
+            "maybe": 0,
+            "so_close": 0,
+            "so_far": 0,
+            "correct": 0,
+            "laramie": 0,
+            # AnswerToken.CORRECT: 0,
+            # AnswerToken.YES: 0,
+            # AnswerToken.NO: 0,
+            # AnswerToken.MAYBE: 0,
+            # AnswerToken.SO_CLOSE: 0,
+            # AnswerToken.SO_FAR: 0,
+            # AnswerToken.CORRECT: 0,
+            # AnswerToken.LARAMIE: 0,
+        }
 
     # def __repr__(self):
     #     return f'Player({self.name}, {self.game})'
@@ -164,32 +180,30 @@ class Player(object):
         return f'Player name: {self.name}, in game id: {self.game}'
 
 
-Players = {
+PLAYERS = {
     # Keyed by session ID
     '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
     '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
 }
 
 
-Games = {
+GAMES = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=120, players=Players.keys())
+    'defaultgame': Game(timer=120, player_sids=PLAYERS.keys())
 }
 
+GAMES['defaultgame'].questions
 
 def verify_player_session():
-    # TODO: make this actually work and plumb in to check the session for
-    # reconnect purposes.
-    if session['player'].session_id != session.id:
-        print(f'Updating session id for {session["username"]}:  {session.id}')
-        session['player'].session_id = session.id
-
-# TODO: figure out if the socket channel and the HTTP channel share the same
-# session info
+    # If we manage to get someone modifying the cookie without being connected
+    # for some reason, let's sync up.
+    if session['sid'] in PLAYERS:
+        if session['name'] != PLAYERS[session['sid']].name:
+            print('Player name out-of-date: {} / {}'.format(
+                session['username'], session['sid']))
+        PLAYERS['sid'].name = session['name']
 
 # URL routing
-
-
 @app.route('/')
 def game():
     if 'username' not in session:
@@ -199,25 +213,22 @@ def game():
     return render_template('game.html')
 
 
-@app.route('/username', methods=['GET', 'POST'])
+@app.route('/username', methods=['POST'])
 def username():
-    # if DEBUG and request.method == 'POST':
-    #     print(f'Request: {request.data}')
-    #     print('Requesting /username URL')
-    # print('Username requested: {}'.format(request.form.get('username')))
     if request.method == 'POST' and request.form.get('username'):
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
-        if session['sid'] in Players:
-            Players[session['sid']].username = session['username']
+        if session['sid'] in PLAYERS:
+            PLAYERS[session['sid']].username = session['username']
     return redirect('/')
 
 
 @app.route('/join/<game>')
 def join_game(game):
-    if game in Games:
-        Games[game].players.append(Players[session['sid']])
-        Players[session['sid']].game = game
+    if game in GAMES:
+        if session['sid'] not in GAMES[game].player_sids:
+          GAMES[game].player_sids.append(PLAYERS[session['sid']])
+        PLAYERS[session['sid']].game = game
     return redirect('/')
 
 
@@ -225,7 +236,7 @@ def join_game(game):
 def create_game():
     if request.method == 'GET':
         game_id = ''.join(random.choice(ascii_uppercase) for i in range(4))
-        Games[game_id] = Game(players=[session['id']])
+        GAMES[game_id] = Game(player_sids=[session['id']])
     return redirect('/')
 
 
@@ -247,8 +258,8 @@ def logout():
 def connect(auth):
     if app.config['DEBUG']:
         print(session)
-    if session['sid'] not in Players:
-        Players[session['sid']] = Player(session['username'])
+    if session['sid'] not in PLAYERS:
+        PLAYERS[session['sid']] = Player(session['username'])
     # emit('my response', {'data': 'Connected'})
     print('Client connected')
     if auth:
@@ -257,11 +268,13 @@ def connect(auth):
 
 @socketio.on('question')
 def question(question_text):
+    game = PLAYERS[session['sid']].game
+    question = Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
-    print(str(Players[session['sid']]))
+    print(str(game))
     print('Session: ' + session['sid'])
-    if Players[session['sid']].game in Games:
-        Games[game].questions.append(Question(session['sid'], question_text))
+    if game in GAMES:
+        GAMES[game].questions.append(question)
 
 
 @socketio.on('answer_question')
@@ -274,40 +287,39 @@ def answer_question(question_id, answer):
 
         (Yes/No/Maybe/So Close/So Far/Correct)
     """
-    if session['game'] not in Games:
+    if session['sid'] in PLAYERS:
+        game = PLAYERS[session['sid']].game
+    if PLAYERS[session['sid']].game not in GAMES:
         print('Unable to find game: ' + session['game'])
         return
-    if Games[session['game']].mayor != session['sid']:
+    if GAMES[session['game']].mayor != session['sid']:
         print('User is not mayor!')
         return
-    if question_id not in Games[session['game']].questions:
-        print(f'Question {question_id} not in Games construct')
+    if question_id not in GAMES[session['game']].questions:
+        print(f'Question {question_id} not in GAMES construct')
     if answer.upper() not in [token.name for token in AnswerToken]:
         print(f'Unknown answer type: {answer}')
     if answer in ['yes', 'no']:
-        if Games[session['game']].tokens['yes_no'] == 1:
-            Games[session['game']].start_vote()
+        if GAMES[session['game']].tokens['yes_no'] == 1:
+            GAMES[session['game']].start_vote()
     else:
-        if Games[session['game']].tokens[answer] <= 0:
+        if GAMES[session['game']].tokens[answer] <= 0:
             print('Unable to apply')
             emit('mayor_error', 'Out of tokens')
 
-    Games[session['game']].questions[question_id].answer = answer
+    # Question ID is basically just the index offset starting at 0
+    GAMES[session['game']].questions[question_id].answer = answer
 
+    # TODO: add the accounting back to the player
 
-# # TODO: determine if this is needed.
-# @socketio.on('update_game')
-# def update_game(game_updates, game_id):
-#     if (game_id in Games) and Games[game_id].admin == 'all':
-#         Games[game_id].update_state_json(game_updates)
 
 
 @socketio.on('get_game_state')
 def game_status(game_id):
-    response = app.response_class(response=jsonify(Games[game_id].get_state()),
+    response = app.response_class(response=jsonify(GAMES[game_id].get_state()),
                                   status=200,
                                   mimetype='application/json')
-    socketio.emit('game_state', Games[game_id].get_state())
+    socketio.emit('game_state', GAMES[game_id].get_state())
 
 # TODO: implement all the scenarios around this
 # Timer functions
@@ -316,19 +328,19 @@ def game_status(game_id):
 @socketio.on('game_start')
 def start_game(game_id):
     print('Starting timer')
-    Games[game_id].start()
+    GAMES[game_id].start()
 
 
 @socketio.on('game_pause')
 def start_game(game_id):
     print('Pausing timer')
-    Games[game_id].pause()
+    GAMES[game_id].pause()
 
 
 @socketio.on('game_reset')
 def start_game(game_id):
     print('Resetting game')
-    Games[game_id].reset()
+    GAMES[game_id].reset()
 
 
 if __name__ == '__main__':
