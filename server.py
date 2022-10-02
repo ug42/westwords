@@ -1,4 +1,4 @@
-import enum
+from enum import Enum
 import random
 from uuid import uuid4
 from random import randint
@@ -24,7 +24,7 @@ Session(app)
 socketio = SocketIO(app)
 
 
-class GameState(enum.Enum):
+class GameState(Enum):
     SETUP = 1
     STARTED = 2
     PAUSED = 3
@@ -32,7 +32,7 @@ class GameState(enum.Enum):
     FINISHED = 5
 
 
-class AnswerToken(enum.Enum):
+class AnswerToken(Enum):
     # Provides canonical tokens and mapping to buckets
     YES = "yes_no"
     NO = "yes_no"
@@ -60,7 +60,7 @@ class Question(object):
 
 class Game(object):
     """Simple game object for recording status of game.
-        12 role tiles
+        12 roles
         36 Yes/No tokens
         10 Maybe tokens
         1 So Close token
@@ -76,6 +76,7 @@ class Game(object):
         self.admin = admin
         # TODO: Make this to a dict so it can contain roles
         self.player_sids = player_sids
+        # TODO: Move this to use the AnswerToken Enum and update remove_token()
         self.tokens = {
             'yes_no': 36,
             'maybe': 10,
@@ -85,6 +86,9 @@ class Game(object):
             'laramie': 1,
             'correct': 1,
         }
+        # TODO: Make the reset function reset the token count or make the Enum
+        # value associated with AnswerToken count up to limits rather than
+        # counting down in tokens
         self.mayor = None
         self.questions = []
 
@@ -122,10 +126,6 @@ class Game(object):
         if self.game_state is not GameState.STARTED:
             self.game_state = GameState.SETUP
 
-    def update_state(self, json):
-        # TODO: Update to parse a json
-        pass
-
     def get_state(self):
         game_status = {
             'game_state': self.game_state.name,
@@ -143,9 +143,8 @@ class Game(object):
     def get_player_names(self):
         return [PLAYERS[sid].name for sid in self.player_sids]
 
-    def get_player_sessions(self):
-        # TODO: determine if this is used.
-        return self.player_sids
+    def remove_token(self, token):
+        self.tokens[token.value] -= 1
 
 # TODO: Make all references use the SID to reference player info
 
@@ -302,7 +301,7 @@ def answer_question(question_id, answer):
     if answer.upper() not in [token.name for token in AnswerToken]:
         print(f'Unknown answer type: {answer}')
     answer_token = AnswerToken[answer.upper()]
-    if answer_token.value is 'yes_no' and GAMES[game].tokens['yes_no'] == 1:
+    if answer_token.value == 'yes_no' and GAMES[game].tokens['yes_no'] == 1:
         GAMES[game].start_vote()
     if GAMES[game].tokens[answer_token.value] <= 0:
         print(f'Unable to apply {answer_token}')
@@ -310,11 +309,9 @@ def answer_question(question_id, answer):
 
     # Question ID is basically just the index offset starting at 0
     GAMES[game].questions[question_id].answer = answer_token
-
-    # TODO: add the accounting back to the player
     asking_player = GAMES[game].questions[question_id].player_sid
     PLAYERS[asking_player].add_token(answer_token)
-
+    GAMES[game].remove_token(answer_token)
 
 
 @socketio.on('get_game_state')
