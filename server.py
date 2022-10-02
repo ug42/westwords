@@ -33,8 +33,9 @@ class GameState(enum.Enum):
 
 
 class AnswerToken(enum.Enum):
-    YES = "yes"
-    NO = "no"
+    # Provides canonical tokens and mapping to buckets
+    YES = "yes_no"
+    NO = "yes_no"
     MAYBE = "maybe"
     SO_CLOSE = "so_close"
     SO_FAR = "so_far"
@@ -46,15 +47,15 @@ class Question(object):
     """Simple question construct for named variables"""
 
     def __init__(self, player_sid, question_text):
-        self.player_name = PLAYERS[player_sid].name
+        self.player_sid = player_sid
         self.question_text = question_text
         self.answer = ''
 
     def __repr__(self):
-        return 'Question()'
+        return f'Question({self.player_sid}, {self.question_text})'
 
     def __str__(self):
-        return f'{self.player_name}: {self.question_text} ({self.answer})'
+        return f'{PLAYERS[self.player_name].name}: {self.question_text} ({self.answer})'
 
 
 class Game(object):
@@ -156,21 +157,14 @@ class Player(object):
         self.name = name
         self.game = game
         self.tokens = {
-            "yes": 0,
-            "no": 0,            
-            "maybe": 0,
-            "so_close": 0,
-            "so_far": 0,
-            "correct": 0,
-            "laramie": 0,
-            # AnswerToken.CORRECT: 0,
-            # AnswerToken.YES: 0,
-            # AnswerToken.NO: 0,
-            # AnswerToken.MAYBE: 0,
-            # AnswerToken.SO_CLOSE: 0,
-            # AnswerToken.SO_FAR: 0,
-            # AnswerToken.CORRECT: 0,
-            # AnswerToken.LARAMIE: 0,
+            AnswerToken.CORRECT: 0,
+            AnswerToken.YES: 0,
+            AnswerToken.NO: 0,
+            AnswerToken.MAYBE: 0,
+            AnswerToken.SO_CLOSE: 0,
+            AnswerToken.SO_FAR: 0,
+            AnswerToken.CORRECT: 0,
+            AnswerToken.LARAMIE: 0,
         }
 
     # def __repr__(self):
@@ -179,6 +173,9 @@ class Player(object):
     def __str__(self):
         return f'Player name: {self.name}, in game id: {self.game}'
 
+    def add_token(self, token):
+        # Add a token of a given enum value to this player's total
+        self.tokens[token] += 1
 
 PLAYERS = {
     # Keyed by session ID
@@ -287,30 +284,36 @@ def answer_question(question_id, answer):
 
         (Yes/No/Maybe/So Close/So Far/Correct)
     """
-    if session['sid'] in PLAYERS:
-        game = PLAYERS[session['sid']].game
+    if session['sid'] not in PLAYERS:
+        print('No player found for session: ' + session['sid'])
+    
+    game = PLAYERS[session['sid']].game
     if PLAYERS[session['sid']].game not in GAMES:
-        print('Unable to find game: ' + session['game'])
+        print('Unable to find game: ' + game)
         return
-    if GAMES[session['game']].mayor != session['sid']:
+    
+    if GAMES[game].mayor != session['sid']:
         print('User is not mayor!')
         return
-    if question_id not in GAMES[session['game']].questions:
-        print(f'Question {question_id} not in GAMES construct')
+    
+    if question_id not in GAMES[game].questions:
+        print(f'Question {question_id} not in game.' + GAMES[game].get_state())
+
     if answer.upper() not in [token.name for token in AnswerToken]:
         print(f'Unknown answer type: {answer}')
-    if answer in ['yes', 'no']:
-        if GAMES[session['game']].tokens['yes_no'] == 1:
-            GAMES[session['game']].start_vote()
-    else:
-        if GAMES[session['game']].tokens[answer] <= 0:
-            print('Unable to apply')
-            emit('mayor_error', 'Out of tokens')
+    answer_token = AnswerToken[answer.upper()]
+    if answer_token.value is 'yes_no' and GAMES[game].tokens['yes_no'] == 1:
+        GAMES[game].start_vote()
+    if GAMES[game].tokens[answer_token.value] <= 0:
+        print(f'Unable to apply {answer_token}')
+        emit('mayor_error', f'No "{answer}" tokens remaining.')
 
     # Question ID is basically just the index offset starting at 0
-    GAMES[session['game']].questions[question_id].answer = answer
+    GAMES[game].questions[question_id].answer = answer_token
 
     # TODO: add the accounting back to the player
+    asking_player = GAMES[game].questions[question_id].player_sid
+    PLAYERS[asking_player].add_token(answer_token)
 
 
 
