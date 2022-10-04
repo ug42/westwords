@@ -2,50 +2,61 @@
 <html lang="en">
 
 <head>
-    <title>Social Words</title>
-    <link rel="stylesheet" type="text/css" href="static/css/style.css"></link>
+    <title>WestWords</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    </link>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
 
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/timer.jquery/0.7.0/timer.jquery.js"></script> -->
     <script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
     <!-- <script src="{{ url_for('static', filename='js/jquery.countdown.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <!-- &#9776; is like the hamburger menu... -->
-    <span style="font-size:30px;cursor:pointer" onclick="openNav()">&#9776;</span>
-    <script>
-        function openNav() {
-            document.getElementById("mySidenav").style.display = "block";
-        }
+    <div class="header"></div>
 
-        function closeNav() {
-            document.getElementById("mySidenav").style.display = "none";
-        }
-    </script>
-    <div id="game">Game board</div>
-    <textarea id="game_status" style="width:150px; height:50px;"></textarea>
-    <!-- <div id="game_timer"></div> -->
-    <nav id="mySidenav" class="sidenav">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-        <div>Username: {{ session.username }}</div>
-        <form action="/username" method="POST">
-            Username: <input type="text" name="username" id="username">
-            <button type="submit" id="username_change">Change username</button>
-         </form>
-        <a href="#">Players</a>
-        <div>{{ session.players }}</div>
-    </nav>
-    <p><a href="/join/defaultgame">Join default game</a></p>
-    <p><button id="game_start">Start game</button></p>
-    <p><button id="game_pause" disabled>Pause game</button></p>
-    <p><button id="game_reset">Reset game</button></p>
-    <p><button id="get_game_state">Get game state</button></p>
-    <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
-    <p>Question: <input type="text" id="question"><button id="question_submit">
-            Submit question</button></p>
+    <div id="sidebarContainer">
+        <input type="checkbox" class="openSideMenu" id="openSideMenu">
+
+        <label for="openSideMenu" class="sideIconToggle">
+            <div class="spinner diagonal part-1"></div>
+            <div class="spinner horizontal"></div>
+            <div class="spinner diagonal part-2"></div>
+        </label>
+
+        <div id="sideMenu">
+            <ul class="sideMenuInner">
+                <div>Username: {{ session.username }}</div>
+                <form action="/username" method="POST">
+                    Username: <input type="text" name="username" id="username">
+                    <li onclick="hideSidebar()"><a href="#" data-toggle="tab" id="username_change">Change username</a>
+                    </li>
+                </form>
+                <!-- TODO: build player list
+                     Players
+                <div>{{ session.players }}</div> -->
+                <li class="active" onclick="hideSidebar()"><a href="#" data-toggle="tab">Item1</a></li>
+                <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item2</a></li>
+                <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item3</a></li>
+            </ul>
+        </div>
+    </div>
+    <!-- </nav> -->
+    <div class="main">
+        <div id="game">Game board</div>
+        <textarea id="game_status" style="width:150px; height:50px;"></textarea>
+        <p><div id="game_timer"></div></
+        <p><a href="/join/defaultgame">Join default game</a></p>
+        <p><button id="game_start">Start game</button></p>
+        <p><button id="game_pause" disabled>Pause game</button></p>
+        <p><button id="game_reset">Reset game</button></p>
+        <p><button id="get_game_state">Get game state</button></p>
+        <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
+        <p>Question: <input type="text" id="question"><button id="question_submit">
+                Submit question</button></p>
+    </div>
 </body>
