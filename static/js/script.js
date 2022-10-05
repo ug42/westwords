@@ -24,7 +24,8 @@ ready(function () {
     var socket = io.connect({ autoconnect: true });
     let question = document.getElementById('question');
 
-    var local_game_state = {};
+    var local_game_state;
+    var local_game_state_html;
     var default_game_state = { 'game_state': 'SETUP', 'players': [], 'time': 300 };
 
     var timer;
@@ -35,28 +36,34 @@ ready(function () {
             countdown: true,
             startValues: { seconds: default_game_state['time'] }
         });
-        game_timer.innerHtml = timer.getTimeValues().toString();
+        game_timer.innerHTML = timer.getTimeValues().toString();
         timer.addEventListener('secondsUpdated', function (e) {
-            game_timer.innerHtml = timer.getTimeValues().toString();
+            game_timer.innerHTML = timer.getTimeValues().toString();
         });
         timer.addEventListener('targetAchieved', function (e) {
-            game_timer.innerHtml = 'KABOOM!!';
+            game_timer.innerHTML = 'KABOOM!!';
         });
     }
 
     function print_game_state_html(game_state) {
-        var players = ""
-        for (var i = 0; i < game_state['players'].length; i++) {
-            players = players + '<br>' + game['players'][i];
-        };
-        var questions = ""
-        for (var i = 0; i < game_state['questions'].length; i++) {
-            questions = questions + '<br><div id="q' + i + '>' + game['questions'][i] + '</div>';
-        };
+        var players = game_state['players'].join('<br>');
+        // for (var i = 0; i < game_state['players'].length; i++) {
+        //     console.log(i);
+        //     console.log(game_state['players'][i]);
+        //     players = players + '<br>' + game['players'][i];
+        // };
+        console.log(players);
+        var questions = game_state['questions'].join('<br>');
+        console.log(questions);
+        var question_html = new Array();
+        var i = 0;
+        for (const e of game_state['questions']) {
+            question_html.push('<br><div id="q' + i + '">' + e + '</div>');
+            i++;
+        }
+        console.log(question_html.join(''));
 
-        html = '<br> Game state: ' + game_state['game_state'] + '<br> Players: ' + players + '<br> Questions: ' + questions + '<br> time left: ' + game_state['time'];
-
-        return html;
+        return '<div id="game_status" style="width:640px; height:240px;">Game state: ' + game_state['game_state'] + '<br> Players: ' + players + '<br> Questions: ' + question_html + '<br> time left: ' + game_state['time'] + '</div>';
     }
 
     socket.on('connect', function () {
@@ -65,16 +72,21 @@ ready(function () {
     socket.on('disconnect', function () {
         console.log('Socket disconnected.');
     });
-    socket.on('game_state', function (game_state) {
-        local_game_state = game_state;
-        document.getElementById('game_status').innerHtml(print_game_state_html);
-        console.log(game_state);
+    function foo(g) {
+
+    };
+    socket.on('game_state', function (g) {
+        console.log('Game state received.')
+        local_game_state = g;
+        gs = print_game_state_html(g);
+        console.log('parsed game state: ' + gs);
+        document.getElementById("game_status").innerHTML = print_game_state_html(g);
     });
     socket.on('pause', function (time) {
         reset_game_timer(time);
         console.log('Pausing timer with ' + time + ' seconds left.');
     });
-    
+
     document.getElementById('question_submit').addEventListener('click', function () {
         console.log('emitting question: ' + question.value);
         if (question.value != "") {
@@ -127,6 +139,7 @@ ready(function () {
     };
     function get_game_state() {
         socket.emit('get_game_state', 'defaultgame');
+        console.log('Game state request initiated')
     };
     function parse_game_state(game_state) {
         if (default_game_state['game_state'] == 'STARTED') {

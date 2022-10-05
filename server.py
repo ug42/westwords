@@ -55,7 +55,7 @@ class Question(object):
         return f'Question({self.player_sid}, {self.question_text})'
 
     def __str__(self):
-        return f'{PLAYERS[self.player_name].name}: {self.question_text} ({self.answer})'
+        return f'{PLAYERS[self.player_sid].name}: {self.question_text} ({self.answer})'
 
 
 class Game(object):
