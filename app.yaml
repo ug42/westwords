@@ -1,0 +1,23 @@
+# GAE App yaml config for westwords
+runtime: python39
+
+# 5 is randomly chosen. Not sure if it'll reasonable scale up further or if this
+# is too many. Load testing need be done here.
+entrypoint: gunicorn --worker-class eventlet --workers=5 server:app
+
+# Keep em small, but let's see if we can scale up a bit as necessary.
+instance_class: F1
+
+# TODO: determine if this is actually needed
+handlers:
+# Matches requests to /images/... to files in static/images/...
+- url: /img
+  static_dir: static/img
+
+# Don't think this'll be need to redirect since Flask is doing it for us, but
+# keeping it here in case I need to use it.
+# - url: /.*
+#   secure: always
+#   redirect_http_response_code: 301
+#   script: auto
+

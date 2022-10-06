@@ -188,10 +188,8 @@ PLAYERS = {
 
 GAMES = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=120, player_sids=PLAYERS.keys())
+    'defaultgame': Game(timer=300, player_sids=PLAYERS.keys())
 }
-
-GAMES['defaultgame'].questions
 
 def verify_player_session():
     # If we manage to get someone modifying the cookie without being connected
@@ -202,6 +200,7 @@ def verify_player_session():
                 session['username'], session['sid']))
         PLAYERS['sid'].name = session['name']
 
+# TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
 @app.route('/')
 def game():
