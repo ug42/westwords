@@ -25,7 +25,6 @@ ready(function () {
     let question = document.getElementById('question');
 
     var local_game_state;
-    var local_game_state_html;
     var default_game_state = { 'game_state': 'SETUP', 'players': [], 'time': 300 };
 
     var timer;
@@ -47,22 +46,12 @@ ready(function () {
 
     function print_game_state_html(game_state) {
         var players = game_state['players'].join('<br>');
-        // for (var i = 0; i < game_state['players'].length; i++) {
-        //     console.log(i);
-        //     console.log(game_state['players'][i]);
-        //     players = players + '<br>' + game['players'][i];
-        // };
-        console.log(players);
-        var questions = game_state['questions'].join('<br>');
-        console.log(questions);
-        var question_html = new Array();
-        var i = 0;
+        var question_html = '';
         for (const e of game_state['questions']) {
-            question_html.push('<br><div id="q' + i + '">' + e + '</div>');
-            i++;
+            question_html += '<div class="question" id="q' + e[0];
+            question_html += '">' + e[1] + ': ' + e[2] + '<div id="q';
+            question_html += e[0] + 'a">' +  e[3]  + '</div></div>';
         }
-        console.log(question_html.join(''));
-
         return '<div id="game_status" style="width:640px; height:240px;">Game state: ' + game_state['game_state'] + '<br> Players: ' + players + '<br> Questions: ' + question_html + '<br> time left: ' + game_state['time'] + '</div>';
     }
 
@@ -72,15 +61,11 @@ ready(function () {
     socket.on('disconnect', function () {
         console.log('Socket disconnected.');
     });
-    function foo(g) {
-
-    };
     socket.on('game_state', function (g) {
         console.log('Game state received.')
         local_game_state = g;
         gs = print_game_state_html(g);
-        console.log('parsed game state: ' + gs);
-        document.getElementById("game_status").innerHTML = print_game_state_html(g);
+        document.getElementById("game_status").innerHTML = gs;
     });
     socket.on('pause', function (time) {
         reset_game_timer(time);

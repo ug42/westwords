@@ -56,6 +56,9 @@ class Question(object):
 
     def __str__(self):
         return f'{PLAYERS[self.player_sid].name}: {self.question_text} ({self.answer})'
+    
+    def get_question(self):
+        return [PLAYERS[self.player_sid].name, self.question_text, self.answer]
 
 
 class Game(object):
@@ -138,7 +141,7 @@ class Game(object):
         return game_status
 
     def get_questions(self):
-        return [f'{id}: {str(question)}' for id, question in enumerate(self.questions)]
+        return [[i] + self.questions[i].get_question() for i, question in enumerate(self.questions)]
 
     def get_player_names(self):
         return [PLAYERS[sid].name for sid in self.player_sids]
@@ -339,6 +342,7 @@ def start_game(game_id):
 
 @socketio.on('game_reset')
 def start_game(game_id):
+    # Implement game reset feature
     print('Resetting game')
     GAMES[game_id].reset()
 
