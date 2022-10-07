@@ -10,14 +10,10 @@
 </head>
 
 <body>
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
-
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/timer.jquery/0.7.0/timer.jquery.js"></script> -->
     <script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
-    <!-- <script src="{{ url_for('static', filename='js/jquery.countdown.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <div class="header"></div>
+    <div class="header">{{ game_name }}</div>
 
     <div id="sidebarContainer">
         <input type="checkbox" class="openSideMenu" id="openSideMenu">
@@ -36,22 +32,22 @@
                     <li onclick="hideSidebar()"><a href="#" data-toggle="tab" id="username_change">Change username</a>
                     </li>
                 </form>
-                <!-- TODO: build player list
-                     Players
-                <div>{{ session.players }}</div> -->
                 <li class="active" onclick="hideSidebar()"><a href="#" data-toggle="tab">Item1</a></li>
                 <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item2</a></li>
                 <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item3</a></li>
+                <p><div id="players"><b>Players</b><br>{% for player in players %} {{ player }} {% endfor %}</div></p>
             </ul>
         </div>
     </div>
     <!-- </nav> -->
     <div class="main">
-        <div id="game">Game board</div>
         <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
-        <p>
+        <!-- TODO: set clock to run based on the current state. -->
         <div id="questions" style="width:640px; height:240px;">
-            {% for q in data.questions %} {{ q }} {% endfor %}
+            <!-- TODO: use a block template for this or something. -->
+            <!-- I love that this is easily the most NON-SAFE thing I could do.
+                user-input renders HTMLon the fly. wtf am I doing?? -->
+            {% for q in questions %} {{ q|safe }} {% endfor %}
         </div>
         </p>
         <p>
@@ -65,5 +61,7 @@
         <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
         <p>Question: <input type="text" id="question"><button id="question_submit">
                 Submit question</button></p>
+        <p>Game state: {{game_state}}</p>
+
     </div>
 </body>

@@ -1,4 +1,7 @@
+# Westwords 20-questions style game with social deduction and roles.
+
 from enum import Enum
+from datetime import datetime
 import random
 from uuid import uuid4
 from random import randint
@@ -8,6 +11,7 @@ from flask import (Flask, jsonify, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
+# Session used ONLY for 'username' and generated player id 'sid'
 from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
@@ -91,7 +95,7 @@ class Game(object):
         # TODO: Add concept of a game admin and management of users in that space
         self.game_state = GameState.SETUP
         self.timer = timer
-        self.time = timer
+        self.time = datetime.now()
         # TODO: Plumb in user objects to this
         self.admin = admin
         # TODO: Make this to a dict so it can contain roles
@@ -215,8 +219,10 @@ PLAYERS = {
 
 
 GAMES = {
+    # Load-bearing empty state response for error handling.
+    None: Game(timer=0, player_sids=[]),
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=300, player_sids=PLAYERS.keys())
+    'defaultgame': Game(timer=300, player_sids=PLAYERS.keys()),
 }
 
 def verify_player_session():
@@ -237,11 +243,20 @@ def game():
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     try:
-        if PLAYERS[session['player_sid']].game in GAMES:
-            game_state = GAMES[PLAYERS[session['player_sid']].game].get_state()
+        if PLAYERS[session['sid']].game in GAMES:
+            game = PLAYERS[session['sid']].game
+            game_state = GAMES[game].get_state(game)
     except KeyError:
-        game_state = []
-    return render_template('game.html', data=game_state)
+        game_state = GAMES[None].get_state(None)
+    
+    return render_template(
+            'game.html',
+            questions=game_state['questions'],
+            players=game_state['players'],
+            game_name=game_state['game_id'],
+            game_state=game_state['game_state'],
+            time=game_state['time'],
+        )
 
 
 @app.route('/username', methods=['POST'])

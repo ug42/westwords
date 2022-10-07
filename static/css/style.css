@@ -18,6 +18,9 @@ body {
   max-width: 100%;
   box-shadow: none;
   background-color: black;
+  color: rgb(255, 255, 255);
+  font-size: 55px;
+  text-align: center;
   position: fixed;
   height: 60px!important;
   overflow: hidden;
@@ -85,6 +88,11 @@ body {
   text-transform: uppercase;
   font-weight: bold;
   cursor: pointer;
+  text-decoration: none;
+}
+
+.sideMenuInner div {
+  color: #fff;
   text-decoration: none;
 }
 
