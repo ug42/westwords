@@ -19,9 +19,15 @@ app.config['USE_PERMANENT_SESSION'] = True
 
 if DEBUG:
     app.config['DEBUG'] = True
-# TODO: add session key login and get rid of a ton of logic grown here
 Session(app)
 socketio = SocketIO(app)
+
+# TOP LEVEL TODOs!
+# TODO: add roles plumbing
+# TODO: add spectate
+# TODO: game lock for players state 
+# TODO: add create game
+# TODO: plumb game state reset functionality
 
 
 class GameState(Enum):
@@ -56,6 +62,16 @@ class Question(object):
 
     def __str__(self):
         return f'{PLAYERS[self.player_sid].name}: {self.question_text} ({self.answer})'
+    
+    def get_player_name(self):
+        return PLAYERS[self.player_sid].name
+
+    def html_format(self):
+        return (f'<div class="question"'
+            'id="q{id}">'
+            f'{PLAYERS[self.player_sid].name}: {self.question_text}'
+            '<div id="q{id}a" style="display: inline">'
+            f'  ({self.answer})</div></div>')
     
     def get_question(self):
         return [PLAYERS[self.player_sid].name, self.question_text, self.answer]
@@ -141,7 +157,7 @@ class Game(object):
         return game_status
 
     def get_questions(self):
-        return [[i] + self.questions[i].get_question() for i, question in enumerate(self.questions)]
+        return [self.questions[i].html_format().format(id=i) for i in range(len(self.questions))]
 
     def get_player_names(self):
         return [PLAYERS[sid].name for sid in self.player_sids]
@@ -181,8 +197,8 @@ class Player(object):
 
 PLAYERS = {
     # Keyed by session ID
-    '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
-    '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
+    # '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
+    # '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
 }
 
 
@@ -317,11 +333,13 @@ def answer_question(question_id, answer):
 
 
 @socketio.on('get_game_state')
-def game_status(game_id):
-    response = app.response_class(response=jsonify(GAMES[game_id].get_state()),
-                                  status=200,
-                                  mimetype='application/json')
-    socketio.emit('game_state', GAMES[game_id].get_state())
+def game_status():
+    game_id = PLAYERS[session['sid']].game
+    # response = app.response_class(response=jsonify(GAMES[game_id].get_state()),
+    #                               status=200,
+    #                               mimetype='application/json')
+    if game_id in GAMES:
+        socketio.emit('game_state', GAMES[game_id].get_state())
 
 # TODO: implement all the scenarios around this
 # Timer functions
@@ -331,12 +349,14 @@ def game_status(game_id):
 def start_game(game_id):
     print('Starting timer')
     GAMES[game_id].start()
+    emit('game_start', None, broadcast=True)
 
 
 @socketio.on('game_pause')
 def start_game(game_id):
     print('Pausing timer')
     GAMES[game_id].pause()
+    emit('game_pause', None, broadcast=True)
 
 
 @socketio.on('game_reset')
@@ -344,6 +364,7 @@ def start_game(game_id):
     # Implement game reset feature
     print('Resetting game')
     GAMES[game_id].reset()
+    emit('game_reset', None, broadcast=True)
 
 
 if __name__ == '__main__':

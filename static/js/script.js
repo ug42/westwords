@@ -44,16 +44,20 @@ ready(function () {
         });
     }
 
-    function print_game_state_html(game_state) {
-        var players = game_state['players'].join('<br>');
+    function get_questions_html(game_state) {
+        // var players = game_state['players'].join('<br>');
         var question_html = '';
+        // an Array e consists of [question ID, player, question, answer]
         for (const e of game_state['questions']) {
             question_html += '<div class="question" id="q' + e[0];
             question_html += '">' + e[1] + ': ' + e[2] + '<div id="q';
-            question_html += e[0] + 'a">' +  e[3]  + '</div></div>';
+            question_html += e[0] + 'a" style="display: inline">  (' +  e[3]  + ')</div></div>';
         }
-        return '<div id="game_status" style="width:640px; height:240px;">Game state: ' + game_state['game_state'] + '<br> Players: ' + players + '<br> Questions: ' + question_html + '<br> time left: ' + game_state['time'] + '</div>';
-    }
+        return 'Questions: ' + question_html;
+        // '<br>time left: ' + game_state['time'] 
+        // '<br>Players: ' + players +
+        // 'Game state: ' + game_state['game_state']
+    };
 
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
@@ -62,10 +66,12 @@ ready(function () {
         console.log('Socket disconnected.');
     });
     socket.on('game_state', function (g) {
-        console.log('Game state received.')
+        console.log('Game state received.');
         local_game_state = g;
-        gs = print_game_state_html(g);
-        document.getElementById("game_status").innerHTML = gs;
+        // gs = get_questions_html(local_game_state);
+        // document.getElementById("questions").innerHTML = gs;
+        console.log('questions: ' + g['questions'].join())
+        document.getElementById("questions").innerHTML = g['questions'].join('');
     });
     socket.on('pause', function (time) {
         reset_game_timer(time);
@@ -94,7 +100,7 @@ ready(function () {
     function game_start_resume() {
         console.log('Attempting to start game');
         socket.emit('game_start', 'defaultgame');
-        timer.start();
+        // timer.start();
         game_start_btn.innerText = 'Start game';
         game_start_btn.disabled = true;
         game_reset_btn.disabled = true;
@@ -104,7 +110,7 @@ ready(function () {
     function game_pause() {
         console.log('Attempting to pause game');
         socket.emit('game_pause', 'defaultgame');
-        timer.pause();
+        // timer.pause();
         game_start_btn.innerText = 'Resume game';
         game_start_btn.disabled = false;
         game_reset_btn.disabled = false;
@@ -115,7 +121,7 @@ ready(function () {
         console.log('Attempting to reset game');
         socket.emit('game_reset', 'defaultgame');
         // reset_game_timer(default_game_state['time']);
-        reset_game_timer(60);
+        // reset_game_timer(60);
         game_start_btn.innerText = 'Start game';
         game_start_btn.disabled = false;
         game_reset_btn.disabled = false;
@@ -123,7 +129,7 @@ ready(function () {
         proper_noun_btn.disabled = true;
     };
     function get_game_state() {
-        socket.emit('get_game_state', 'defaultgame');
+        socket.emit('get_game_state');
         console.log('Game state request initiated')
     };
     function parse_game_state(game_state) {
