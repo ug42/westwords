@@ -28,7 +28,8 @@ socketio = SocketIO(app)
 # TODO: game lock for players state 
 # TODO: add create game
 # TODO: plumb game state reset functionality
-
+# TODO: Factor out data store bits so PLAYERS and GAMES are not accessible to
+#       Question/Player/Game objects
 
 class GameState(Enum):
     SETUP = 1
@@ -145,12 +146,23 @@ class Game(object):
         if self.game_state is not GameState.STARTED:
             self.game_state = GameState.SETUP
 
-    def get_state(self):
+    def get_state(self, game_id):
+        """Returns a dict of the current game state.
+        
+        Args:
+            game_id: A string representing the associated game to include.
+            
+        Returns:
+            A dict representing the current GameState enum name value, player
+            names as a list of strings, the current timer as seen from the Game,
+            a list of HTML-formatted questions, and the game id.
+        """
         game_status = {
             'game_state': self.game_state.name,
             'players': self.get_player_names(),
             'time': self.timer,
             'questions': self.get_questions(),
+            'game_id': game_id,
         }
         if app.config['DEBUG']:
             print(f'DEBUG ENABLED! Current game state: {game_status}')
@@ -224,7 +236,12 @@ def game():
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
     if 'sid' not in session:
         session['sid'] = str(uuid4())
-    return render_template('game.html')
+    try:
+        if PLAYERS[session['player_sid']].game in GAMES:
+            game_state = GAMES[PLAYERS[session['player_sid']].game].get_state()
+    except KeyError:
+        game_state = []
+    return render_template('game.html', data=game_state)
 
 
 @app.route('/username', methods=['POST'])
@@ -339,32 +356,35 @@ def game_status():
     #                               status=200,
     #                               mimetype='application/json')
     if game_id in GAMES:
-        socketio.emit('game_state', GAMES[game_id].get_state())
+        socketio.emit('game_state',  GAMES[game_id].get_state(game_id))
 
 # TODO: implement all the scenarios around this
 # Timer functions
 
 
-@socketio.on('game_start')
+@socketio.on('game_start_req')
 def start_game(game_id):
     print('Starting timer')
-    GAMES[game_id].start()
-    emit('game_start', None, broadcast=True)
+    if game_id in GAMES:
+        GAMES[game_id].start()
+        emit('game_start_rsp', game_id, broadcast=True)
 
 
-@socketio.on('game_pause')
+@socketio.on('game_pause_req')
 def start_game(game_id):
     print('Pausing timer')
-    GAMES[game_id].pause()
-    emit('game_pause', None, broadcast=True)
+    if game_id in GAMES:
+        GAMES[game_id].pause()
+        emit('game_pause_rsp', game_id, broadcast=True)
 
 
-@socketio.on('game_reset')
+@socketio.on('game_reset_req')
 def start_game(game_id):
     # Implement game reset feature
     print('Resetting game')
-    GAMES[game_id].reset()
-    emit('game_reset', None, broadcast=True)
+    if game_id in GAMES:
+        GAMES[game_id].reset()
+        emit('game_reset_rsp', game_id, broadcast=True)
 
 
 if __name__ == '__main__':
