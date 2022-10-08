@@ -11,7 +11,7 @@ import random
 from uuid import uuid4
 from random import randint
 from string import ascii_uppercase
-from game.game import (GameState, AnswerToken, Question, Game, Player)
+from game.game import *
 
 from flask import (Flask, jsonify, make_response, redirect, render_template,
                    request, session)
@@ -42,20 +42,15 @@ socketio = SocketIO(app)
 #       Question/Player/Game objects
 
 
-
-
 # TODO: move this off to a backing store.
-PLAYERS = {
-    # Keyed by session ID
-    # '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
-    # '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
-}
+PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {
     # Load-bearing empty state response for error handling.
+    # TODO: Do something else here, feels hacky.
     None: Game(timer=0, player_sids=[]),
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=300, player_sids=list(PLAYERS.keys())),
+    'defaultgame': Game(timer=300, player_sids=[]),
 }
 MAX_RETRIES = 5
 
@@ -64,14 +59,13 @@ def verify_player_session(retry=0):
     # If we manage to get someone modifying the cookie without being connected
     # for some reason, let's sync up.
     if retry > MAX_RETRIES:
-        print('Unable to generate player info after {MAX_RETRIES} tries.')
         return
     try:
         if session['sid'] in PLAYERS:
-            if session['name'] != PLAYERS[session['sid']].name:
+            if session['username'] != PLAYERS[session['sid']].name:
                 print('Player name out-of-date: {} / {}'.format(
                     session['username'], session['sid']))
-            PLAYERS['sid'].name = session['name']
+            PLAYERS['sid'].name = session['username']
     except KeyError:
         generate_session_info()
         verify_player_session(retry+1)
@@ -86,17 +80,18 @@ def generate_session_info():
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
 
+
 def parse_game_state(g):
     game_state = g[0]
     questions = g[1]
     player_sids = g[2]
-    
+
     game_state['questions'] = []
     for id, question in enumerate(questions):
         formatted_question = question.html_format().format(
             id=id, player_name=PLAYERS[question.player_sid].name)
         game_state['questions'].append(formatted_question)
-    
+
     game_state['players'] = []
     for sid in player_sids:
         if sid in PLAYERS:
@@ -133,7 +128,7 @@ def username():
         print(f'Username registered:{session["username"]}')
         session['username'] = request.form.get('username')
         if session['sid'] in PLAYERS:
-            PLAYERS[session['sid']].username = session['username']
+            PLAYERS[session['sid']].name = session['username']
     return redirect('/')
 
 
@@ -144,8 +139,6 @@ def join_game(game):
             GAMES[game].player_sids.append(session['sid'])
         PLAYERS[session['sid']].game = game
     return redirect('/')
-
-
 
 
 @app.route('/create', methods=['POST', 'GET'])
@@ -245,7 +238,7 @@ def game_status():
     #                               mimetype='application/json')
     if game_id in GAMES:
         socketio.emit(
-            'game_state',parse_game_state(GAMES[game_id].get_state(game_id)))
+            'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
 
 # TODO: implement all the scenarios around this
 # Timer functions
