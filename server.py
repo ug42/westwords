@@ -1,4 +1,9 @@
 # Westwords 20-questions style game with social deduction and roles.
+#
+# NOTE: can only use this configuration with a single worker because socketIO
+# and gunicorn are unable to handle sticky sessions. Boo. Scaling jobs will need
+# to account for a reverse proxy and keeping each server with a single worker
+# thread. Stupid lack of scaling is stupid.
 
 from enum import Enum
 from datetime import datetime
@@ -11,7 +16,7 @@ from flask import (Flask, jsonify, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
-# Session used ONLY for 'username' and generated player id 'sid'
+# Session used ONLY for 'username' and server-generated player id 'sid'
 from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
@@ -26,14 +31,15 @@ if DEBUG:
 Session(app)
 socketio = SocketIO(app)
 
-# TOP LEVEL TODOs!
+# TOP LEVEL TODOs
 # TODO: add roles plumbing
 # TODO: add spectate
-# TODO: game lock for players state 
+# TODO: game lock for players state
 # TODO: add create game
 # TODO: plumb game state reset functionality
 # TODO: Factor out data store bits so PLAYERS and GAMES are not accessible to
 #       Question/Player/Game objects
+
 
 class GameState(Enum):
     SETUP = 1
@@ -65,20 +71,22 @@ class Question(object):
     def __repr__(self):
         return f'Question({self.player_sid}, {self.question_text})'
 
-    def __str__(self):
-        return f'{PLAYERS[self.player_sid].name}: {self.question_text} ({self.answer})'
-    
-    def get_player_name(self):
-        return PLAYERS[self.player_sid].name
+    # def __str__(self):
+    #     return f'{PLAYERS[self.player_sid].name}: {self.question_text} ({self.answer})'
+
+    # def get_player_name(self, PLAYERS={}):
+    #     return PLAYERS[self.player_sid].name
 
     def html_format(self):
-        return (f'<div class="question"'
-            'id="q{id}">'
-            f'{PLAYERS[self.player_sid].name}: {self.question_text}'
-            '<div id="q{id}a" style="display: inline">'
-            f'  ({self.answer})</div></div>')
-    
-    def get_question(self):
+        # id and player name are held outside this scope.
+        return ('<div class="question"'
+                'id="q{id}">'
+                '{player_name}'
+                f': {self.question_text}'
+                '<div id="q{id}a" style="display: inline">'
+                f'  ({self.answer})</div></div>')
+
+    def get_question(self, PLAYERS={}):
         return [PLAYERS[self.player_sid].name, self.question_text, self.answer]
 
 
@@ -119,17 +127,17 @@ class Game(object):
     def __repr__(self):
         return f'Game({self.timer}, {self.player_sids})'
 
-    def __str__(self):
-        return ('Game with state: {game_state}\n'
-                'Timer: {timer}\n'
-                'Time left: {time}\n'
-                'Questions:\n{questions}\n'
-                'Players: {players}').format(
-                    game_state=self.game_state,
-                    timer=self.timer,
-                    time=self.time,
-                    questions=self.get_questions(),
-                    players=self.get_player_names())
+    # def __str__(self):
+    #     return ('Game with state: {game_state}\n'
+    #             'Timer: {timer}\n'
+    #             'Time left: {time}\n'
+    #             'Questions:\n{questions}\n'
+    #             'Players: {players}').format(
+    #                 game_state=self.game_state,
+    #                 timer=self.timer,
+    #                 time=self.time,
+    #                 questions=self.get_questions(),
+    #                 players=self.get_player_names())
 
     def start(self):
         self.game_state = GameState.STARTED
@@ -152,30 +160,31 @@ class Game(object):
 
     def get_state(self, game_id):
         """Returns a dict of the current game state.
-        
+
         Args:
             game_id: A string representing the associated game to include.
-            
+
         Returns:
-            A dict representing the current GameState enum name value, player
-            names as a list of strings, the current timer as seen from the Game,
-            a list of HTML-formatted questions, and the game id.
+            A tuple with a a dict representing the current GameState enum name
+            value, the current timer as seen from the Game, and the game id, 
+            list of player_sids, and a list of Question objects.
         """
         game_status = {
             'game_state': self.game_state.name,
-            'players': self.get_player_names(),
+            # 'players': self.player_sids,
             'time': self.timer,
-            'questions': self.get_questions(),
+            # 'questions': self.questions,
             'game_id': game_id,
         }
         if app.config['DEBUG']:
-            print(f'DEBUG ENABLED! Current game state: {game_status}')
-        return game_status
+            print(datetime.now())
+            print(f'DEBUG ENABLED! Current game state: {game_status} {self.player_sids}')
+        return (game_status, self.questions, self.player_sids)
 
-    def get_questions(self):
-        return [self.questions[i].html_format().format(id=i) for i in range(len(self.questions))]
+    # def get_questions(self):
+    #     return [self.questions.html_format().format() for id in range(len(self.questions))]
 
-    def get_player_names(self):
+    def get_player_names(self, PLAYERS={}):
         return [PLAYERS[sid].name for sid in self.player_sids]
 
     def remove_token(self, token):
@@ -211,52 +220,88 @@ class Player(object):
         # Add a token of a given enum value to this player's total
         self.tokens[token] += 1
 
+
+# TODO: move this off to a backing store.
 PLAYERS = {
     # Keyed by session ID
     # '87ebd04a-c039-4cf3-919f-1a8b2eb23163': Player('Me'),
     # '207ba035-2ea6-4ffb-9f6b-129a2f18850b': Player('Test'),
 }
-
-
+# TODO: move this off to a backing store.
 GAMES = {
     # Load-bearing empty state response for error handling.
     None: Game(timer=0, player_sids=[]),
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=300, player_sids=PLAYERS.keys()),
+    'defaultgame': Game(timer=300, player_sids=list(PLAYERS.keys())),
 }
+MAX_RETRIES = 5
 
-def verify_player_session():
+
+def verify_player_session(retry=0):
     # If we manage to get someone modifying the cookie without being connected
     # for some reason, let's sync up.
-    if session['sid'] in PLAYERS:
-        if session['name'] != PLAYERS[session['sid']].name:
-            print('Player name out-of-date: {} / {}'.format(
-                session['username'], session['sid']))
-        PLAYERS['sid'].name = session['name']
+    if retry > MAX_RETRIES:
+        print('Unable to generate player info after {MAX_RETRIES} tries.')
+        return
+    try:
+        if session['sid'] in PLAYERS:
+            if session['name'] != PLAYERS[session['sid']].name:
+                print('Player name out-of-date: {} / {}'.format(
+                    session['username'], session['sid']))
+            PLAYERS['sid'].name = session['name']
+    except KeyError:
+        generate_session_info()
+        verify_player_session(retry+1)
+
+
+def generate_session_info():
+    if 'sid' not in session:
+        session['sid'] = str(uuid4())
+    if 'username' not in session:
+        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
 
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
+
+def parse_game_state(g):
+    game_state = g[0]
+    questions = g[1]
+    player_sids = g[2]
+    
+    game_state['questions'] = []
+    for id, question in enumerate(questions):
+        formatted_question = question.html_format().format(
+            id=id, player_name=PLAYERS[question.player_sid].name)
+        game_state['questions'].append(formatted_question)
+    
+    game_state['players'] = []
+    for sid in player_sids:
+        if sid in PLAYERS:
+            game_state['players'].append(PLAYERS[sid].name)
+    # game_state['players'] = [PLAYERS[sid].name for sid in player_sids]
+
+    return game_state
+
+
 @app.route('/')
 def game():
-    if 'username' not in session:
-        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-    if 'sid' not in session:
-        session['sid'] = str(uuid4())
+    generate_session_info()
+    verify_player_session()
     try:
         if PLAYERS[session['sid']].game in GAMES:
             game = PLAYERS[session['sid']].game
-            game_state = GAMES[game].get_state(game)
+            game_state = parse_game_state(GAMES[game].get_state(game))
     except KeyError:
-        game_state = GAMES[None].get_state(None)
-    
+        game_state = parse_game_state(GAMES[None].get_state(None))
+
     return render_template(
-            'game.html',
-            questions=game_state['questions'],
-            players=game_state['players'],
-            game_name=game_state['game_id'],
-            game_state=game_state['game_state'],
-            time=game_state['time'],
-        )
+        'game.html',
+        questions=game_state['questions'],
+        players=game_state['players'],
+        game_name=game_state['game_id'],
+        game_state=game_state['game_state'],
+        time=game_state['time'],
+    )
 
 
 @app.route('/username', methods=['POST'])
@@ -273,9 +318,11 @@ def username():
 def join_game(game):
     if game in GAMES:
         if session['sid'] not in GAMES[game].player_sids:
-          GAMES[game].player_sids.append(PLAYERS[session['sid']])
+            GAMES[game].player_sids.append(session['sid'])
         PLAYERS[session['sid']].game = game
     return redirect('/')
+
+
 
 
 @app.route('/create', methods=['POST', 'GET'])
@@ -301,15 +348,15 @@ def logout():
 
 # Socket control functions
 @socketio.on('connect')
-def connect(auth):
+def connect():
     if app.config['DEBUG']:
         print(session)
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = Player(session['username'])
+    # Send initial game_status
+    # game_status()
     # emit('my response', {'data': 'Connected'})
     print('Client connected')
-    if auth:
-        print('Auth details: ' + str(auth))
 
 
 @socketio.on('question')
@@ -335,18 +382,21 @@ def answer_question(question_id, answer):
     """
     if session['sid'] not in PLAYERS:
         print('No player found for session: ' + session['sid'])
-    
+
     game = PLAYERS[session['sid']].game
     if PLAYERS[session['sid']].game not in GAMES:
         print('Unable to find game: ' + game)
         return
-    
+
     if GAMES[game].mayor != session['sid']:
         print('User is not mayor!')
         return
-    
+
     if question_id not in GAMES[game].questions:
-        print(f'Question {question_id} not in game.' + GAMES[game].get_state())
+        print(
+            f'Question {question_id} not in game.' +
+            parse_game_state(GAMES[game].get_state())
+        )
 
     if answer.upper() not in [token.name for token in AnswerToken]:
         print(f'Unknown answer type: {answer}')
@@ -367,11 +417,12 @@ def answer_question(question_id, answer):
 @socketio.on('get_game_state')
 def game_status():
     game_id = PLAYERS[session['sid']].game
-    # response = app.response_class(response=jsonify(GAMES[game_id].get_state()),
+    # response = app.response_class(response=jsonify(parse_game_state(GAMES[game_id].get_state())),
     #                               status=200,
     #                               mimetype='application/json')
     if game_id in GAMES:
-        socketio.emit('game_state',  GAMES[game_id].get_state(game_id))
+        socketio.emit(
+            'game_state',parse_game_state(GAMES[game_id].get_state(game_id)))
 
 # TODO: implement all the scenarios around this
 # Timer functions

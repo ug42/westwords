@@ -3,7 +3,7 @@ runtime: python39
 
 # 5 is randomly chosen. Not sure if it'll reasonable scale up further or if this
 # is too many. Load testing need be done here.
-entrypoint: gunicorn --worker-class eventlet --workers=5 server:app
+entrypoint: gunicorn --worker-class eventlet --workers=1 server:app
 
 # Keep em small, but let's see if we can scale up a bit as necessary.
 instance_class: F1

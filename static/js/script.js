@@ -21,7 +21,10 @@ ready(function () {
     // TODO: update all default_game_state to be the local_game_state after
     //       emitting the correct values form server
     // TODO: add separate sockets for each of the game comms
-    var socket = io.connect({ autoconnect: true });
+    var socket = io.connect();
+    // var socket = io.connect({ autoconnect: true });
+
+    // Attempting to troubleshoot websocket failure to connect
     let question = document.getElementById('question');
 
     var local_game_state = {
@@ -64,7 +67,7 @@ ready(function () {
         // 'Game state: ' + game_state['game_state']
     };
 
-    socket.on('connect', function () {
+    socket.on('connect', function (auth) {
         console.log('You are like connected and stuff.');
     });
     socket.on('disconnect', function () {
@@ -79,8 +82,12 @@ ready(function () {
         // gs = get_questions_html(local_game_state);
         // document.getElementById("questions").innerHTML = gs;
         console.log('questions: ' + g['questions'].join())
-        document.getElementById("questions").innerHTML = g['questions'].join('');
+        if (g.questions.length > 0){
+            document.getElementById("questions").innerHTML = g.questions.join('');
+        }
     });
+    // TODO: Break this away from using local_game_state or make it so it gets
+    //       game state on connect
     socket.on('game_start_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
             game_start_resume();

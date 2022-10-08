@@ -44,7 +44,7 @@
         <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
         <!-- TODO: set clock to run based on the current state. -->
         <div id="questions" style="width:640px; height:240px;">
-            <!-- TODO: use a block template for this or something. -->
+            <!-- TODO: use a block template for this or something. Read up on jinja2 templates -->
             <!-- I love that this is easily the most NON-SAFE thing I could do.
                 user-input renders HTMLon the fly. wtf am I doing?? -->
             {% for q in questions %} {{ q|safe }} {% endfor %}
