@@ -53,3 +53,30 @@ class Apprentice(Villager):
         super().__init__()
         # Will only see word if Mayor is Seer
         sees_word = False
+
+
+class FortuneTeller(Villager):
+    def __init__(self):
+        super().__init__()
+        sees
+
+
+class Minion(Werewolf):
+    def __init__(self):
+        super().__init__()
+
+
+class Beholder(Villager):
+    def __init__(self):
+        super().__init__()
+
+
+class Mason(Villager):
+    def __init__(self):
+        super().__init__()
+
+
+class Thing(Villager):
+    def __init__(self):
+        super().__init__()
+

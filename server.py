@@ -3,7 +3,7 @@
 # NOTE: can only use this configuration with a single worker because socketIO
 # and gunicorn are unable to handle sticky sessions. Boo. Scaling jobs will need
 # to account for a reverse proxy and keeping each server with a single worker
-# thread. Stupid lack of scaling is stupid.
+# thread.
 
 from enum import Enum
 from datetime import datetime
@@ -38,17 +38,12 @@ socketio = SocketIO(app)
 # TODO: game lock for players state
 # TODO: add create game
 # TODO: plumb game state reset functionality
-# TODO: Factor out data store bits so PLAYERS and GAMES are not accessible to
-#       Question/Player/Game objects
 
 
 # TODO: move this off to a backing store.
 PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {
-    # Load-bearing empty state response for error handling.
-    # TODO: Do something else here, feels hacky.
-    None: Game(timer=0, player_sids=[]),
     # TODO: replace with real player objects associated with session
     'defaultgame': Game(timer=300, player_sids=[]),
 }
@@ -96,21 +91,24 @@ def parse_game_state(g):
     for sid in player_sids:
         if sid in PLAYERS:
             game_state['players'].append(PLAYERS[sid].name)
-    # game_state['players'] = [PLAYERS[sid].name for sid in player_sids]
 
     return game_state
 
 
 @app.route('/')
 def game():
+    # TODO: Add a username prompt redirect for first login attempts.
     generate_session_info()
     verify_player_session()
     try:
         if PLAYERS[session['sid']].game in GAMES:
             game = PLAYERS[session['sid']].game
             game_state = parse_game_state(GAMES[game].get_state(game))
-    except KeyError:
-        game_state = parse_game_state(GAMES[None].get_state(None))
+    except KeyError as e:
+        print(f'No game found: {e}')
+        # Return the values from an empty game
+        game_state = parse_game_state(
+            Game(timer=0, player_sids=[]).get_state(''))
 
     return render_template(
         'game.html',
@@ -141,6 +139,7 @@ def join_game(game):
     return redirect('/')
 
 
+# TODO: Move this to use rooms, if useful above current setup
 @app.route('/create', methods=['POST', 'GET'])
 def create_game():
     if request.method == 'GET':
@@ -169,9 +168,17 @@ def connect():
         print(session)
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = Player(session['username'])
+    # FIXME: Sending initial game state via game_status() breaks socket for some
+    #        reason.
     # Send initial game_status
     # game_status()
-    # emit('my response', {'data': 'Connected'})
+    try:
+        game_id = PLAYERS[session['sid']].game
+        if game_id in GAMES:
+            socketio.emit(
+                'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
+    except KeyError as e:
+        print(f'No key value found: {e}')
     print('Client connected')
 
 
@@ -233,9 +240,6 @@ def answer_question(question_id, answer):
 @socketio.on('get_game_state')
 def game_status():
     game_id = PLAYERS[session['sid']].game
-    # response = app.response_class(response=jsonify(parse_game_state(GAMES[game_id].get_state())),
-    #                               status=200,
-    #                               mimetype='application/json')
     if game_id in GAMES:
         socketio.emit(
             'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))

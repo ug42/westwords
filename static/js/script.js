@@ -31,7 +31,7 @@ ready(function () {
         'game_state': null,
         'players': [],
         'questions': [],
-        'time': 0,
+        'time': 420,
         'game_id': null
     };
 
