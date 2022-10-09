@@ -34,6 +34,7 @@ ready(function () {
         'time': 420,
         'game_id': null
     };
+    var role;
 
     var timer;
     game_timer = document.getElementById('game_timer');
@@ -103,6 +104,11 @@ ready(function () {
             game_reset();
         };
     });
+    socket.on('mayor_error', function (date) {
+        if (role === 'mayor') {
+            alert(data)
+        }
+    })
 
     document.getElementById('question_submit').addEventListener('click', function () {
         console.log('emitting question: ' + question.value);

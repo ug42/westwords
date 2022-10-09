@@ -5,13 +5,10 @@
 # to account for a reverse proxy and keeping each server with a single worker
 # thread.
 
-from enum import Enum
-from datetime import datetime
-import random
 from uuid import uuid4
-from random import randint
+from random import randint, choice
 from string import ascii_uppercase
-from game.game import *
+import game
 
 from flask import (Flask, jsonify, make_response, redirect, render_template,
                    request, session)
@@ -45,7 +42,7 @@ PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': Game(timer=300, player_sids=[]),
+    'defaultgame': game.Game(timer=300, player_sids=[]),
 }
 MAX_RETRIES = 5
 
@@ -56,11 +53,11 @@ def verify_player_session(retry=0):
     if retry > MAX_RETRIES:
         return
     try:
-        if session['sid'] in PLAYERS:
-            if session['username'] != PLAYERS[session['sid']].name:
-                print('Player name out-of-date: {} / {}'.format(
-                    session['username'], session['sid']))
-            PLAYERS['sid'].name = session['username']
+        print(f'Update username and player record, retries: {retry}')
+        if session['username'] != PLAYERS[session['sid']].name:
+            print('Player name out-of-date: {} / {}'.format(
+                session['username'], session['sid']))
+        PLAYERS['sid'].name = session['username']
     except KeyError:
         generate_session_info()
         verify_player_session(retry+1)
@@ -69,8 +66,14 @@ def verify_player_session(retry=0):
 def generate_session_info():
     if 'sid' not in session:
         session['sid'] = str(uuid4())
+        print(f'Registering SID: {session["sid"]}')
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+        print(f'Registering SID: {session["sid"]}')
+        return redirect('/login')
+    if session['sid'] not in PLAYERS:
+        PLAYERS[session['sid']] = game.Player(session['username'])
+    
 
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
@@ -96,10 +99,10 @@ def parse_game_state(g):
 
 
 @app.route('/')
-def game():
+def index():
     # TODO: Add a username prompt redirect for first login attempts.
-    generate_session_info()
     verify_player_session()
+    
     try:
         if PLAYERS[session['sid']].game in GAMES:
             game = PLAYERS[session['sid']].game
@@ -108,8 +111,11 @@ def game():
         print(f'No game found: {e}')
         # Return the values from an empty game
         game_state = parse_game_state(
-            Game(timer=0, player_sids=[]).get_state(''))
+            game.Game(timer=0, player_sids=[]).get_state(''))
 
+    # FIXME: game_state renders on first load, than fails with local variable
+    # 'game_state' referenced before assignment on subsequent loads
+    
     return render_template(
         'game.html',
         questions=game_state['questions'],
@@ -143,8 +149,8 @@ def join_game(game):
 @app.route('/create', methods=['POST', 'GET'])
 def create_game():
     if request.method == 'GET':
-        game_id = ''.join(random.choice(ascii_uppercase) for i in range(4))
-        GAMES[game_id] = Game(player_sids=[session['id']])
+        game_id = ''.join(choice(ascii_uppercase) for i in range(4))
+        GAMES[game_id] = game.Game(player_sids=[session['id']])
     return redirect('/')
 
 
@@ -167,7 +173,7 @@ def connect():
     if app.config['DEBUG']:
         print(session)
     if session['sid'] not in PLAYERS:
-        PLAYERS[session['sid']] = Player(session['username'])
+        PLAYERS[session['sid']] = game.Player(session['username'])
     # FIXME: Sending initial game state via game_status() breaks socket for some
     #        reason.
     # Send initial game_status
@@ -221,9 +227,11 @@ def answer_question(question_id, answer):
             parse_game_state(GAMES[game].get_state())
         )
 
-    if answer.upper() not in [token.name for token in AnswerToken]:
-        print(f'Unknown answer type: {answer}')
-    answer_token = AnswerToken[answer.upper()]
+    try:
+        answer_token = game.AnswerToken[answer.upper()]
+    except KeyError as e:        
+        print(f'Unknown answer: {e}')
+    
     if answer_token.value == 'yes_no' and GAMES[game].tokens['yes_no'] == 1:
         GAMES[game].start_vote()
     if GAMES[game].tokens[answer_token.value] <= 0:
