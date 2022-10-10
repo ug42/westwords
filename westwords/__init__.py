@@ -1,4 +1,4 @@
-# game module
+# westwords module
 
 from .game import Game
 from .role import (Affiliation, Role, Mayor, Spectator,

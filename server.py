@@ -8,14 +8,11 @@
 from uuid import uuid4
 from random import randint, choice
 from string import ascii_uppercase
-import game
+import westwords
 
 from flask import (Flask, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
-
-# Session used ONLY for 'username' and server-generated player id 'sid'
-# from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
 DEBUG = True
@@ -23,11 +20,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
-# session.permanent = True
 
 if DEBUG:
     app.config['DEBUG'] = True
-# Session(app)
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
@@ -43,7 +38,7 @@ PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {
     # TODO: replace with real player objects associated with session
-    'defaultgame': game.Game(timer=300, player_sids=[]),
+    'defaultgame': westwords.Game(timer=300, player_sids=[]),
 }
 MAX_RETRIES = 5
 
@@ -80,7 +75,7 @@ def generate_session_info():
         return redirect('/login')
     if session['sid'] not in PLAYERS:
         print('Attempting to add sid to PLAYERS')
-        PLAYERS[session['sid']] = game.Player(session['username'])
+        PLAYERS[session['sid']] = westwords.Player(session['username'])
     
 
 # TODO: Make it so the updated game_status and the dynamic status is the same
@@ -105,7 +100,8 @@ def parse_game_state(g):
 
     return game_state
 
-
+# TODO: Add a redirect to all routes or maybe a handler to ensure someone can
+# set their username. Preferably with a route-back to the requested url.
 @app.route('/')
 def index():
     # TODO: Add a username prompt redirect for first login attempts.
@@ -118,7 +114,7 @@ def index():
         return redirect('/login')
     if session['sid'] not in PLAYERS:
         print('Attempting to add sid to PLAYERS')
-        PLAYERS[session['sid']] = game.Player(session['username'])
+        PLAYERS[session['sid']] = westwords.Player(session['username'])
     
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
         print(f'Game found')
@@ -128,7 +124,7 @@ def index():
         print('No game found associated with player.')
         # Return the values from an empty game
         game_state = parse_game_state(
-            game.Game(timer=0, player_sids=[]).get_state(None))
+            westwords.Game(timer=0, player_sids=[]).get_state(None))
 
     # FIXME: game_state renders on first load, than fails with local variable
     # 'game_state' referenced before assignment on subsequent loads
@@ -167,7 +163,7 @@ def join_game(game):
 def create_game():
     if request.method == 'GET':
         game_id = ''.join(choice(ascii_uppercase) for i in range(4))
-        GAMES[game_id] = game.Game(player_sids=[session['id']])
+        GAMES[game_id] = westwords.Game(player_sids=[session['id']])
     return redirect('/')
 
 
@@ -192,7 +188,7 @@ def connect(auth):
     # verify_player_session()    
     try:
         if session['sid'] not in PLAYERS:
-            PLAYERS[session['sid']] = game.Player(session['username'])
+            PLAYERS[session['sid']] = westwords.Player(session['username'])
     except KeyError as e:
         print(f'Unable to register Player, due to lookup failure. {e}')
     # FIXME: Sending initial game state via game_status() breaks socket for some
@@ -214,7 +210,7 @@ def connect(auth):
 @socketio.on('question')
 def question(question_text):
     game = PLAYERS[session['sid']].game
-    question = game.Question(session['sid'], question_text)
+    question = westwords.Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
     print(str(game))
     print('Session: ' + session['sid'])
@@ -251,7 +247,7 @@ def answer_question(question_id, answer):
         )
 
     try:
-        answer_token = game.AnswerToken[answer.upper()]
+        answer_token = westwords.AnswerToken[answer.upper()]
     except KeyError as e:        
         print(f'Unknown answer: {e}')
     
