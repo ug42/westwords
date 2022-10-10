@@ -10,12 +10,12 @@ from random import randint, choice
 from string import ascii_uppercase
 import game
 
-from flask import (Flask, jsonify, make_response, redirect, render_template,
+from flask import (Flask, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
 # Session used ONLY for 'username' and server-generated player id 'sid'
-from flask_session import Session
+# from flask_session import Session
 
 # TODO: remove or factor out so only set if flag is set.
 DEBUG = True
@@ -23,10 +23,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
+# session.permanent = True
 
 if DEBUG:
     app.config['DEBUG'] = True
-Session(app)
+# Session(app)
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
@@ -52,12 +53,17 @@ def verify_player_session(retry=0):
     # for some reason, let's sync up.
     if retry > MAX_RETRIES:
         return
+
+    username = session.get('username', f'Not_a_wolf_{randint(1000,9999)}')
+    sid = session.get('sid', str(uuid4()))
     try:
         print(f'Update username and player record, retries: {retry}')
-        if session['username'] != PLAYERS[session['sid']].name:
+        print(session)
+        if username != PLAYERS[session['sid']].name:
             print('Player name out-of-date: {} / {}'.format(
-                session['username'], session['sid']))
-        PLAYERS['sid'].name = session['username']
+                username, session['sid']))
+
+        PLAYERS[sid].name = username
     except KeyError:
         generate_session_info()
         verify_player_session(retry+1)
@@ -66,12 +72,14 @@ def verify_player_session(retry=0):
 def generate_session_info():
     if 'sid' not in session:
         session['sid'] = str(uuid4())
+        session.modified = True
         print(f'Registering SID: {session["sid"]}')
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        print(f'Registering SID: {session["sid"]}')
+        print(f'Registering username: {session["username"]}')
         return redirect('/login')
     if session['sid'] not in PLAYERS:
+        print('Attempting to add sid to PLAYERS')
         PLAYERS[session['sid']] = game.Player(session['username'])
     
 
@@ -101,17 +109,26 @@ def parse_game_state(g):
 @app.route('/')
 def index():
     # TODO: Add a username prompt redirect for first login attempts.
-    verify_player_session()
+    if 'sid' not in session:
+        session['sid'] = str(uuid4())
+        print(f'Registering SID: {session["sid"]}')
+    if 'username' not in session:
+        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+        print(f'Registering username: {session["username"]}')
+        return redirect('/login')
+    if session['sid'] not in PLAYERS:
+        print('Attempting to add sid to PLAYERS')
+        PLAYERS[session['sid']] = game.Player(session['username'])
     
-    try:
-        if PLAYERS[session['sid']].game in GAMES:
-            game = PLAYERS[session['sid']].game
-            game_state = parse_game_state(GAMES[game].get_state(game))
-    except KeyError as e:
-        print(f'No game found: {e}')
+    if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
+        print(f'Game found')
+        game_id = PLAYERS[session['sid']].game
+        game_state = parse_game_state(GAMES[game_id].get_state(game_id))
+    else:
+        print('No game found associated with player.')
         # Return the values from an empty game
         game_state = parse_game_state(
-            game.Game(timer=0, player_sids=[]).get_state(''))
+            game.Game(timer=0, player_sids=[]).get_state(None))
 
     # FIXME: game_state renders on first load, than fails with local variable
     # 'game_state' referenced before assignment on subsequent loads
@@ -156,42 +173,48 @@ def create_game():
 
 @app.route('/login')
 def login():
+
     return render_template('login.html')
 
 
 @app.route('/logout')
 def logout():
     response = make_response(render_template('logout.html'))
-    response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
-    session.clear()
+    # response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
+    # session.clear()
     return response
 
 
 # Socket control functions
 @socketio.on('connect')
-def connect():
-    if app.config['DEBUG']:
-        print(session)
-    if session['sid'] not in PLAYERS:
-        PLAYERS[session['sid']] = game.Player(session['username'])
+def connect(auth):
+    # if auth:
+    # verify_player_session()    
+    try:
+        if session['sid'] not in PLAYERS:
+            PLAYERS[session['sid']] = game.Player(session['username'])
+    except KeyError as e:
+        print(f'Unable to register Player, due to lookup failure. {e}')
     # FIXME: Sending initial game state via game_status() breaks socket for some
     #        reason.
     # Send initial game_status
     # game_status()
     try:
+        print(f'Session info from connect: {session}')
         game_id = PLAYERS[session['sid']].game
         if game_id in GAMES:
             socketio.emit(
                 'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
     except KeyError as e:
         print(f'No key value found: {e}')
+    print(f'Session info from connect: {session}')    
     print('Client connected')
 
 
 @socketio.on('question')
 def question(question_text):
     game = PLAYERS[session['sid']].game
-    question = Question(session['sid'], question_text)
+    question = game.Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
     print(str(game))
     print('Session: ' + session['sid'])

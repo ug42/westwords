@@ -1,7 +1,12 @@
 from .enums import AnswerToken
 
 class Player(object):
-    """Simple class for player"""
+    """Simple class for player.
+    
+    Args:
+        name: A string for the username of the player.
+        game: An optional string for the current game name.
+    """
 
     def __init__(self, name, game=None):
         self.name = name
@@ -17,8 +22,8 @@ class Player(object):
             AnswerToken.LARAMIE: 0,
         }
 
-    # def __repr__(self):
-    #     return f'Player({self.name}, {self.game})'
+    def __repr__(self):
+        return f'Player({self.name}, {self.game})'
 
     def __str__(self):
         return f'Player name: {self.name}, in game id: {self.game}'

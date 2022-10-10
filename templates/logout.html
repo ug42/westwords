@@ -11,7 +11,12 @@
 </head>
 
 <body>
-    <p>Session destroyed. You are now logged out.</p>
+    <script>
+        setTimeout(function () {
+            window.location.href = '/';
+        }, 2000);
+    </script>
+    <p>Session destroyed. You are now logged out; redirecting to /</p>
 </body>
 
 </html>
