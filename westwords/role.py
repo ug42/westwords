@@ -26,10 +26,16 @@ class Mayor(Role):
         wins_with = Affiliation.UNKNOWN
 
 
+class Doppelganger(Role):
+    def __init__(self):
+        super().__init__()
+
+
 class Spectator(Role):
     def __init__(self):
         sees_word = True
         wins_with = Affiliation.UNKNOWN
+
 
 class Werewolf(Role):
     def __init__(self):
@@ -79,4 +85,3 @@ class Mason(Villager):
 class Thing(Villager):
     def __init__(self):
         super().__init__()
-

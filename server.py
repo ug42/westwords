@@ -92,6 +92,8 @@ def parse_game_state(g):
         formatted_question = question.html_format().format(
             id=id, player_name=PLAYERS[question.player_sid].name)
         game_state['questions'].append(formatted_question)
+    # Let's make it show most recent at the top. :)
+    game_state['questions'].reverse()
 
     game_state['players'] = []
     for sid in player_sids:
@@ -209,13 +211,18 @@ def connect(auth):
 
 @socketio.on('question')
 def question(question_text):
-    game = PLAYERS[session['sid']].game
+    game_id = PLAYERS[session['sid']].game
     question = westwords.Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
-    print(str(game))
-    print('Session: ' + session['sid'])
-    if game in GAMES:
-        GAMES[game].questions.append(question)
+    if game_id in GAMES:
+        # Race condition is only an issue if you lose the race. :|
+        question_id = len(GAMES[game_id].questions)
+        question_html = question.html_format().format(
+            id=question_id,player_name=PLAYERS[question.player_sid].name)
+
+        GAMES[game_id].questions.append(question)
+        emit('add_question',
+             {'q': question_html,'game_id': game_id}, broadcast=True)
 
 
 @socketio.on('answer_question')

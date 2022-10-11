@@ -19,7 +19,7 @@ body {
   box-shadow: none;
   background-color: black;
   color: rgb(255, 255, 255);
-  font-size: 55px;
+  font-size: 20px;
   text-align: center;
   position: fixed;
   height: 60px!important;
@@ -181,4 +181,9 @@ input[type=checkbox]:checked~.sideIconToggle>.diagonal.part-2 {
   background: rgba(0, 0, 0, .1);
   cursor: pointer;
   z-index: 1;
+}
+
+.answer_btn {
+  display: inline;
+  background: rgba(0, 0, 0, .1);
 }

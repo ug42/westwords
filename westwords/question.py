@@ -1,3 +1,6 @@
+from html import escape
+
+
 class Question(object):
     """Simple question construct for named variables"""
 
@@ -15,6 +18,6 @@ class Question(object):
         return ('<div class="question"'
                 'id="q{id}">'
                 '{player_name}'
-                f': {self.question_text}'
+                f': {escape(self.question_text)}'
                 '<div id="q{id}a" style="display: inline">'
                 f'  ({self.answer})</div></div>')

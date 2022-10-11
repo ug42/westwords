@@ -22,6 +22,7 @@ ready(function () {
     //       emitting the correct values form server
     // TODO: add separate sockets for each of the game comms
     var socket = io.connect({ autoconnect: true });
+    var questions = document.getElementById("questions");
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
     });
@@ -35,10 +36,10 @@ ready(function () {
         local_game_state = g;
         console.log('local game state after: ' + local_game_state.game_id)
         // gs = get_questions_html(local_game_state);
-        // document.getElementById("questions").innerHTML = gs;
+        // questions.innerHTML = gs;
         console.log('questions: ' + g['questions'].join())
         if (g.questions.length > 0){
-            document.getElementById("questions").innerHTML = g.questions.join('');
+            questions.innerHTML = g.questions.join('');
         }
     });
     // TODO: Break this away from using local_game_state or make it so it gets
@@ -62,6 +63,10 @@ ready(function () {
         if (role === 'mayor') {
             alert(data)
         }
+    })
+    socket.on('add_question', function(rsp) {
+        if (local_game_state.game_id === rsp.game_id) {
+            questions.innerHTML = rsp.q + questions.innerHTML      };
     })
 
     var local_game_state = {

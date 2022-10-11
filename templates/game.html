@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <div class="header">{{ game_name }}</div>
+    <div class="header"><br>{{ game_name }}</div>
 
     <div id="sidebarContainer">
         <input type="checkbox" class="openSideMenu" id="openSideMenu">
@@ -39,14 +39,11 @@
             </ul>
         </div>
     </div>
-    <!-- </nav> -->
     <div class="main">
         <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
         <!-- TODO: set clock to run based on the current state. -->
         <div id="questions" style="width:640px; height:240px;">
-            <!-- TODO: use a block template for this or something. Read up on jinja2 templates -->
-            <!-- I love that this is easily the most NON-SAFE thing I could do.
-                user-input renders HTMLon the fly. wtf am I doing?? -->
+            <!-- I love that this is easily the most NON-SAFE thing I could do. User-input strings are rendered in HTML on the fly. wtf am I doing?? -->
             {% for q in questions %} {{ q|safe }} {% endfor %}
         </div>
         </p>
@@ -59,7 +56,13 @@
         <p><button id="game_reset">Reset game</button></p>
         <p><button id="get_game_state">Get game state</button></p>
         <p><button id="proper_noun" disabled>Is it a proper noun?</button></p>
-        <p><button id="proper_noun" disabled>Yes</p>
+        <p><button class="answer_btn" id="yes" disabled>Yes</button></p>
+        <p><button class="answer_btn" id="no" disabled>No</button></p>
+        <p><button class="answer_btn" id="maybe" disabled>Maybe</button></p>
+        <p><button class="answer_btn" id="so_close" disabled>So Close</button></p>
+        <p><button class="answer_btn" id="so_far" disabled>Very far off</button></p>
+        <p><button class="answer_btn" id="correct" disabled>Correct!</button></p>
+
         <p>Question: <input type="text" id="question"><button id="question_submit">
                 Submit question</button></p>
         <p>Game state: {{game_state}}</p>
