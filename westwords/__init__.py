@@ -1,10 +1,10 @@
 # westwords module
 
-from .game import Game
+from .game import Game, OutOfTokenError, OutOfYesNoTokenError
 from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator, Mason,
                    Werewolf, Villager, Seer, FortuneTeller, Apprentice, Thing,
                    Beholder, Minion)
-from .wordlists import (WordList, WORDLISTS)
+from .wordlists import WordList, WORDLISTS
 from .player import Player
 from .question import Question
-from .enums import (AnswerToken, GameState)
+from .enums import AnswerToken, GameState

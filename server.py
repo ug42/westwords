@@ -14,6 +14,8 @@ from flask import (Flask, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
+from westwords.enums import AnswerToken
+
 # TODO: remove or factor out so only set if flag is set.
 DEBUG = True
 app = Flask(__name__)
@@ -88,9 +90,15 @@ def parse_game_state(g):
     player_sids = g[2]
 
     game_state['questions'] = []
+    print(f'Parsing game state. Session info: {session}')
+    hidden_answer_buttons = ''
+    if game_state['mayor'] != session['sid']:
+        hidden_answer_buttons = 'hidden'
+
     for id, question in enumerate(questions):
         formatted_question = question.html_format().format(
-            id=id, player_name=PLAYERS[question.player_sid].name)
+            id=id, player_name=PLAYERS[question.player_sid].name,
+            hidden=hidden_answer_buttons)
         game_state['questions'].append(formatted_question)
     # Let's make it show most recent at the top. :)
     game_state['questions'].reverse()
@@ -155,7 +163,7 @@ def username():
 def join_game(game):
     if game in GAMES:
         if session['sid'] not in GAMES[game].player_sids:
-            GAMES[game].player_sids.append(session['sid'])
+            GAMES[game].add_player(session['sid'])
         PLAYERS[session['sid']].game = game
     return redirect('/')
 
@@ -177,7 +185,7 @@ def login():
 @app.route('/logout')
 def logout():
     response = make_response(render_template('logout.html'))
-    # response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
+    response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
     # session.clear()
     return response
 
@@ -214,10 +222,14 @@ def question(question_text):
     question = westwords.Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
     if game_id in GAMES:
+        hidden_answer_buttons = ''
+        if GAMES[game_id].mayor != session['sid']:
+            hidden_answer_buttons = 'hidden'
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
         question_html = question.html_format().format(
-            id=question_id,player_name=PLAYERS[question.player_sid].name)
+            id=question_id,player_name=PLAYERS[question.player_sid].name,
+            hidden=hidden_answer_buttons)
 
         GAMES[game_id].questions.append(question)
         emit('add_question',
@@ -236,6 +248,7 @@ def answer_question(question_id, answer):
     """
     if session['sid'] not in PLAYERS:
         print('No player found for session: ' + session['sid'])
+        return
 
     game = PLAYERS[session['sid']].game
     if PLAYERS[session['sid']].game not in GAMES:
@@ -265,9 +278,17 @@ def answer_question(question_id, answer):
 
     # Question ID is basically just the index offset starting at 0
     GAMES[game].questions[question_id].answer = answer_token
+    GAMES[game].last_answered = question_id
     asking_player = GAMES[game].questions[question_id].player_sid
     PLAYERS[asking_player].add_token(answer_token)
-    GAMES[game].remove_token(answer_token)
+
+    try:
+        GAMES[game].remove_token(answer_token)
+    except (westwords.game.OutOfTokenError,
+            westwords.game.OutOfYesNoTokenError) as e:
+        # Handle the end of game condition.
+        emit('mayor_error', e)
+    
 
 
 @socketio.on('get_game_state')
@@ -277,24 +298,29 @@ def game_status():
         socketio.emit(
             'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
 
+
+@socketio.on('undo')
+def undo(game_id):
+    if game_id in GAMES:
+        if (game_id == PLAYERS[session['sid']].game and
+            GAMES[game_id].mayor == session['sid']):
+            GAMES[game_id].undo_answer()
+
+
+@socketio.on('make_me_mayor')
+def make_me_mayor(game_id):
+    if game_id in GAMES and game_id == PLAYERS[session['sid']].game:
+        GAMES[game_id].mayor = session['sid']
+
+
 # TODO: implement all the scenarios around this
 # Timer functions
-
-
 @socketio.on('game_start_req')
 def start_game(game_id):
     print('Starting timer')
     if game_id in GAMES:
         GAMES[game_id].start()
         emit('game_start_rsp', game_id, broadcast=True)
-
-
-# @socketio.on('game_pause_req')
-# def start_game(game_id):
-#     print('Pausing timer')
-#     if game_id in GAMES:
-#         GAMES[game_id].pause()
-#         emit('game_pause_rsp', game_id, broadcast=True)
 
 
 @socketio.on('game_reset_req')

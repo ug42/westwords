@@ -16,11 +16,14 @@ ready(function () {
         if (!sidebarContainer.contains(event.target))
             hideSidebar();
     });
-    // TODO: Factor out jquery
+    function answer(id, answer) {
+        socket.emit('answer_question', id, answer)
+    }
     // TODO: update all defaultgame references
     // TODO: update all default_game_state to be the local_game_state after
     //       emitting the correct values form server
     // TODO: add separate sockets for each of the game comms
+    // TODO: Reload the page with the correct buttons appearing
     var socket = io.connect({ autoconnect: true });
     var questions = document.getElementById("questions");
     socket.on('connect', function () {
@@ -49,14 +52,9 @@ ready(function () {
             game_start_resume();
         };
     });
-    socket.on('game_pause_rsp', function (game_id) {
-        if (local_game_state.game_id === game_id) {
-            game_pause();
-        };
-    });
     socket.on('game_reset_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
-            game_reset();
+            game_reset(game_id);
         };
     });
     socket.on('mayor_error', function (date) {
@@ -74,7 +72,8 @@ ready(function () {
         'players': [],
         'questions': [],
         'time': 420,
-        'game_id': null
+        'game_id': null,
+        'role': null,
     };
 
     var timer;
@@ -101,65 +100,65 @@ ready(function () {
         }
     });
 
+    questions = document.getElementById('questions');
     var game_start_btn = document.getElementById('game_start');
-    // var game_pause_btn = document.getElementById('game_pause');
     var game_reset_btn = document.getElementById('game_reset');
     var get_game_state_btn = document.getElementById('get_game_state');
     var proper_noun_btn = document.getElementById('proper_noun');
+    var undo_btn = document.getElementById('undo');
+    var make_me_mayor_btn = document.getElementById('make_me_mayor');
     game_start_btn.addEventListener('click', send_start_req);
-    // game_pause_btn.addEventListener('click', send_pause_req);
     game_reset_btn.addEventListener('click', send_reset_req);
     get_game_state_btn.addEventListener('click', get_game_state);
+    undo_btn.addEventListener('click', function () {
+        socket.emit('undo', local_game_state.game_id)
+    })
+    make_me_mayor_btn.addEventListener('click', function() {
+        socket.emit('make_me_mayor', local_game_state.game_id)
+    })
     proper_noun_btn.addEventListener('click', function () {
         socket.emit('question', "Is it a proper noun?");
     });
     function send_start_req() {
         console.log('Attempting to start');
-        if (local_game_state['game_id'] !== '') {
-            console.log('Start timer for game: ' + local_game_state['game_id']);
-            socket.emit('game_start_req', local_game_state['game_id']);
+        if (local_game_state.game_id !== '') {
+            console.log('Start timer for game: ' + local_game_state.game_id);
+            socket.emit('game_start_req', local_game_state.game_id);
         };
     };
-    // function send_pause_req() {
-    //     if (local_game_state['game_id'] !== '') {
-    //         console.log('Start timer for game: ' + local_game_state['game_id']);
-    //         socket.emit('game_pause_req', local_game_state['game_id']);
-    //     };
-    // };
     function send_reset_req() {
-        if (local_game_state['game_id'] !== '') {
-            console.log('Start timer for game: ' + local_game_state['game_id']);
-            socket.emit('game_reset_req', local_game_state['game_id']);
+        if (local_game_state.game_id !== '') {
+            console.log('Start timer for game: ' + local_game_state.game_id);
+            socket.emit('game_reset_req', local_game_state.game_id);
         };
     };
     function game_start_resume() {
         console.log('Attempting to start game');
         timer.start();
-        // game_start_btn.innerText = 'Pause game';
         game_start_btn.disabled = true;
         game_reset_btn.disabled = false;
-        // game_pause_btn.disabled = false;
-        proper_noun_btn.disabled = false;
+        proper_noun_btn.hidden = false;
+        undo_btn.hidden = false;
+        answer_btns = document.querySelectorAll('.answer');
+        for (i = 0; i < answer_btns.length; i++) {
+            answer_btns[i].hidden = false;
+        }
+        // Uncomment after figuring how the hell to make the answer buttons
+        // all appear at once. =/
+        // answer_btns.hidden = false;
+        // Uncomment and move undo button up after enabling roles
+        // if (local_game_state.role === 'mayor') {
+        // }
     };
-    // function game_pause() {
-    //     console.log('Attempting to pause game');
-    //     timer.pause();
-    //     game_start_btn.innerText = 'Resume game';
-    //     game_start_btn.disabled = false;
-    //     game_reset_btn.disabled = false;
-    //     game_pause_btn.disabled = true;
-    //     proper_noun_btn.disabled = true;
-    // };
-    // FIXME: socket disconnect on execution of game_reset. Boooo
-    function game_reset() {
+    function game_reset(game_id) {
         console.log('Attempting to reset game');
-        socket.emit('game_reset', 'defaultgame');
-        reset_game_timer(local_game_state.time);
-        // game_start_btn.innerText = 'Start game';
-        game_start_btn.disabled = false;
-        game_reset_btn.disabled = false;
-        // game_pause_btn.disabled = true;
-        proper_noun_btn.disabled = true;
+        if (game_id === local_game_state.game_id) {
+            socket.emit('game_reset', game_id);
+            reset_game_timer(local_game_state.time);
+            game_start_btn.disabled = false;
+            game_reset_btn.disabled = false;
+            proper_noun_btn.hidden = true;
+        }
     };
     function get_game_state() {
         socket.emit('get_game_state');
