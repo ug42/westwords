@@ -182,8 +182,3 @@ input[type=checkbox]:checked~.sideIconToggle>.diagonal.part-2 {
   cursor: pointer;
   z-index: 1;
 }
-
-.answer_btn {
-  display: inline;
-  background: rgba(0, 0, 0, .1);
-}

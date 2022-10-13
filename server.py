@@ -171,7 +171,6 @@ def create_game():
 
 @app.route('/login')
 def login():
-
     return render_template('login.html')
 
 
@@ -290,12 +289,12 @@ def start_game(game_id):
         emit('game_start_rsp', game_id, broadcast=True)
 
 
-@socketio.on('game_pause_req')
-def start_game(game_id):
-    print('Pausing timer')
-    if game_id in GAMES:
-        GAMES[game_id].pause()
-        emit('game_pause_rsp', game_id, broadcast=True)
+# @socketio.on('game_pause_req')
+# def start_game(game_id):
+#     print('Pausing timer')
+#     if game_id in GAMES:
+#         GAMES[game_id].pause()
+#         emit('game_pause_rsp', game_id, broadcast=True)
 
 
 @socketio.on('game_reset_req')

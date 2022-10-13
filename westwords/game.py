@@ -1,15 +1,17 @@
 # Game and player-related classes
 from datetime import datetime
 from .enums import GameState, AnswerToken
+from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator,
+                   Werewolf, Villager, Seer, Apprentice)
 
 
 class Game(object):
-    """Simple game object for recording status of game.
-        12 roles
-        36 Yes/No tokens
-        10 Maybe tokens
-        1 So Close token
-        1 Correct token
+    """Game object for recording status of game.
+    
+    Args:
+        timer: An integer starting value of timer in seconds
+        player_sids: A list of strings for player session IDs
+        admin: A string player session ID of the admin for the game
     """
 
     def __init__(self, timer=300, player_sids=[], admin=None):
@@ -22,7 +24,7 @@ class Game(object):
         # TODO: Make this to a dict so it can contain roles
         self.player_sids = player_sids
         # TODO: Move this to use the AnswerToken Enum and update remove_token()
-        self.tokens = {
+        self.token_defaults = {
             # YES and NO share the same token count
             AnswerToken.YES.name: 36,
             AnswerToken.MAYBE.name: 10,
@@ -32,14 +34,12 @@ class Game(object):
             AnswerToken.LARAMIE.name: 1,
             AnswerToken.CORRECT.name: 1,
         }
-        # TODO: Make the reset function reset the token count or make the Enum
-        # value associated with AnswerToken count up to limits rather than
-        # counting down in tokens
+        self.tokens = self.token_defaults
         self.mayor = None
         self.questions = []
 
     def __repr__(self):
-        return f'Game({self.timer}, {self.player_sids})'
+        return f'Game({self.timer}, {self.player_sids}, {self.admin})'
 
     def start(self):
         self.game_state = GameState.STARTED
