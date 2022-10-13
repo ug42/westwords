@@ -116,7 +116,7 @@ class Minion(Werewolf):
         Werewolf-aligned character that doesn't get seen by Werewolves. Village
         team still wins if executing the Minion.
 
-        ... So what's the point here?
+        Does not vote with Werewolves to find the Seer.
         """
 
 

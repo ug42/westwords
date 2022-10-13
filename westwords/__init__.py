@@ -1,8 +1,9 @@
 # westwords module
 
 from .game import Game
-from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator,
-                   Werewolf, Villager, Seer, Apprentice)
+from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator, Mason,
+                   Werewolf, Villager, Seer, FortuneTeller, Apprentice, Thing,
+                   Beholder, Minion)
 from .wordlists import (WordList, WORDLISTS)
 from .player import Player
 from .question import Question
