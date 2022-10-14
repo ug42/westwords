@@ -89,7 +89,7 @@ class Game(object):
             'time': self.timer,
             'game_id': game_id,
             'mayor': self.mayor,
-            'tokens': {i.name: self.tokens[i] for i in self.tokens},
+            'tokens': self.get_tokens(),
         }
         return (game_status, self.questions, self.player_sids)
 
@@ -108,6 +108,11 @@ class Game(object):
             del self.player_sids[sid]
         else:
             print(f'DELETE: User {sid} not in game')
+
+    def get_tokens(self):
+        return ' '.join([f'{token.name}: {self.tokens[token]}'
+                        for token in self.tokens])
+
 
     def get_player_names(self, PLAYERS={}):
         return [PLAYERS[sid].name for sid in self.player_sids.keys()]
@@ -132,16 +137,16 @@ class Game(object):
             A dict of booleans for 'success' on removal of token from pool, and
             'end_of_game' to denote if it was the last token to play.
         """
-        print(f'tokens before: {self.tokens}')
-
         if self.tokens[token] > 0:
             if token in [AnswerToken.NO, AnswerToken.YES]:
                 self.tokens[AnswerToken.NO] -= 1
                 self.tokens[AnswerToken.YES] -= 1
                 if self.tokens[token] < 1:
-                    return {'success': True, 'end_of_game': True}    
+                    return {'success': True, 'end_of_game': True}
             else:
                 self.tokens[token] -= 1
+                if token == AnswerToken.CORRECT:
+                    return {'success': True, 'end_of_game': True}
             return {'success': True, 'end_of_game': False}
 
         return {'success': False, 'end_of_game': False}

@@ -47,6 +47,7 @@ ready(function () {
             questions.innerHTML = '';
         }
         
+        token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
         game_state.innerHTML = 'Game state: ' + local_game_state.game_state;
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
 
@@ -99,6 +100,8 @@ ready(function () {
         'time': 420,
         'game_id': null,
         'role': null,
+        'am_mayor': null,
+        'tokens': null,
     }
 
     var timer;
@@ -143,6 +146,7 @@ ready(function () {
     var question_div = document.getElementById('question_div');
     var game_state = document.getElementById('game_state');
     var mayor_name = document.getElementById('mayor_name');
+    var token_count = document.getElementById('token_count');
     game_start_btn.addEventListener('click', send_start_req);
     game_reset_btn.addEventListener('click', send_reset_req);
     get_game_state_btn.addEventListener('click', get_game_state);

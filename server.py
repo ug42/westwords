@@ -48,43 +48,6 @@ GAMES = {
 MAX_RETRIES = 5
 
 
-def verify_player_session(retry=0):
-    # If we manage to get someone modifying the cookie without being connected
-    # for some reason, let's sync up.
-    if retry > MAX_RETRIES:
-        return
-
-    username = session.get('username', f'Not_a_wolf_{randint(1000,9999)}')
-    sid = session.get('sid', str(uuid4()))
-    try:
-        if username != PLAYERS[session['sid']].name:
-            print('Player name out-of-date: {} / {}'.format(
-                username, session['sid']))
-
-        PLAYERS[sid].name = username
-    except KeyError:
-        generate_session_info()
-        verify_player_session(retry+1)
-
-
-def generate_session_info():
-    if 'sid' not in session:
-        session['sid'] = str(uuid4())
-        session.modified = True
-        print(f'Registering SID: {session["sid"]}')
-    if 'username' not in session:
-        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        print(f'Registering username: {session["username"]}')
-        return redirect('/login')
-    if session['sid'] not in PLAYERS:
-        print('Attempting to add sid to PLAYERS')
-        PLAYERS[session['sid']] = westwords.Player(session['username'])
-        if app.config['DEBUG']:
-            print('Adding player to defaultgame game')
-            PLAYERS[session['sid']].game = 'defaultgame'
-            GAMES['defaultgame'].add_player(session['sid'])
-
-
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
 
@@ -143,15 +106,21 @@ def parse_game_state(unparsed_game_state, session_sid):
 def index():
     if 'sid' not in session:
         session['sid'] = str(uuid4())
-        print(f'Registering SID: {session["sid"]}')
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        print(f'Registering username: {session["username"]}')
         return redirect('/login')
     if session['sid'] not in PLAYERS:
-        print('Attempting to add sid to PLAYERS')
         PLAYERS[session['sid']] = westwords.Player(session['username'])
 
+    #######################################
+    # FIXME: Remove this when game join is more functional
+    #######################################
+    GAMES['defaultgame'].add_player(session['sid'])
+    PLAYERS[session['sid']].game = 'defaultgame'
+    ###########
+    # Remove to here.
+    ############
+    GAMES
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
         print(f'Game found')
         game_id = PLAYERS[session['sid']].game
@@ -172,6 +141,7 @@ def index():
         game_state=game_state['game_state'],
         time=game_state['time'],
         mayor=game_state['mayor'],
+        tokens=game_state['tokens'],
     )
 
 
@@ -190,8 +160,7 @@ def username():
 @app.route('/join/<game>')
 def join_game(game):
     if game in GAMES:
-        if session['sid'] not in GAMES[game].player_sids:
-            GAMES[game].add_player(session['sid'])
+        GAMES[game].add_player(session['sid'])
         PLAYERS[session['sid']].game = game
     return redirect('/')
 
@@ -222,8 +191,6 @@ def logout():
 # Socket control functions
 @socketio.on('connect')
 def connect(auth):
-    # if auth:
-    # verify_player_session()
     try:
         if session['sid'] not in PLAYERS:
             PLAYERS[session['sid']] = westwords.Player(session['username'])
@@ -234,21 +201,15 @@ def connect(auth):
         game_status(PLAYERS[session['sid']].game)
     except KeyError as e:
         print(f'No key value found: {e}')
-    print(f'Session info from connect: {session}')
-    print('Client connected')
 
 
 @socketio.on('question')
 def question(question_text):
     game_id = PLAYERS[session['sid']].game
     question = westwords.Question(session['sid'], question_text)
-    print(f'Question: {str(question)}')
-    print(f'got a question: {question_text}')
     if game_id in GAMES:
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
-        print(f'next question id: {question_id}')
-        print(f'question_html: question_id')
         question_html = question.html_format().format(
             id=question_id, player_name=PLAYERS[question.player_sid].name)
 
@@ -337,7 +298,7 @@ def make_me_mayor(game_id):
 # Timer functions
 @socketio.on('game_start_req')
 def start_game(game_id):
-    print('Starting timer')
+    print(f'Starting timer for game {game_id}')
     if game_id in GAMES:
         GAMES[game_id].start()
         emit('game_start_rsp', game_id, broadcast=True)
@@ -347,7 +308,7 @@ def start_game(game_id):
 @socketio.on('game_reset_req')
 def start_game(game_id):
     # Implement game reset feature
-    print('Resetting game')
+    print(f'Resetting game: {game_id}')
     if game_id in GAMES:
         GAMES[game_id].reset()
         emit('game_reset_rsp', game_id, broadcast=True)
