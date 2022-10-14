@@ -38,13 +38,7 @@
 <div class="main">
     <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
     <!-- TODO: set clock to run based on the current state. -->
-    <div id="questions" style="width:0%; height:480px; display: inline-block">
-        <!-- I love that this is easily the most NON-SAFE thing I could do. User-input strings are rendered in HTML on the fly. wtf am I doing?? -->
-        {% for q in questions %}
-        {{ q|safe }}
-        {% endfor %}
-    </div>
-    <span id="controls" style="width=30%; display: inline-block">
+    <div id="controls" style="width=30%">
         <p><a href="/join/defaultgame">Join default game</a></p>
         <p><button id="game_start">Start game</button></p>
         <!-- <p><button id="game_pause" disabled>Pause game</button></p> -->
@@ -60,6 +54,12 @@
         </div>
         <div id="game_state">Game state: {{game_state}}</div>
         <div id="mayor_name">Mayor: {{mayor}}</div>
-    </span>
+    </div>
+    <div id="questions" style="width:0%; height:480px; display: inline-block">
+        <!-- I love that this is easily the most NON-SAFE thing I could do. User-input strings are rendered in HTML on the fly. wtf am I doing?? -->
+        {% for q in questions %}
+        {{ q|safe }}
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}
