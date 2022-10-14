@@ -89,6 +89,7 @@ class Game(object):
             'time': self.timer,
             'game_id': game_id,
             'mayor': self.mayor,
+            'tokens': {i.name: self.tokens[i] for i in self.tokens},
         }
         return (game_status, self.questions, self.player_sids)
 

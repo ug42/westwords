@@ -128,14 +128,13 @@ def parse_game_state(unparsed_game_state, session_sid):
     except KeyError:
         # No mayor is yet selected. and this is now a load-bearing string. :|
         game_state['mayor'] = 'No Mayor yet elected'
-    
 
     try:
         game_state['role'] = str(player_sids[session_sid])
     except KeyError as e:
         print(f'Unable to find player role from SID in game: {e}')
 
-    game_state
+    print(f'Tokens: {game_state["tokens"]}')
 
     return game_state
 
@@ -303,7 +302,7 @@ def answer_question(question_id, answer):
     if results['end_of_game']:
         socketio.emit('mayor_error',
                         f'Last token played, Undo or Move to vote.')
-                        
+
     socketio.emit('force_refresh', game_id, broadcast=True)
 
 
