@@ -44,7 +44,7 @@
     <div class="main">
         <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
         <!-- TODO: set clock to run based on the current state. -->
-        <div id="questions" style="width:640px; height:240px;">
+        <div id="questions" style="width:100%; height:480px;">
             <!-- I love that this is easily the most NON-SAFE thing I could do. User-input strings are rendered in HTML on the fly. wtf am I doing?? -->
             {% for q in questions %}
             {{ q|safe }}

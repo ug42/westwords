@@ -14,6 +14,9 @@ class Role(object):
         self.see_word = False
         self.wins_with = Affiliation.VILLAGE
 
+    def __str__(self):
+        return type(self).__name__
+
     def guess_seer(self, player_sid):
         pass
 
@@ -37,6 +40,9 @@ class Mayor(Role):
         """
         self.sees_word = True
         self.wins_with = Affiliation.UNKNOWN
+
+    def __str__(self):
+        return "Mayor"
 
 
 class Doppelganger(Role):

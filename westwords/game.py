@@ -13,7 +13,7 @@ class OutOfTokenError(Exception):
     pass
 
 
-class OutOfYesNoTokenError(OutOfTokenError):
+class OutOfYesNoTokenError(Exception):
     """Raised when the last YES/NO token has been played."""
     pass
 
@@ -37,7 +37,7 @@ class Game(object):
         # TODO: Add concept of a game admin and management of users in that space
         self.game_state = GameState.SETUP
         self.timer = timer
-        self.time = datetime.now()
+        self.start_time = None
         # TODO: Plumb in user objects to this
         self.admin = admin
         # TODO: Make this to a dict so it can contain roles
@@ -107,6 +107,10 @@ class Game(object):
         }
         return (game_status, self.questions, self.player_sids)
 
+    def get_player_role(self, sid):
+        """Returns a string format version of the player's role."""
+        return str(self.player_sids[sid])
+
     def add_player(self, sid):
         if sid not in self.player_sids:
             self.player_sids[sid] = None
@@ -127,7 +131,7 @@ class Game(object):
         self.last_answered = question_id
 
     def undo_answer(self):
-        if self.last_answered and self.last_answered in self.questions:
+        if self.last_answered and self.last_answered < len(self.questions):
             self.questions[self.last_answered].clear_answer()
         else:
             print(f'No answer to undo for question id: {self.last_answered}')

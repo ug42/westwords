@@ -23,9 +23,6 @@ ready(function () {
             hideSidebar();
     });
 
-    // TODO: update all defaultgame references
-    // TODO: update all default_game_state to be the local_game_state after
-    //       emitting the correct values form server
     // TODO: add separate sockets for each of the game comms
     // TODO: Reload the page with the correct buttons appearing
     // var socket = io.connect({ autoconnect: true });
@@ -41,11 +38,12 @@ ready(function () {
         console.log('local game state before: ' + local_game_state.game_id)
         console.log('Received game state for game id: ' + g.game_id)
         local_game_state = g;
-        console.log('local game state after: ' + local_game_state.game_id)
-        // gs = get_questions_html(local_game_state);
-        // questions.innerHTML = gs;
+        console.log('local game state after: ' + local_game_state.game_id);
+        console.log('local game state after: ' + local_game_state.player);
+        console.log('local game state after: ' + local_game_state.am_mayor);
+        console.log('local game state after: ' + local_game_state.mayor);
         console.log('questions: ' + g['questions'].join())
-        if (g.questions.length > 0){
+        if (g.questions.length > 0) {
             questions.innerHTML = g.questions.join('');
         } else {
             questions.innerHTML = '';
@@ -68,9 +66,10 @@ ready(function () {
             alert(data)
         }
     });
-    socket.on('add_question', function(rsp) {
+    socket.on('add_question', function (rsp) {
         if (local_game_state.game_id === rsp.game_id) {
-            questions.innerHTML = rsp.q + questions.innerHTML      }
+            questions.innerHTML = rsp.q + questions.innerHTML
+        }
     });
 
     var local_game_state = {
@@ -119,7 +118,7 @@ ready(function () {
     undo_btn.addEventListener('click', function () {
         socket.emit('undo', local_game_state.game_id)
     })
-    make_me_mayor_btn.addEventListener('click', function() {
+    make_me_mayor_btn.addEventListener('click', function () {
         socket.emit('make_me_mayor', local_game_state.game_id)
     })
     proper_noun_btn.addEventListener('click', function () {
@@ -144,16 +143,10 @@ ready(function () {
         game_start_btn.disabled = true;
         game_reset_btn.disabled = false;
         proper_noun_btn.hidden = false;
-        undo_btn.hidden = false;
-        answer_btns = document.querySelectorAll('.answer');
-        for (i = 0; i < answer_btns.length; i++) {
-            answer_btns[i].hidden = false;
-        }
-        // Uncomment after figuring how the hell to make the answer buttons
-        // all appear at once. =/
-        // answer_btns.hidden = false;
-        // Uncomment and move undo button up after enabling roles
-        // if (local_game_state.role === 'mayor') {
+        // undo_btn.hidden = false;
+        // answer_btns = document.querySelectorAll('.answer');
+        // for (i = 0; i < answer_btns.length; i++) {
+        //     answer_btns[i].hidden = false;
         // }
     }
     function game_reset(game_id) {
@@ -169,6 +162,9 @@ ready(function () {
     }
     function get_game_state() {
         socket.emit('get_game_state');
-        console.log('Game state request initiated')
+        console.log('Game state request initiated');
+    }
+    function get_role(game_id) {
+        socket.emit('get_role', game_id);
     }
 });

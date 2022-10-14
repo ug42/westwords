@@ -10,7 +10,7 @@ HTML_ANSWER_TEMPLATE = """
 <button class="answer" onclick="answer({id}, 'maybe')" {hidden}>Maybe</button>
 <button class="answer" onclick="answer({id}, 'so_close')" {hidden}>So Close</button>
 <button class="answer" onclick="answer({id}, 'so_far')" {hidden}>Very far off</button>
-<button class="answer" onclick="answer({id}, 'correct')"  {hidden}>Correct!</button>
+<button class="answer" onclick="answer({id}, 'correct')" {hidden}>Correct!</button>
 </div>
 </div>
 """
@@ -35,7 +35,7 @@ class Question(object):
         if self.answer:
             # This should be the actual name of answer.
             # TODO: move this to be an image with alt text.
-            answer_html = self.answer.name
+            answer_html = self.answer.name + '</div>'
         else:
             # TODO: Move these all to be images greyed out with alt-text and
             # mouseover highlight to non-greyed out image
@@ -50,10 +50,7 @@ class Question(object):
 
     def answer_question(self, answer: AnswerToken):
         """Sets the answer for this question."""
-        if isinstance(answer, AnswerToken):
-            self.answer = answer
-        else:
-            raise QuestionError(f'Unable to set answer with {str(answer)}')
+        self.answer = answer
 
     def clear_answer(self):
         """Simple method to clear the currently assigned AnswerToken."""
