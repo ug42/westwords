@@ -10,12 +10,12 @@ class GameState(Enum):
 
 class AnswerToken(Enum):
     # Provides canonical tokens and mapping to buckets
-    YES = "yes_no"
-    NO = "yes_no"
+    YES = "yes"
+    NO = "no"
     MAYBE = "maybe"
     SO_CLOSE = "so_close"
     SO_FAR = "so_far"
     CORRECT = "correct"
     LARAMIE = "laramie"
-    NONE = ''
+    NONE = ""
     

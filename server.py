@@ -78,7 +78,7 @@ def generate_session_info():
     if session['sid'] not in PLAYERS:
         print('Attempting to add sid to PLAYERS')
         PLAYERS[session['sid']] = westwords.Player(session['username'])
-    
+
 
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
@@ -112,6 +112,8 @@ def parse_game_state(g):
 
 # TODO: Add a redirect to all routes or maybe a handler to ensure someone can
 # set their username. Preferably with a route-back to the requested url.
+
+
 @app.route('/')
 def index():
     # TODO: Add a username prompt redirect for first login attempts.
@@ -125,7 +127,7 @@ def index():
     if session['sid'] not in PLAYERS:
         print('Attempting to add sid to PLAYERS')
         PLAYERS[session['sid']] = westwords.Player(session['username'])
-    
+
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
         print(f'Game found')
         game_id = PLAYERS[session['sid']].game
@@ -138,7 +140,7 @@ def index():
 
     # FIXME: game_state renders on first load, than fails with local variable
     # 'game_state' referenced before assignment on subsequent loads
-    
+
     return render_template(
         'game.html',
         questions=game_state['questions'],
@@ -194,7 +196,7 @@ def logout():
 @socketio.on('connect')
 def connect(auth):
     # if auth:
-    # verify_player_session()    
+    # verify_player_session()
     try:
         if session['sid'] not in PLAYERS:
             PLAYERS[session['sid']] = westwords.Player(session['username'])
@@ -212,7 +214,7 @@ def connect(auth):
                 'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
     except KeyError as e:
         print(f'No key value found: {e}')
-    print(f'Session info from connect: {session}')    
+    print(f'Session info from connect: {session}')
     print('Client connected')
 
 
@@ -228,12 +230,12 @@ def question(question_text):
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
         question_html = question.html_format().format(
-            id=question_id,player_name=PLAYERS[question.player_sid].name,
+            id=question_id, player_name=PLAYERS[question.player_sid].name,
             hidden=hidden_answer_buttons)
 
         GAMES[game_id].questions.append(question)
         emit('add_question',
-             {'q': question_html,'game_id': game_id}, broadcast=True)
+             {'q': question_html, 'game_id': game_id}, broadcast=True)
 
 
 @socketio.on('answer_question')
@@ -246,49 +248,41 @@ def answer_question(question_id, answer):
 
         (Yes/No/Maybe/So Close/So Far/Correct)
     """
+    print(f'Answer at beginning: {answer}')
     if session['sid'] not in PLAYERS:
         print('No player found for session: ' + session['sid'])
         return
 
-    game = PLAYERS[session['sid']].game
-    if PLAYERS[session['sid']].game not in GAMES:
-        print('Unable to find game: ' + game)
+    game_id = PLAYERS[session['sid']].game
+    if game_id not in GAMES:
+        print('Unable to find game: ' + game_id)
         return
 
-    if GAMES[game].mayor != session['sid']:
+    if GAMES[game_id].mayor != session['sid']:
         print('User is not mayor!')
         return
 
-    if question_id not in GAMES[game].questions:
-        print(
-            f'Question {question_id} not in game.' +
-            parse_game_state(GAMES[game].get_state())
-        )
+    if question_id >= len(GAMES[game_id].questions):
+        print(f'Question {question_id} is an out of array index.')
 
     try:
         answer_token = westwords.AnswerToken[answer.upper()]
-    except KeyError as e:        
+        print(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
+
+    except KeyError as e:
         print(f'Unknown answer: {e}')
-    
-    if answer_token.value == 'yes_no' and GAMES[game].tokens['yes_no'] == 1:
-        GAMES[game].start_vote()
-    if GAMES[game].tokens[answer_token.value] <= 0:
-        print(f'Unable to apply {answer_token}')
-        emit('mayor_error', f'No "{answer}" tokens remaining.')
 
     # Question ID is basically just the index offset starting at 0
-    GAMES[game].questions[question_id].answer = answer_token
-    GAMES[game].last_answered = question_id
-    asking_player = GAMES[game].questions[question_id].player_sid
-    PLAYERS[asking_player].add_token(answer_token)
-
     try:
-        GAMES[game].remove_token(answer_token)
+        GAMES[game_id].remove_token(answer_token)
+        GAMES[game_id].answer_question(question_id, answer_token)
+        asking_player = GAMES[game_id].questions[question_id].player_sid
+        PLAYERS[asking_player].add_token(answer_token)
     except (westwords.game.OutOfTokenError,
-            westwords.game.OutOfYesNoTokenError) as e:
-        # Handle the end of game condition.
+            westwords.game.OutOfYesNoTokenError,
+            westwords.game.GameError,) as e:
+        # TODO: Handle the end of game condition.
         emit('mayor_error', e)
-    
 
 
 @socketio.on('get_game_state')
@@ -303,7 +297,7 @@ def game_status():
 def undo(game_id):
     if game_id in GAMES:
         if (game_id == PLAYERS[session['sid']].game and
-            GAMES[game_id].mayor == session['sid']):
+                GAMES[game_id].mayor == session['sid']):
             GAMES[game_id].undo_answer()
 
 

@@ -1,7 +1,7 @@
 # Game and player-related classes
-from collections import defaultdict
 from datetime import datetime
-from sre_constants import OP_IGNORE
+
+from westwords.question import QuestionError
 from .enums import GameState, AnswerToken
 from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator, Mason,
                    Werewolf, Villager, Seer, FortuneTeller, Apprentice, Thing,
@@ -12,13 +12,20 @@ class OutOfTokenError(Exception):
     """Raised when no more tokens of a specific kind are available."""
     pass
 
+
 class OutOfYesNoTokenError(OutOfTokenError):
     """Raised when the last YES/NO token has been played."""
     pass
 
+
+class GameError(Exception):
+    """Generic game error"""
+    pass
+
+
 class Game(object):
     """Game object for recording status of game.
-    
+
     Args:
         timer: An integer starting value of timer in seconds
         player_sids: A dict of string keys for player session IDs to Role
@@ -40,13 +47,14 @@ class Game(object):
         # TODO: Move this to use the AnswerToken Enum and update remove_token()
         self.token_defaults = {
             # YES and NO share the same token count
-            AnswerToken.YES.name: 36,
-            AnswerToken.MAYBE.name: 10,
-            AnswerToken.SO_CLOSE.name: 1,
-            AnswerToken.SO_FAR.name: 1,
+            AnswerToken.YES: 36,
+            AnswerToken.NO: 36,
+            AnswerToken.MAYBE: 10,
+            AnswerToken.SO_CLOSE: 1,
+            AnswerToken.SO_FAR: 1,
             # Purpose is generally unknown even by lar.
-            AnswerToken.LARAMIE.name: 1,
-            AnswerToken.CORRECT.name: 1,
+            AnswerToken.LARAMIE: 1,
+            AnswerToken.CORRECT: 1,
         }
         self.tokens = self.token_defaults
         self.mayor = None
@@ -74,8 +82,11 @@ class Game(object):
         self.game_state = GameState.FINISHED
 
     def reset(self):
-        if self.game_state is not GameState.STARTED:
-            self.game_state = GameState.SETUP
+        self.game_state = GameState.SETUP
+        self.tokens = self.token_defaults
+        self.mayor = None
+        self.questions = []
+        self.last_answered = None
 
     def get_state(self, game_id):
         """Returns a dict of the current game state.
@@ -111,12 +122,15 @@ class Game(object):
     def get_player_names(self, PLAYERS={}):
         return [PLAYERS[sid].name for sid in self.player_sids.keys()]
 
+    def answer_question(self, question_id: int, answer: AnswerToken):
+        self.questions[question_id].answer_question(answer)
+        self.last_answered = question_id
+
     def undo_answer(self):
         if self.last_answered and self.last_answered in self.questions:
             self.questions[self.last_answered].clear_answer()
         else:
             print(f'No answer to undo for question id: {self.last_answered}')
-
 
     def remove_token(self, token: AnswerToken):
         """Decrement the token counter
@@ -125,14 +139,20 @@ class Game(object):
             token: An AnswerToken object for the token to decrement.
 
         Raises:
-            OutOfTokenError: Raises for exceptions when the 
+            OutOfTokenError: Raises when out of a given token.
+            OutOfYesNoTokenError: Raises when no more yes/no tokens are in game.
         """
-        if self.tokens[token.name] > 0:
-            self.tokens[token.name] -= 1
+        if self.tokens[token] > 0:
+            if token in [AnswerToken.NO, AnswerToken.YES]:
+                self.tokens[AnswerToken.NO] -= 1
+                self.tokens[AnswerToken.YES] -= 1
+                if self.tokens[token] < 1:
+                    #################################################
+                    # END OF GAME CONDITION UNLESS Mayor calls undo.
+                    #################################################
+                    raise (OutOfYesNoTokenError,
+                           'Out of yes/no tokens. On to vote.')
+            else:
+                self.tokens[token] -= 1
         else:
-            # Token.value is used here as the token name can be 'yes_no' for
-            # both YES and NO values.
-            raise(OutOfTokenError, f'No more {token.value} tokens')
-        
-        if token.name == AnswerToken.YES.name and self.tokens[token.name] < 1:
-            raise(OutOfYesNoTokenError, 'Out of yes/no tokens. On to vote.')
+            raise (OutOfTokenError, f'No more {token.value} tokens')

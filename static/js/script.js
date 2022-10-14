@@ -1,3 +1,12 @@
+var socket = io.connect({ autoconnect: true });
+function hideSidebar() {
+    document.getElementById('openSideMenu').checked = false;
+}
+function answer(id, answer) {
+    socket.emit('answer_question', id, answer);
+}
+
+
 function ready(fn) {
     if (document.readyState !== 'loading') {
         fn();
@@ -8,23 +17,18 @@ function ready(fn) {
 
 ready(function () {
     // Side bar click-to-hide stuff
-    function hideSidebar() {
-        document.getElementById('openSideMenu').checked = false;
-    }
     var sideIconToggle = document.getElementById('sidebarContainer');
     document.addEventListener('click', function (event) {
         if (!sidebarContainer.contains(event.target))
             hideSidebar();
     });
-    function answer(id, answer) {
-        socket.emit('answer_question', id, answer)
-    }
+
     // TODO: update all defaultgame references
     // TODO: update all default_game_state to be the local_game_state after
     //       emitting the correct values form server
     // TODO: add separate sockets for each of the game comms
     // TODO: Reload the page with the correct buttons appearing
-    var socket = io.connect({ autoconnect: true });
+    // var socket = io.connect({ autoconnect: true });
     var questions = document.getElementById("questions");
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
@@ -43,6 +47,8 @@ ready(function () {
         console.log('questions: ' + g['questions'].join())
         if (g.questions.length > 0){
             questions.innerHTML = g.questions.join('');
+        } else {
+            questions.innerHTML = '';
         }
     });
     // TODO: Break this away from using local_game_state or make it so it gets
@@ -50,22 +56,22 @@ ready(function () {
     socket.on('game_start_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
             game_start_resume();
-        };
+        }
     });
     socket.on('game_reset_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
             game_reset(game_id);
-        };
+        }
     });
     socket.on('mayor_error', function (date) {
         if (role === 'mayor') {
             alert(data)
         }
-    })
+    });
     socket.on('add_question', function(rsp) {
         if (local_game_state.game_id === rsp.game_id) {
-            questions.innerHTML = rsp.q + questions.innerHTML      };
-    })
+            questions.innerHTML = rsp.q + questions.innerHTML      }
+    });
 
     var local_game_state = {
         'game_state': null,
@@ -74,7 +80,7 @@ ready(function () {
         'time': 420,
         'game_id': null,
         'role': null,
-    };
+    }
 
     var timer;
     game_timer = document.getElementById('game_timer');
@@ -124,14 +130,14 @@ ready(function () {
         if (local_game_state.game_id !== '') {
             console.log('Start timer for game: ' + local_game_state.game_id);
             socket.emit('game_start_req', local_game_state.game_id);
-        };
-    };
+        }
+    }
     function send_reset_req() {
         if (local_game_state.game_id !== '') {
             console.log('Start timer for game: ' + local_game_state.game_id);
             socket.emit('game_reset_req', local_game_state.game_id);
-        };
-    };
+        }
+    }
     function game_start_resume() {
         console.log('Attempting to start game');
         timer.start();
@@ -149,8 +155,9 @@ ready(function () {
         // Uncomment and move undo button up after enabling roles
         // if (local_game_state.role === 'mayor') {
         // }
-    };
+    }
     function game_reset(game_id) {
+        // FIXME: Game reset does not remove existing questions from board.
         console.log('Attempting to reset game');
         if (game_id === local_game_state.game_id) {
             socket.emit('game_reset', game_id);
@@ -159,9 +166,9 @@ ready(function () {
             game_reset_btn.disabled = false;
             proper_noun_btn.hidden = true;
         }
-    };
+    }
     function get_game_state() {
         socket.emit('get_game_state');
         console.log('Game state request initiated')
-    };
+    }
 });
