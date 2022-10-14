@@ -97,8 +97,6 @@ def parse_game_state(unparsed_game_state, session_sid):
     except KeyError as e:
         print(f'Unable to find player role from SID in game: {e}')
 
-    print(f'Tokens: {game_state["tokens"]}')
-
     return game_state
 
 
@@ -122,12 +120,10 @@ def index():
     ############
     GAMES
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
-        print(f'Game found')
         game_id = PLAYERS[session['sid']].game
         game_state = parse_game_state(
             GAMES[game_id].get_state(game_id), session['sid'])
     else:
-        print('No game found associated with player.')
         # Return the values from an empty game
         game_state = parse_game_state(
             westwords.Game(timer=0, player_sids=[]).get_state(None),
