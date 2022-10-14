@@ -8,21 +8,6 @@ from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator, Mason,
                    Beholder, Minion)
 
 
-class OutOfTokenError(Exception):
-    """Raised when no more tokens of a specific kind are available."""
-    pass
-
-
-class OutOfYesNoTokenError(Exception):
-    """Raised when the last YES/NO token has been played."""
-    pass
-
-
-class GameError(Exception):
-    """Generic game error"""
-    pass
-
-
 class Game(object):
     """Game object for recording status of game.
 
@@ -142,21 +127,20 @@ class Game(object):
         Args:
             token: An AnswerToken object for the token to decrement.
 
-        Raises:
-            OutOfTokenError: Raises when out of a given token.
-            OutOfYesNoTokenError: Raises when no more yes/no tokens are in game.
+        Returns:
+            A dict of booleans for 'success' on removal of token from pool, and
+            'end_of_game' to denote if it was the last token to play.
         """
+        print(f'tokens before: {self.tokens}')
+
         if self.tokens[token] > 0:
             if token in [AnswerToken.NO, AnswerToken.YES]:
                 self.tokens[AnswerToken.NO] -= 1
                 self.tokens[AnswerToken.YES] -= 1
                 if self.tokens[token] < 1:
-                    #################################################
-                    # END OF GAME CONDITION UNLESS Mayor calls undo.
-                    #################################################
-                    raise (OutOfYesNoTokenError,
-                           'Out of yes/no tokens. On to vote.')
+                    return {'success': True, 'end_of_game': True}    
             else:
                 self.tokens[token] -= 1
-        else:
-            raise (OutOfTokenError, f'No more {token.value} tokens')
+            return {'success': True, 'end_of_game': False}
+
+        return {'success': False, 'end_of_game': False}

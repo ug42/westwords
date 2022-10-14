@@ -34,26 +34,40 @@ ready(function () {
         console.log('Socket disconnected.');
     });
     socket.on('game_state', function (g) {
-        console.log('Game state received.');
+        // console.log('Game state received.');
         local_game_state = g;
-        console.log('game_id: ' + local_game_state.game_id);
-        console.log('players: ' + local_game_state.players);
-        console.log('am I mayor?: ' + local_game_state.am_mayor);
-        console.log('mayor name: ' + local_game_state.mayor);
-        // console.log('questions: ' + g['questions'].join())
+        // console.log('game_id: ' + local_game_state.game_id);
+        // console.log('players: ' + local_game_state.players);
+        // console.log('am I mayor?: ' + local_game_state.am_mayor);
+        // console.log('mayor name: ' + local_game_state.mayor);
         if (g.questions.length > 0) {
             questions.innerHTML = g.questions.join('');
+            if (local_game_state.am_mayor === true) {unhide_answer_btns();}
         } else {
             questions.innerHTML = '';
         }
-        // document.getElementById('game_state').innerHTML = 'Game state: ' + local_game_state.game_state;
-        // document.getElementById('mayor').innerHTML = 'Game state: ' + local_game_state.game_state;
+        
+        game_state.innerHTML = 'Game state: ' + local_game_state.game_state;
+        mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
+
+        if (local_game_state.mayor !== 'No Mayor yet elected') {
+            make_me_mayor_btn.hidden = true;
+        }
+        if (local_game_state.am_mayor === true) {
+            make_me_mayor_btn.hidden = true;
+            proper_noun_btn.hidden = true;
+            undo_btn.hidden = false;
+            question_div.hidden = true;
+            unhide_answer_btns();
+        } else {
+            // question_div.hidden = false;
+            proper_noun_btn.hidden = false;
+            undo_btn.hidden = true;
+        }
     });
-    // TODO: Break this away from using local_game_state or make it so it gets
-    //       game state on connect
     socket.on('game_start_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
-            game_start_resume();
+            game_start();
         }
     });
     socket.on('game_reset_rsp', function (game_id) {
@@ -61,16 +75,22 @@ ready(function () {
             game_reset(game_id);
         }
     });
-    socket.on('mayor_error', function (date) {
-        if (role === 'mayor') {
-            alert(data)
+    socket.on('mayor_error', function (data) {
+        if (local_game_state.am_mayor === true) {
+            alert(data);
         }
     });
     socket.on('add_question', function (rsp) {
         if (local_game_state.game_id === rsp.game_id) {
             questions.innerHTML = rsp.q + questions.innerHTML
+            if (local_game_state.am_mayor) {unhide_answer_btns();}
         }
     });
+    socket.on('force_refresh', function(rsp) {
+        if (local_game_state.game_id === rsp) {
+            get_game_state();
+        }
+    })
 
     var local_game_state = {
         'game_state': null,
@@ -98,6 +118,14 @@ ready(function () {
         });
     }
 
+    function unhide_answer_btns() {
+        answer_btns = document.querySelectorAll('.answer');
+        for (i = 0; i < answer_btns.length; i++) {
+            answer_btns[i].hidden = false;
+        }
+    }
+
+    var question = document.getElementById('question');
     document.getElementById('question_submit').addEventListener('click', function () {
         console.log('emitting question: ' + question.value);
         if (question.value != "") {
@@ -105,14 +133,16 @@ ready(function () {
         }
     });
 
-    questions = document.getElementById('questions');
+    var questions = document.getElementById('questions');
     var game_start_btn = document.getElementById('game_start');
     var game_reset_btn = document.getElementById('game_reset');
     var get_game_state_btn = document.getElementById('get_game_state');
     var proper_noun_btn = document.getElementById('proper_noun');
     var undo_btn = document.getElementById('undo');
     var make_me_mayor_btn = document.getElementById('make_me_mayor');
-    var question_box = document.getElementById('question');
+    var question_div = document.getElementById('question_div');
+    var game_state = document.getElementById('game_state');
+    var mayor_name = document.getElementById('mayor_name');
     game_start_btn.addEventListener('click', send_start_req);
     game_reset_btn.addEventListener('click', send_reset_req);
     get_game_state_btn.addEventListener('click', get_game_state);
@@ -138,21 +168,24 @@ ready(function () {
             socket.emit('game_reset_req', local_game_state.game_id);
         }
     }
-    function game_start_resume() {
+    function game_start() {
         console.log('Attempting to start game');
         timer.start();
-        game_start_btn.disabled = true;
-        game_reset_btn.disabled = false;
-        proper_noun_btn.hidden = false;
-        make_me_mayor_btn = true
-        if (local_game_state.am_mayor === true) {
-            undo_btn.hidden = false;
-            answer_btns = document.querySelectorAll('.answer');
-            for (i = 0; i < answer_btns.length; i++) {
-                answer_btns[i].hidden = false;
-            }
-            question_box.hidden = true
-        }
+        game_start_btn.hidden = true;
+        game_reset_btn.hidden = false;
+        
+        // make_me_mayor_btn.hidden = true
+        // if (local_game_state.am_mayor === true) {
+        //     undo_btn.hidden = false;
+        //     unhide_answer_btns();
+        //     question_div.hidden = true;
+        //     proper_noun_btn.hidden = true;
+        // } else {
+        //     question_div.hidden = false;
+        //     proper_noun_btn.hidden = false;
+        //     undo_btn.hidden = false;
+        // }
+
     }
     function game_reset(game_id) {
         // FIXME: Game reset does not remove existing questions from board.
@@ -160,8 +193,8 @@ ready(function () {
         if (game_id === local_game_state.game_id) {
             socket.emit('game_reset', game_id);
             reset_game_timer(local_game_state.time);
-            game_start_btn.disabled = false;
-            game_reset_btn.disabled = false;
+            game_start_btn.hidden = false;
+            game_reset_btn.hidden = true;
             proper_noun_btn.hidden = true;
         }
     }

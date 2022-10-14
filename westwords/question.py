@@ -15,7 +15,7 @@ HTML_ANSWER_TEMPLATE = """
 </div>
 """
 
-class QuestionError(Exception):
+class QuestionError(BaseException):
     """Simple exception class for Question objects."""
     pass
 
@@ -27,6 +27,9 @@ class Question(object):
         self.player_sid = player_sid
         self.question_text = question_text
         self.answer = None
+
+    def __str__(self):
+        return f'Question: {self.question_text} -- player: {self.player_sid}'
 
     def __repr__(self):
         return f'Question({self.player_sid}, {self.question_text})'

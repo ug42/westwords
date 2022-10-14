@@ -7,12 +7,13 @@
 
 # requirements.txt may still need Flask-Session==0.4.0 : but testing without it.
 
+import re
 from uuid import uuid4
 from random import randint, choice
 from string import ascii_uppercase
 import westwords
 
-from flask import (Flask, make_response, redirect, render_template,
+from flask import (Flask, flash, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
@@ -88,7 +89,7 @@ def generate_session_info():
 # URL routing
 
 
-def parse_game_state(unparsed_game_state):
+def parse_game_state(unparsed_game_state, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
     
     Args:
@@ -107,15 +108,9 @@ def parse_game_state(unparsed_game_state):
     player_sids = unparsed_game_state[2]
 
     game_state['questions'] = []
-    print(f'Parsing game state. Session info: {session}')
-    hidden_answer_buttons = ''
-    if game_state['mayor'] != session['sid']:
-        hidden_answer_buttons = 'hidden'
-
     for id, question in enumerate(questions):
         formatted_question = question.html_format().format(
-            id=id, player_name=PLAYERS[question.player_sid].name,
-            hidden=hidden_answer_buttons)
+            id=id, player_name=PLAYERS[question.player_sid].name)
         game_state['questions'].append(formatted_question)
     # Let's make it show most recent at the top. :)
     game_state['questions'].reverse()
@@ -125,18 +120,18 @@ def parse_game_state(unparsed_game_state):
         if sid in PLAYERS:
             game_state['players'].append(PLAYERS[sid].name)
 
-    game_state['am_mayor'] = game_state['mayor'] == session['sid']
+    game_state['am_mayor'] = game_state['mayor'] == session_sid
 
     try:
         # Replace the mayor SID with name
         game_state['mayor'] = PLAYERS[game_state['mayor']].name
     except KeyError:
-        # No mayor is yet selected.
-        game_state['mayor'] = None
+        # No mayor is yet selected. and this is now a load-bearing string. :|
+        game_state['mayor'] = 'No Mayor yet elected'
     
 
     try:
-        game_state['role'] = str(player_sids[session['sid']])
+        game_state['role'] = str(player_sids[session_sid])
     except KeyError as e:
         print(f'Unable to find player role from SID in game: {e}')
 
@@ -161,12 +156,14 @@ def index():
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
         print(f'Game found')
         game_id = PLAYERS[session['sid']].game
-        game_state = parse_game_state(GAMES[game_id].get_state(game_id))
+        game_state = parse_game_state(
+            GAMES[game_id].get_state(game_id), session['sid'])
     else:
         print('No game found associated with player.')
         # Return the values from an empty game
         game_state = parse_game_state(
-            westwords.Game(timer=0, player_sids=[]).get_state(None))
+            westwords.Game(timer=0, player_sids=[]).get_state(None),
+            session['sid'])
 
     return render_template(
         'game.html',
@@ -182,7 +179,9 @@ def index():
 @app.route('/username', methods=['POST'])
 def username():
     if request.method == 'POST' and request.form.get('username'):
-        print(f'Username registered:{session["username"]}')
+        if re.search(r'mayor', request.form.get('username').casefold()):
+            flash('Cute, smartass.')
+            return redirect('/')                    
         session['username'] = request.form.get('username')
         if session['sid'] in PLAYERS:
             PLAYERS[session['sid']].name = session['username']
@@ -216,7 +215,8 @@ def login():
 def logout():
     response = make_response(render_template('logout.html'))
     response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
-    # session.clear()
+    flash('Session destroyed. You are now logged out; redirecting to /')
+    session.clear()
     return response
 
 
@@ -230,10 +230,7 @@ def connect(auth):
             PLAYERS[session['sid']] = westwords.Player(session['username'])
     except KeyError as e:
         print(f'Unable to register Player, due to lookup failure. {e}')
-    # FIXME: Sending initial game state via game_status() breaks socket for some
-    #        reason.
-    # Send initial game_status
-    # game_status()
+    game_status()
     try:
         game_status(PLAYERS[session['sid']].game)
     except KeyError as e:
@@ -246,10 +243,13 @@ def connect(auth):
 def question(question_text):
     game_id = PLAYERS[session['sid']].game
     question = westwords.Question(session['sid'], question_text)
+    print(f'Question: {str(question)}')
     print(f'got a question: {question_text}')
     if game_id in GAMES:
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
+        print(f'next question id: {question_id}')
+        print(f'question_html: question_id')
         question_html = question.html_format().format(
             id=question_id, player_name=PLAYERS[question.player_sid].name)
 
@@ -287,23 +287,24 @@ def answer_question(question_id, answer):
     try:
         answer_token = westwords.AnswerToken[answer.upper()]
         print(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
-
     except KeyError as e:
         print(f'Unknown answer: {e}')
 
     # Question ID is basically just the index offset starting at 0
-    try:
-        GAMES[game_id].remove_token(answer_token)
-        GAMES[game_id].answer_question(question_id, answer_token)
-        asking_player = GAMES[game_id].questions[question_id].player_sid
-        PLAYERS[asking_player].add_token(answer_token)
-    except (westwords.game.OutOfTokenError, westwords.game.GameError) as e:
-        emit('mayor_error', e)
-    except westwords.game.OutOfYesNoTokenError as e:
-        # TODO: Handle the end of game condition. Maybe pop-up that enables
-        # mayor to undo last action or continue to vote. WITH A TIMER. :P
-        emit('mayor_error', e)
-    game_status(game_id)
+    results = GAMES[game_id].remove_token(answer_token)
+    if not results['success']:
+        socketio.emit('mayor_error', f'Out of {answer_token.value} tokens')
+        return
+
+    GAMES[game_id].answer_question(question_id, answer_token)
+    asking_player = GAMES[game_id].questions[question_id].player_sid
+    PLAYERS[asking_player].add_token(answer_token)
+
+    if results['end_of_game']:
+        socketio.emit('mayor_error',
+                        f'Last token played, Undo or Move to vote.')
+                        
+    socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 @socketio.on('get_game_state')
@@ -311,8 +312,10 @@ def game_status(game_id=None):
     if not game_id:
         game_id = PLAYERS[session['sid']].game
     if game_id in GAMES:
-        socketio.emit(
-            'game_state', parse_game_state(GAMES[game_id].get_state(game_id)), braodcast=False)
+        emit(
+            'game_state',
+            parse_game_state(GAMES[game_id].get_state(game_id), session['sid'])
+        )
 
 
 @socketio.on('undo')
@@ -321,14 +324,14 @@ def undo(game_id):
         if (game_id == PLAYERS[session['sid']].game and
                 GAMES[game_id].mayor == session['sid']):
             GAMES[game_id].undo_answer()
-        game_status(game_id)
+        socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 @socketio.on('make_me_mayor')
 def make_me_mayor(game_id):
     if game_id in GAMES and game_id == PLAYERS[session['sid']].game:
         GAMES[game_id].mayor = session['sid']
-    game_status(game_id)
+    socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 # TODO: implement all the scenarios around this
@@ -339,7 +342,7 @@ def start_game(game_id):
     if game_id in GAMES:
         GAMES[game_id].start()
         emit('game_start_rsp', game_id, broadcast=True)
-        game_status(game_id)
+        socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 @socketio.on('game_reset_req')
@@ -349,7 +352,8 @@ def start_game(game_id):
     if game_id in GAMES:
         GAMES[game_id].reset()
         emit('game_reset_rsp', game_id, broadcast=True)
-        game_status(game_id)
+        socketio.emit('force_refresh', game_id, broadcast=True)
+
 
 @socketio.on('get_role')
 def get_role(game_id):
