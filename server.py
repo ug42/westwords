@@ -175,6 +175,7 @@ def index():
         game_name=game_state['game_id'],
         game_state=game_state['game_state'],
         time=game_state['time'],
+        mayor=game_state['mayor'],
     )
 
 
@@ -247,14 +248,10 @@ def question(question_text):
     question = westwords.Question(session['sid'], question_text)
     print(f'got a question: {question_text}')
     if game_id in GAMES:
-        hidden_answer_buttons = ''
-        if GAMES[game_id].mayor != session['sid']:
-            hidden_answer_buttons = 'hidden'
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
         question_html = question.html_format().format(
-            id=question_id, player_name=PLAYERS[question.player_sid].name,
-            hidden=hidden_answer_buttons)
+            id=question_id, player_name=PLAYERS[question.player_sid].name)
 
         GAMES[game_id].questions.append(question)
         emit('add_question',
@@ -315,7 +312,7 @@ def game_status(game_id=None):
         game_id = PLAYERS[session['sid']].game
     if game_id in GAMES:
         socketio.emit(
-            'game_state', parse_game_state(GAMES[game_id].get_state(game_id)))
+            'game_state', parse_game_state(GAMES[game_id].get_state(game_id)), braodcast=False)
 
 
 @socketio.on('undo')

@@ -35,19 +35,19 @@ ready(function () {
     });
     socket.on('game_state', function (g) {
         console.log('Game state received.');
-        console.log('local game state before: ' + local_game_state.game_id)
-        console.log('Received game state for game id: ' + g.game_id)
         local_game_state = g;
-        console.log('local game state after: ' + local_game_state.game_id);
-        console.log('local game state after: ' + local_game_state.player);
-        console.log('local game state after: ' + local_game_state.am_mayor);
-        console.log('local game state after: ' + local_game_state.mayor);
-        console.log('questions: ' + g['questions'].join())
+        console.log('game_id: ' + local_game_state.game_id);
+        console.log('players: ' + local_game_state.players);
+        console.log('am I mayor?: ' + local_game_state.am_mayor);
+        console.log('mayor name: ' + local_game_state.mayor);
+        // console.log('questions: ' + g['questions'].join())
         if (g.questions.length > 0) {
             questions.innerHTML = g.questions.join('');
         } else {
             questions.innerHTML = '';
         }
+        // document.getElementById('game_state').innerHTML = 'Game state: ' + local_game_state.game_state;
+        // document.getElementById('mayor').innerHTML = 'Game state: ' + local_game_state.game_state;
     });
     // TODO: Break this away from using local_game_state or make it so it gets
     //       game state on connect
@@ -112,6 +112,7 @@ ready(function () {
     var proper_noun_btn = document.getElementById('proper_noun');
     var undo_btn = document.getElementById('undo');
     var make_me_mayor_btn = document.getElementById('make_me_mayor');
+    var question_box = document.getElementById('question');
     game_start_btn.addEventListener('click', send_start_req);
     game_reset_btn.addEventListener('click', send_reset_req);
     get_game_state_btn.addEventListener('click', get_game_state);
@@ -143,11 +144,15 @@ ready(function () {
         game_start_btn.disabled = true;
         game_reset_btn.disabled = false;
         proper_noun_btn.hidden = false;
-        // undo_btn.hidden = false;
-        // answer_btns = document.querySelectorAll('.answer');
-        // for (i = 0; i < answer_btns.length; i++) {
-        //     answer_btns[i].hidden = false;
-        // }
+        make_me_mayor_btn = true
+        if (local_game_state.am_mayor === true) {
+            undo_btn.hidden = false;
+            answer_btns = document.querySelectorAll('.answer');
+            for (i = 0; i < answer_btns.length; i++) {
+                answer_btns[i].hidden = false;
+            }
+            question_box.hidden = true
+        }
     }
     function game_reset(game_id) {
         // FIXME: Game reset does not remove existing questions from board.

@@ -5,12 +5,12 @@ from westwords.enums import AnswerToken
 
 HTML_ANSWER_TEMPLATE = """
 <div id="answers_{id}" style="display: inline">
-<button class="answer" onclick="answer({id}, 'yes')" {hidden}>Yes</button>
-<button class="answer" onclick="answer({id}, 'no')" {hidden}>No</button>
-<button class="answer" onclick="answer({id}, 'maybe')" {hidden}>Maybe</button>
-<button class="answer" onclick="answer({id}, 'so_close')" {hidden}>So Close</button>
-<button class="answer" onclick="answer({id}, 'so_far')" {hidden}>Very far off</button>
-<button class="answer" onclick="answer({id}, 'correct')" {hidden}>Correct!</button>
+<button class="answer" onclick="answer({id}, 'yes')" hidden>Yes</button>
+<button class="answer" onclick="answer({id}, 'no')" hidden>No</button>
+<button class="answer" onclick="answer({id}, 'maybe')" hidden>Maybe</button>
+<button class="answer" onclick="answer({id}, 'so_close')" hidden>So Close</button>
+<button class="answer" onclick="answer({id}, 'so_far')" hidden>Very far off</button>
+<button class="answer" onclick="answer({id}, 'correct')" hidden>Correct!</button>
 </div>
 </div>
 """
