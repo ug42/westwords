@@ -161,7 +161,7 @@ def join_game(game):
     return redirect('/')
 
 
-# TODO: Move this to use rooms, if useful above current setup
+# TODO: Move this to use Flask rooms, if useful above current setup
 @app.route('/create', methods=['POST', 'GET'])
 def create_game():
     if request.method == 'GET':

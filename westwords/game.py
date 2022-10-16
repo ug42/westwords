@@ -41,7 +41,7 @@ class Game(object):
             AnswerToken.LARAMIE: 1,
             AnswerToken.CORRECT: 1,
         }
-        self.tokens = self.token_defaults
+        self.tokens = self.token_defaults.copy()
         self.mayor = None
         self.questions = []
         # This should be implemented so we can undo last action in case it was
@@ -68,7 +68,7 @@ class Game(object):
 
     def reset(self):
         self.game_state = GameState.SETUP
-        self.tokens = self.token_defaults
+        self.tokens = self.token_defaults.copy()
         self.mayor = None
         self.questions = []
         self.last_answered = None
