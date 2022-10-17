@@ -16,12 +16,36 @@ function ready(fn) {
 }
 
 ready(function () {
-    // Side bar click-to-hide stuff
-    var sideIconToggle = document.getElementById('sidebarContainer');
+    // Button variables
+    var game_start_btn = document.getElementById('game_start');
+    var game_reset_btn = document.getElementById('game_reset');
+    var proper_noun_btn = document.getElementById('proper_noun');
+    var get_game_state_btn = document.getElementById('get_game_state');
+    var undo_btn = document.getElementById('undo');
+    var make_me_mayor_btn = document.getElementById('make_me_mayor');
+   
+    // div variables
+    var question_div = document.getElementById('question_div');
+    var game_state = document.getElementById('game_state');
+    var mayor_name = document.getElementById('mayor_name');
+    var token_count = document.getElementById('token_count');
+    var questions = document.getElementById('questions');
+    // Get the button that opens the modal
+    var modal = document.getElementById("modal-div");
+    var modal_text = document.getElementById('modal-text');
+    // Get the <span> element that closes the modal
+    var close_modal = document.getElementsByClassName("close")[0];
+
     document.addEventListener('click', function (event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
         if (!sidebarContainer.contains(event.target))
             hideSidebar();
     });
+    close_modal.onclick = function () {
+        modal.style.display = "none";
+    }
 
     // TODO: add separate sockets for each of the game comms
     // TODO: Reload the page with the correct buttons appearing
@@ -42,11 +66,11 @@ ready(function () {
         // console.log('mayor name: ' + local_game_state.mayor);
         if (g.questions.length > 0) {
             questions.innerHTML = g.questions.join('');
-            if (local_game_state.am_mayor === true) {unhide_answer_btns();}
+            if (local_game_state.am_mayor === true) { unhide_answer_btns(); }
         } else {
             questions.innerHTML = '';
         }
-        
+
         token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
         game_state.innerHTML = 'Game state: ' + local_game_state.game_state;
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
@@ -78,16 +102,17 @@ ready(function () {
     });
     socket.on('mayor_error', function (data) {
         if (local_game_state.am_mayor === true) {
-            alert(data);
+            modal_text.innerHTML = data;
+            modal.style.display = "block";
         }
     });
     socket.on('add_question', function (rsp) {
         if (local_game_state.game_id === rsp.game_id) {
             questions.innerHTML = rsp.q + questions.innerHTML
-            if (local_game_state.am_mayor) {unhide_answer_btns();}
+            if (local_game_state.am_mayor) { unhide_answer_btns(); }
         }
     });
-    socket.on('force_refresh', function(rsp) {
+    socket.on('force_refresh', function (rsp) {
         if (local_game_state.game_id === rsp) {
             get_game_state();
         }
@@ -136,17 +161,6 @@ ready(function () {
         }
     });
 
-    var questions = document.getElementById('questions');
-    var game_start_btn = document.getElementById('game_start');
-    var game_reset_btn = document.getElementById('game_reset');
-    var get_game_state_btn = document.getElementById('get_game_state');
-    var proper_noun_btn = document.getElementById('proper_noun');
-    var undo_btn = document.getElementById('undo');
-    var make_me_mayor_btn = document.getElementById('make_me_mayor');
-    var question_div = document.getElementById('question_div');
-    var game_state = document.getElementById('game_state');
-    var mayor_name = document.getElementById('mayor_name');
-    var token_count = document.getElementById('token_count');
     game_start_btn.addEventListener('click', send_start_req);
     game_reset_btn.addEventListener('click', send_reset_req);
     get_game_state_btn.addEventListener('click', get_game_state);
@@ -177,7 +191,7 @@ ready(function () {
         timer.start();
         game_start_btn.hidden = true;
         game_reset_btn.hidden = false;
-        
+
         // make_me_mayor_btn.hidden = true
         // if (local_game_state.am_mayor === true) {
         //     undo_btn.hidden = false;

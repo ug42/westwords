@@ -1,19 +1,29 @@
 <!doctype html>
-<head>
-    <title>WestWords</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
-    </link>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WestWords</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+  </link>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <html lang="en">
+<div id="modal-div" class="modal">
+  <div class="modal-content">
+    <div class="modal-content" id="modal-text" style="display: inline">
+      Placeholder
+    </div>
+    <span class="close">&times;</span>
+  </div>
+</div>
 {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
+{% if messages %}
+<ul class=flashes>
+  {% for message in messages %}
+  <li>{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% endwith %}
 {% block body %}{% endblock %}

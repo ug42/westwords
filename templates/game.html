@@ -55,11 +55,13 @@
         <div id="game_state">Game state: {{game_state}}</div>
         <div id="mayor_name">Mayor: {{mayor}}</div>
         <div id="token_count">Remaining tokens: {{tokens}}</div>
+        {% for p in players %}
+        
+        {% endfor %}
     </div>
     <div id="questions" style="width:100%; display: inline-block">
-        <!-- I love that this is easily the most NON-SAFE thing I could do. User-input strings are rendered in HTML on the fly. wtf am I doing?? -->
         {% for q in questions %}
-        {{ q|safe }}
+        {{ q|e }}
         {% endfor %}
     </div>
 </div>
