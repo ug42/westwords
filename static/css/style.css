@@ -3,10 +3,11 @@ body {
   font-family: "Lato", sans-serif;
   overflow-x: hidden;
   height: 100%;
+  color:rgb(255, 255, 255)
 }
 
 body {
-  background: rgb(255, 255, 255);
+  background: rgb(75, 75, 75);
   padding: 0;
   margin: 0;
 }
@@ -17,7 +18,7 @@ body {
   width: 100%;
   max-width: 100%;
   box-shadow: none;
-  background-color: black;
+  background-color: rgb(0, 0, 0);
   color: rgb(255, 255, 255);
   font-size: 20px;
   text-align: center;
@@ -25,6 +26,31 @@ body {
   height: 60px!important;
   overflow: hidden;
   z-index: 10;
+}
+
+.header div.game_info {
+  height: 60px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  /* padding-top: 30px; */
+  display: flex;
+  position: relative;
+}
+
+.header a {
+  padding-bottom: 4px;
+  display: flex;
+  padding-inline: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.9)
+}
+
+.header div.game_name {
+  display: inline;
+  float: center;
 }
 
 .main {
@@ -94,6 +120,10 @@ body {
 .sideMenuInner div {
   color: #fff;
   text-decoration: none;
+}
+
+#sideMenu div.players {
+
 }
 
 input[type="checkbox"]:checked~#sideMenu {

@@ -122,10 +122,19 @@ class Game(object):
         self.last_answered = question_id
 
     def undo_answer(self):
-        if self.last_answered and self.last_answered < len(self.questions):
-            self.questions[self.last_answered].clear_answer()
-        else:
-            print(f'No answer to undo for question id: {self.last_answered}')
+        try:
+            if self.last_answered is not None and self.last_answered < len(self.questions):
+                print(f'Undoing answer for question id {self.last_answered}')
+                token = self.questions[self.last_answered].clear_answer()
+                self._add_token(token)
+                self.last_answered = None
+                return
+        except (TypeError, KeyError) as e:
+            print(f'Encountered error: {e}')
+        print(f'No answer to undo for question id: {self.last_answered}')
+
+    def _add_token(self, token: AnswerToken):
+        self.tokens[token] += 1
 
     def remove_token(self, token: AnswerToken):
         """Decrement the token counter

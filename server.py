@@ -47,6 +47,16 @@ GAMES = {
 }
 MAX_RETRIES = 5
 
+ANSWER_TO_IMAGES = {
+    'YES': ('yes.png', 'Yes'),
+    'NO': ('no.png', 'No'),
+    'MAYBE': ('maybe.png', 'Maybe'),
+    'SO_CLOSE': ('so_close.png', 'Really close!'),
+    'SO_FAR': ('so_far.png', 'Very, very far off'),
+    'LARAMIE': ('laramie.png', 'Laramie!'),
+    'CORRECT': ('correct.png', 'Correct!'),
+}
+
 
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing

@@ -9,14 +9,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <html lang="en">
+
+<!-- Modal pop-up plumbing -->
 <div id="modal-div" class="modal">
   <div class="modal-content">
     <div class="modal-content" id="modal-text" style="display: inline">
-      Placeholder
+      Empty modal text
     </div>
     <span class="close">&times;</span>
   </div>
 </div>
+
+<!-- Flash messages from Flask -->
 {% with messages = get_flashed_messages() %}
 {% if messages %}
 <ul class=flashes>
@@ -26,4 +30,53 @@
 </ul>
 {% endif %}
 {% endwith %}
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+<!-- Top nav/status -->
+<div class="header">
+  <div class="game_info">
+    {{ game_name }}
+    &nbsp;&nbsp;
+    <div id="game_timer"></div>
+    <!-- TODO: pop-up model with iframe for setting the timer. -->
+    <div class="gear"><a href="#" onclick="">&#x2699;</a></div>
+  </div>
+
+</div>
+
+<!-- Side bar -->
+<div id="sidebarContainer">
+  <input type="checkbox" class="openSideMenu" id="openSideMenu">
+
+  <label for="openSideMenu" class="sideIconToggle">
+    <div class="spinner diagonal part-1"></div>
+    <div class="spinner horizontal"></div>
+    <div class="spinner diagonal part-2"></div>
+  </label>
+
+  <div id="sideMenu">
+    <ul class="sideMenuInner">
+      <div>Username: {{ session.username }}</div>
+      <form action="/username" id="username_change" method="POST">
+        Username: <input type="text" name="username" id="username">
+        <li onclick="hideSidebar()">
+          <a href="#" onclick="document.getElementById('username_change').submit()">Change username</a>
+        </li>
+      </form>
+      <li class="active" onclick="hideSidebar()"><a href="#" data-toggle="tab">Item1</a></li>
+      <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item2</a></li>
+      <li onclick="hideSidebar()"><a href="#" data-toggle="tab">Item3</a></li>
+      <div id="players">
+        <b>Players</b>
+        {% for player in players %}
+        <br>{{ player }}
+        {% endfor %}
+      </div>
+    </ul>
+  </div>
+</div>
 {% block body %}{% endblock %}

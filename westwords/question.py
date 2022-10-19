@@ -56,5 +56,11 @@ class Question(object):
         self.answer = answer
 
     def clear_answer(self):
-        """Simple method to clear the currently assigned AnswerToken."""
+        """Simple method to clear the currently assigned AnswerToken.
+        
+        Returns:
+            Previously-set AnswerToken for this question.
+        """
+        previous_answer = self.answer
         self.answer = None
+        return previous_answer
