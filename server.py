@@ -307,6 +307,12 @@ def start_game(game_id):
     print(f'Starting timer for game {game_id}')
     if game_id in GAMES:
         GAMES[game_id].start()
+        #################################
+        # REMOVE ME
+        ######################
+        for p in GAMES[game_id].player_sids:
+            print(f'{PLAYERS[p]}: {GAMES[game_id].player_sids[p]}')
+        ########### TIL HERE
         emit('game_start_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
 

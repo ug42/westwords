@@ -23,7 +23,7 @@
         <div id="mayor_name">Mayor: {{mayor}}</div>
         <div id="token_count">Remaining tokens: {{tokens}}</div>
         {% for p in players %}
-        
+            <br>{{ p.name }} {{ p.role }}
         {% endfor %}
     </div>
     <div id="questions" style="width:100%; display: inline-block">
