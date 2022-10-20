@@ -13,6 +13,8 @@ class Role(object):
         self.description = 'Generic night action, no vote ability.'
         self.see_word = False
         self.wins_with = Affiliation.VILLAGE
+        self.required = False
+        self.required_players = 0
 
     def __str__(self):
         return type(self).__name__
@@ -40,6 +42,7 @@ class Mayor(Role):
         """
         self.sees_word = True
         self.wins_with = Affiliation.UNKNOWN
+        self.required = True
 
     def __str__(self):
         return "Mayor"
@@ -52,8 +55,11 @@ class Doppelganger(Role):
         Doppelganger chooses a player to see their role, and inherits that
         player's ability and alignment.
         """
+        self.wins_with = Affiliation.UNKNOWN
+        self.required_players = 4
 
 
+# TODO: Make Spectator a special case outside of roles?
 class Spectator(Role):
     def __init__(self):
         self.description = """
@@ -72,6 +78,8 @@ class Werewolf(Role):
         """
         self.sees_word = True
         self.wins_with = Affiliation.WEREWOLF
+        self.required = True
+        self.required_players = 0
 
 
 class Villager(Role):
@@ -81,6 +89,7 @@ class Villager(Role):
         Ordinary villager. Asks questions, tries to guess word. Wins with
         Village team.
         """
+        self.required_players = 3
 
 
 class Seer(Villager):
@@ -91,6 +100,8 @@ class Seer(Villager):
         execute this player after the Village teams guesses the word, the
         Werewolf team wins.
         """
+        self.required = True
+        self.required_players = 0
 
 
 class Apprentice(Villager):
@@ -103,6 +114,7 @@ class Apprentice(Villager):
         the Mayor is a Seer.
         """
         self.sees_word = False
+        self.required_players = 5
 
 
 class FortuneTeller(Villager):
@@ -113,6 +125,7 @@ class FortuneTeller(Villager):
         wins if they find the Fortune Teller or the Seer.
         """
         self.sees_word = False
+        self.required_players = 5
 
 
 class Minion(Werewolf):
@@ -124,6 +137,7 @@ class Minion(Werewolf):
 
         Does not vote with Werewolves to find the Seer.
         """
+        self.required_players = 7
 
 
 class Beholder(Villager):
@@ -133,6 +147,7 @@ class Beholder(Villager):
         Villager who knows the players with the Apprentice, Seer and Fortune
         Teller roles.
         """
+        self.required_players = 5
 
 
 class Mason(Villager):
@@ -141,6 +156,7 @@ class Mason(Villager):
         self.description = """
         Villager who happens to know which players are the other Masons.
         """
+        self.required_players = 8
 
 
 class Thing(Villager):
@@ -150,3 +166,4 @@ class Thing(Villager):
         Villager who lets their neighbor know they're not a Werewolf by 
         "tapping their shoulder."
         """
+        self.required_players = 5

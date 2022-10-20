@@ -57,7 +57,10 @@ body {
   margin: 0 auto;
   display: block;
   height: 100%;
-  margin-top: 60px;
+  margin-top: 65px;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 65px;
 }
 
 .mainInner {

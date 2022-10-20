@@ -1,11 +1,13 @@
 # Game and player-related classes
 from datetime import datetime
+from random import shuffle, choice
 
 from westwords.question import QuestionError
-from .enums import GameState, AnswerToken
-from .role import (Affiliation, Role, Mayor, Doppelganger, Spectator, Mason,
-                   Werewolf, Villager, Seer, FortuneTeller, Apprentice, Thing,
-                   Beholder, Minion)
+
+from .enums import AnswerToken, GameState
+from .role import (Affiliation, Apprentice, Beholder, Doppelganger,
+                   FortuneTeller, Mason, Mayor, Minion, Role, Seer, Spectator,
+                   Thing, Villager, Werewolf)
 
 
 class Game(object):
@@ -29,6 +31,7 @@ class Game(object):
         self.player_sids = {}
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
+        self.spectators = []
         # TODO: Move this to use the AnswerToken Enum and update remove_token()
         self.token_defaults = {
             # YES and NO share the same token count
@@ -44,6 +47,8 @@ class Game(object):
         self.tokens = self.token_defaults.copy()
         self.mayor = None
         self.questions = []
+        self.selected_roles = []
+        self.mayor_nominees = []
         # This should be implemented so we can undo last action in case it was
         # done accidentally.
         self.last_answered = None
@@ -52,6 +57,22 @@ class Game(object):
         return f'Game({self.timer}, {self.player_sids.keys()}, {self.admin})'
 
     def start(self):
+        if len(self.selected_roles) != len(self.player_sids):
+            print('Unable to start game. Role/Player count mismatch.')
+            print(f'{len(self.selected_roles)} vs {len(self.player_sids)}')
+            return False
+
+        # Set the player roles by shuffling the selected roles and assigning    
+        roles = self.selected_roles.copy()
+        shuffle(roles)
+        for player_sid in self.player_sids:
+            self.player_sids[player_sid] = roles.pop()
+
+        # Find the mayor from nominated mayors or all players if no nominations
+        if not self.mayor_nominees:
+            self.mayor_nominees = list(self.player_sids.keys())
+        self.mayor = choice(self.mayor_nominees)
+
         self.game_state = GameState.STARTED
 
     def pause(self):
@@ -72,6 +93,13 @@ class Game(object):
         self.mayor = None
         self.questions = []
         self.last_answered = None
+
+    def get_tokens(self):
+        return ' '.join([f'{token.name}: {self.tokens[token]}'
+                        for token in self.tokens])
+
+    def get_player_names(self, PLAYERS={}):
+        return [PLAYERS[sid].name for sid in self.player_sids.keys()]
 
     def get_state(self, game_id):
         """Returns a dict of the current game state.
@@ -108,14 +136,6 @@ class Game(object):
             del self.player_sids[sid]
         else:
             print(f'DELETE: User {sid} not in game')
-
-    def get_tokens(self):
-        return ' '.join([f'{token.name}: {self.tokens[token]}'
-                        for token in self.tokens])
-
-
-    def get_player_names(self, PLAYERS={}):
-        return [PLAYERS[sid].name for sid in self.player_sids.keys()]
 
     def answer_question(self, question_id: int, answer: AnswerToken):
         self.questions[question_id].answer_question(answer)
