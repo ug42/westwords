@@ -17,7 +17,7 @@ from flask import (Flask, flash, make_response, redirect, render_template,
                    request, session)
 from flask_socketio import SocketIO, emit
 
-from westwords.enums import AnswerToken
+from westwords.enums import AnswerToken, GameState
 
 # TODO: remove or factor out so only set if flag is set.
 DEBUG = True
@@ -150,6 +150,8 @@ def index():
         mayor=game_state['mayor'],
         tokens=game_state['tokens'],
         am_mayor=game_state['am_mayor'],
+        am_admin=game_state['am_admin'],
+        role=game_state['role'] or None,
         DEBUG=DEBUG,
     )
 
@@ -301,7 +303,6 @@ def undo(game_id):
 def add_mayor_nominee(game_id):
     if game_id in GAMES and PLAYERS[session['sid']].game == game_id:
         GAMES[game_id].nominate_for_mayor(session['sid'])
-    # socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 # TODO: implement all the scenarios around this

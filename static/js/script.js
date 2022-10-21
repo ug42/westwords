@@ -21,7 +21,7 @@ ready(function () {
     var game_reset_btn = document.getElementById('game_reset');
     var proper_noun_btn = document.getElementById('proper_noun');
     var nominate_mayor_btn = document.getElementById('nominate_mayor');
-   
+
     // div variables
     var question_div = document.getElementById('question_div');
     var game_state = document.getElementById('game_state');
@@ -155,10 +155,20 @@ ready(function () {
     }
 
     var question = document.getElementById('question');
+    question.addEventListener('keypress', function (event) {
+        if (event.key === "Enter") {
+            console.log('emitting question: ' + question.value);
+            if (question.value != "") {
+                socket.emit('question', question.value);
+                question.value = "";
+            }
+        }
+    });
     document.getElementById('question_submit').addEventListener('click', function () {
         console.log('emitting question: ' + question.value);
         if (question.value != "") {
             socket.emit('question', question.value);
+            question.value = "";
         }
     });
 

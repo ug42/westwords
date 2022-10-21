@@ -26,6 +26,19 @@ class Role(object):
         pass
 
 
+# TODO: Make Spectator a special case outside of roles?
+class Spectator(Role):
+    def __init__(self):
+        self.description = """
+        Not a player, no votes, but can see the word and player roles. (Maybe)
+        """
+        self.sees_word = True
+        self.wins_with = Affiliation.UNKNOWN
+
+    def __str__(self):
+        return "Spectator"
+
+
 class Mayor(Role):
     def __init__(self):
         self.description = """
@@ -58,15 +71,8 @@ class Doppelganger(Role):
         self.wins_with = Affiliation.UNKNOWN
         self.required_players = 4
 
-
-# TODO: Make Spectator a special case outside of roles?
-class Spectator(Role):
-    def __init__(self):
-        self.description = """
-        Not a player, no votes, but can see the word and player roles. (Maybe)
-        """
-        self.sees_word = True
-        self.wins_with = Affiliation.UNKNOWN
+    def __str__(self):
+        return "Doppelganger"
 
 
 class Werewolf(Role):
@@ -80,6 +86,9 @@ class Werewolf(Role):
         self.wins_with = Affiliation.WEREWOLF
         self.required = True
         self.required_players = 0
+    
+    def __str__(self):
+        return "Werewolf"
 
 
 class Villager(Role):
@@ -90,6 +99,9 @@ class Villager(Role):
         Village team.
         """
         self.required_players = 3
+    
+    def __str__(self):
+        return "Villager"
 
 
 class Seer(Villager):
@@ -102,6 +114,9 @@ class Seer(Villager):
         """
         self.required = True
         self.required_players = 0
+
+    def __str__(self):
+        return "Seer"
 
 
 class Apprentice(Villager):
@@ -116,6 +131,9 @@ class Apprentice(Villager):
         self.sees_word = False
         self.required_players = 5
 
+    def __str__(self):
+        return "Apprentice"
+
 
 class FortuneTeller(Villager):
     def __init__(self):
@@ -126,6 +144,9 @@ class FortuneTeller(Villager):
         """
         self.sees_word = False
         self.required_players = 5
+
+    def __str__(self):
+        return "Fortune Teller"
 
 
 class Minion(Werewolf):
@@ -139,6 +160,9 @@ class Minion(Werewolf):
         """
         self.required_players = 7
 
+    def __str__(self):
+        return "Minion"
+
 
 class Beholder(Villager):
     def __init__(self):
@@ -148,6 +172,9 @@ class Beholder(Villager):
         Teller roles.
         """
         self.required_players = 5
+    
+    def __str__(self):
+        return "Beholder"
 
 
 class Mason(Villager):
@@ -158,6 +185,9 @@ class Mason(Villager):
         """
         self.required_players = 8
 
+    def __str__(self):
+        return "Mason"
+
 
 class Thing(Villager):
     def __init__(self):
@@ -167,3 +197,6 @@ class Thing(Villager):
         "tapping their shoulder."
         """
         self.required_players = 5
+
+    def __str__(self):
+        return "The Thing"

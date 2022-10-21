@@ -6,11 +6,13 @@
     <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
     <!-- TODO: set clock to run based on the current state. -->
     <div id="controls">
+        <!-- These two controls should be gated -->
         <p><button id="game_start">Start game</button></p>
         <p><button id="game_reset">Reset game</button></p>
+        <!-- so break them into a if game is started thing. -->
         <p><button id="proper_noun" hidden>Is it a proper noun?</button></p>
         <p><button id="nominate_mayor">Run for Mayor!</button></p>
-        {% if DEBUG %}
+        {% if am_mayor %}
         <b>Mayor controls</b>
         <button id="undo">Undo last answer</button>
         {% endif %}
@@ -19,8 +21,8 @@
         <button id="get_game_state">Get game state</button>
         {% endif %}
         <div id="question_div">
-            Question: <input type="text" id="question"><button id="question_submit">
-                Submit question</button></p>
+            Question: <input type="text" id="question">
+            <button id="question_submit">Submit question</button>
         </div>
         <div id="game_state">Game state: {{game_state}}</div>
         <div id="mayor_name">Mayor: {{mayor}}</div>
@@ -30,6 +32,7 @@
         {% endfor %}
     </div>
     <div id="questions" style="width:100%; display: inline-block">
+        <!-- |e is the HTML escaping for Jinja2 templates -->
         {% for q in questions %}
         {{ q|e }}
         {% endfor %}
