@@ -80,9 +80,14 @@ def parse_game_state(unparsed_game_state, session_sid):
     questions = unparsed_game_state[1]
     player_sids = unparsed_game_state[2]
 
+
     game_state['questions'] = []
     for id, question in enumerate(questions):
-        formatted_question = question.html_format().format(
+        if game_state['mayor'] == session_sid:
+            question_html = question.mayor_html_format()
+        else:
+            question_html = question.html_format()
+        formatted_question = question_html.format(
             id=id, player_name=PLAYERS[question.player_sid].name)
         game_state['questions'].append(formatted_question)
     # Let's make it show most recent at the top. :)
@@ -151,7 +156,7 @@ def index():
         tokens=game_state['tokens'],
         am_mayor=game_state['am_mayor'],
         am_admin=game_state['am_admin'],
-        role=game_state['role'] or None,
+        role=str(game_state['role']) or None,
         DEBUG=DEBUG,
     )
 
@@ -221,6 +226,9 @@ def question(question_text):
     if game_id in GAMES:
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
+        # FIXME: Move this to use a page reload instead of rendering question
+        # This will not handle roles very well. Drop questions off to another
+        # page and have it loaded via an iframe, maybe?
         question_html = question.html_format().format(
             id=question_id, player_name=PLAYERS[question.player_sid].name)
 
@@ -326,7 +334,7 @@ def start_game(game_id):
 
 
 @socketio.on('game_reset_req')
-def start_game(game_id):
+def reset_game(game_id):
     # Implement game reset feature
     print(f'Resetting game: {game_id}')
     if game_id in GAMES:

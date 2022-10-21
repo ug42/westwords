@@ -20,6 +20,7 @@
         <b>DEBUGGING</b>
         <button id="get_game_state">Get game state</button>
         {% endif %}
+        Role {{ role }}
         <div id="question_div">
             Question: <input type="text" id="question">
             <button id="question_submit">Submit question</button>
@@ -32,7 +33,7 @@
         {% endfor %}
     </div>
     <div id="questions" style="width:100%; display: inline-block">
-        <!-- |e is the HTML escaping for Jinja2 templates -->
+        <!-- HTML provided from questions is already escaped. -->
         {% for q in questions %}
         {{ q|e }}
         {% endfor %}

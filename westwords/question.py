@@ -15,6 +15,7 @@ HTML_ANSWER_TEMPLATE = """
 </div>
 """
 
+
 class QuestionError(BaseException):
     """Simple exception class for Question objects."""
     pass
@@ -34,22 +35,31 @@ class Question(object):
     def __repr__(self):
         return f'Question({self.player_sid}, {self.question_text})'
 
-    def html_format(self):
-        if self.answer:
-            # This should be the actual name of answer.
-            # TODO: move this to be an image with alt text.
-            answer_html = self.answer.name + '</div>'
-        else:
-            # TODO: Move these all to be images greyed out with alt-text and
-            # mouseover highlight to non-greyed out image
-            answer_html = HTML_ANSWER_TEMPLATE
+    def _html_format(self):
+        """Provides a baseline HTML format for the question."""
         # id and player name are held outside this scope.
         return ('<div class="question"'
                 'id="q{id}">'
                 '{player_name}'
                 f': {escape(self.question_text)}'
-                '<div id="q{id}a" style="display: inline">'
-                f'  ({answer_html})</div>')
+                '<div id="q{id}a" style="display: inline">')
+
+    def html_format(self):
+        # This should be the actual name of answer.
+        # TODO: move this to be an image with alt text.
+        if self.answer:
+            answer = self.answer.name
+        else:
+            answer = ''
+        return self._html_format() + f'({answer})</div>'
+
+    def mayor_html_format(self):
+        # TODO: Move these all to be images greyed out with alt-text and
+        # mouseover highlight to non-greyed out image
+        if not self.answer:
+            return self._html_format() + HTML_ANSWER_TEMPLATE
+        else:
+            return self.html_format()
 
     def answer_question(self, answer: AnswerToken):
         """Sets the answer for this question."""
@@ -57,7 +67,7 @@ class Question(object):
 
     def clear_answer(self):
         """Simple method to clear the currently assigned AnswerToken.
-        
+
         Returns:
             Previously-set AnswerToken for this question.
         """

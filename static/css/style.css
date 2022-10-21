@@ -234,7 +234,7 @@ input[type=checkbox]:checked~.sideIconToggle>.diagonal.part-2 {
 
 /* Modal Content */
 .modal-content {
-  background-color: #ffffff;
+  background-color: #3145ff;
   margin: auto;
   padding: 10px;
   border: 1px solid #888;

@@ -5,9 +5,9 @@ from random import shuffle, choice
 from westwords.question import QuestionError
 
 from .enums import AnswerToken, GameState
-from .role import (Affiliation, Apprentice, Beholder, Doppelganger,
-                   FortuneTeller, Mason, Mayor, Minion, Role, Seer, Spectator,
-                   Thing, Villager, Werewolf)
+from .role import (Apprentice, Beholder, Doppelganger,
+                   FortuneTeller, Mason, Mayor, Minion, Role, Seer,
+                   Tapper, Villager, Werewolf)
 
 
 class Game(object):
@@ -45,7 +45,18 @@ class Game(object):
         self.tokens = self.token_defaults.copy()
         self.mayor = None
         self.questions = []
-        self.selected_roles = []
+        self.selected_roles = {
+            Apprentice: 0,
+            Beholder: 0,
+            Doppelganger: 0,
+            FortuneTeller: 0,
+            Mason: 0,
+            Minion: 0,
+            Seer: 1,
+            Tapper: 0,
+            Villager: 0,
+            Werewolf: 1,
+        }
         self.mayor_nominees = []
         self._choose_admin()
         # This should be implemented so we can undo last action in case it was
@@ -62,43 +73,48 @@ class Game(object):
             A tuple of bool status on successful start of game and a message of
             any applicable errors.
         """
-        if len(self.selected_roles) != len(self.player_sids):
+        if sum(self.selected_roles.values()) != len(self.player_sids):
             print('Unable to start game. Role/Player count mismatch.')
-            print(f'{len(self.selected_roles)} vs {len(self.player_sids)}')
+            
+            print(f'{sum(self.selected_roles.values())} vs {len(self.player_sids)}')
             return (False, 'Not enough selected roles!')
 
         # Set the player roles by shuffling the selected roles and assigning
-        roles=self.selected_roles.copy()
+        roles = []
+        for role in self.selected_roles:
+            for x in range(self.selected_roles[role]):
+                roles.append(role)
+        
         shuffle(roles)
         for player_sid in self.player_sids:
-            self.player_sids[player_sid]=roles.pop()
+            self.player_sids[player_sid] = roles.pop()()
 
         # Find the mayor from nominated mayors or all players if no nominations
         if not self.mayor_nominees:
-            self.mayor_nominees=list(self.player_sids.keys())
-        self.mayor=choice(self.mayor_nominees)
+            self.mayor_nominees = list(self.player_sids.keys())
+        self.mayor = choice(self.mayor_nominees)
 
-        self.game_state=GameState.STARTED
+        self.game_state = GameState.STARTED
         return (True, None)
 
     def pause(self):
-        self.game_state=GameState.PAUSED
+        self.game_state = GameState.PAUSED
 
     def start_vote(self):
-        self.game_state=GameState.VOTING
+        self.game_state = GameState.VOTING
 
     def set_timer(self, time_in_seconds):
-        self.timer=time_in_seconds
+        self.timer = time_in_seconds
 
     def finish(self):
-        self.game_state=GameState.FINISHED
+        self.game_state = GameState.FINISHED
 
     def reset(self):
-        self.game_state=GameState.SETUP
-        self.tokens=self.token_defaults.copy()
-        self.mayor=None
-        self.questions=[]
-        self.last_answered=None
+        self.game_state = GameState.SETUP
+        self.tokens = self.token_defaults.copy()
+        self.mayor = None
+        self.questions = []
+        self.last_answered = None
 
     def get_tokens(self):
         return ' '.join([f'{token.name}: {self.tokens[token]}'
@@ -115,7 +131,7 @@ class Game(object):
             value, the current timer as seen from the Game, and the game id,
             list of player_sids, and a list of question.Question objects.
         """
-        game_status={
+        game_status = {
             'game_state': self.game_state.name,
             'time': self.timer,
             'game_id': game_id,
@@ -131,13 +147,13 @@ class Game(object):
 
     def _choose_admin(self):
         if self.player_sids and not admin:
-            self.admin=next(iter(self.player_sids))
+            self.admin = next(iter(self.player_sids))
         if self.player_sids and self.admin not in self.player_sids:
             # Get the first key by getting "next" [read: first] key value in
             # epxlicitly interable handler for dict
-            self.admin=next(iter(self.player_sids))
+            self.admin = next(iter(self.player_sids))
         else:
-            self.admin=None
+            self.admin = None
 
     def nominate_for_mayor(self, sid):
         if sid in self.player_sids and sid not in self.mayor_nominees:
@@ -146,7 +162,7 @@ class Game(object):
 
     def add_player(self, sid):
         if sid not in self.player_sids:
-            self.player_sids[sid]=None
+            self.player_sids[sid] = None
         else:
             print(f'ADD: User {sid} already in game')
 
@@ -154,21 +170,21 @@ class Game(object):
         if sid not in self.player_sids:
             del self.player_sids[sid]
             if self.admin not in self.player_sids:
-                self.admin=next(iter(self.player_sids))
+                self.admin = next(iter(self.player_sids))
         else:
             print(f'DELETE: User {sid} not in game')
 
     def answer_question(self, question_id: int, answer: AnswerToken):
         self.questions[question_id].answer_question(answer)
-        self.last_answered=question_id
+        self.last_answered = question_id
 
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
                 print(f'Undoing answer for question id {self.last_answered}')
-                token=self.questions[self.last_answered].clear_answer()
+                token = self.questions[self.last_answered].clear_answer()
                 self._add_token(token)
-                self.last_answered=None
+                self.last_answered = None
                 return
         except (TypeError, KeyError) as e:
             print(f'Encountered error: {e}')

@@ -13,6 +13,7 @@ class Role(object):
         self.description = 'Generic night action, no vote ability.'
         self.see_word = False
         self.wins_with = Affiliation.VILLAGE
+        self.team_loses_if_killed = False
         self.required = False
         self.required_players = 0
 
@@ -24,19 +25,6 @@ class Role(object):
 
     def guess_werewolf(self, player_sid):
         pass
-
-
-# TODO: Make Spectator a special case outside of roles?
-class Spectator(Role):
-    def __init__(self):
-        self.description = """
-        Not a player, no votes, but can see the word and player roles. (Maybe)
-        """
-        self.sees_word = True
-        self.wins_with = Affiliation.UNKNOWN
-
-    def __str__(self):
-        return "Spectator"
 
 
 class Mayor(Role):
@@ -86,6 +74,7 @@ class Werewolf(Role):
         self.wins_with = Affiliation.WEREWOLF
         self.required = True
         self.required_players = 0
+        self.team_loses_if_killed = True
     
     def __str__(self):
         return "Werewolf"
@@ -114,6 +103,7 @@ class Seer(Villager):
         """
         self.required = True
         self.required_players = 0
+        self.team_loses_if_killed = True
 
     def __str__(self):
         return "Seer"
@@ -130,6 +120,8 @@ class Apprentice(Villager):
         """
         self.sees_word = False
         self.required_players = 5
+        # This will be set to true if Mayor is the Seer.
+        self.team_loses_if_killed = False
 
     def __str__(self):
         return "Apprentice"
@@ -144,6 +136,7 @@ class FortuneTeller(Villager):
         """
         self.sees_word = False
         self.required_players = 5
+        self.team_loses_if_killed = True
 
     def __str__(self):
         return "Fortune Teller"
@@ -159,6 +152,7 @@ class Minion(Werewolf):
         Does not vote with Werewolves to find the Seer.
         """
         self.required_players = 7
+        self.team_loses_if_killed = True
 
     def __str__(self):
         return "Minion"
@@ -169,7 +163,8 @@ class Beholder(Villager):
         super().__init__()
         self.description = """
         Villager who knows the players with the Apprentice, Seer and Fortune
-        Teller roles.
+        Teller roles. Does not lose on being targetted by Werewolves. Otherwise
+        known as the villager who know too much.
         """
         self.required_players = 5
     
@@ -189,7 +184,7 @@ class Mason(Villager):
         return "Mason"
 
 
-class Thing(Villager):
+class Tapper(Villager):
     def __init__(self):
         super().__init__()
         self.description = """
@@ -199,4 +194,4 @@ class Thing(Villager):
         self.required_players = 5
 
     def __str__(self):
-        return "The Thing"
+        return "The Tapper"
