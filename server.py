@@ -94,6 +94,7 @@ def parse_game_state(unparsed_game_state, session_sid):
             game_state['players'].append(PLAYERS[sid].name)
 
     game_state['am_mayor'] = game_state['mayor'] == session_sid
+    game_state['am_admin'] = game_state['admin'] == session_sid
 
     try:
         # Replace the mayor SID with name
@@ -148,6 +149,8 @@ def index():
         time=game_state['time'],
         mayor=game_state['mayor'],
         tokens=game_state['tokens'],
+        am_mayor=game_state['am_mayor'],
+        DEBUG=DEBUG,
     )
 
 
@@ -286,6 +289,7 @@ def game_status(game_id=None):
 
 @socketio.on('undo')
 def undo(game_id):
+    print(f'Attempting to undo something for {game_id}')
     if game_id in GAMES:
         if (game_id == PLAYERS[session['sid']].game and
                 GAMES[game_id].mayor == session['sid']):
@@ -293,11 +297,11 @@ def undo(game_id):
         socketio.emit('force_refresh', game_id, broadcast=True)
 
 
-@socketio.on('make_me_mayor')
-def make_me_mayor(game_id):
-    if game_id in GAMES and game_id == PLAYERS[session['sid']].game:
-        GAMES[game_id].mayor = session['sid']
-    socketio.emit('force_refresh', game_id, broadcast=True)
+@socketio.on('nominate_mayor')
+def add_mayor_nominee(game_id):
+    if game_id in GAMES and PLAYERS[session['sid']].game == game_id:
+        GAMES[game_id].nominate_for_mayor(session['sid'])
+    # socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 # TODO: implement all the scenarios around this
@@ -306,7 +310,10 @@ def make_me_mayor(game_id):
 def start_game(game_id):
     print(f'Starting timer for game {game_id}')
     if game_id in GAMES:
-        GAMES[game_id].start()
+        (success, message) = GAMES[game_id].start()
+        if not success:
+            emit('admin_error', f'Unable to start game: {message}')
+            return
         #################################
         # REMOVE ME
         ######################

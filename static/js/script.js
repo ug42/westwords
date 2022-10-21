@@ -20,9 +20,7 @@ ready(function () {
     var game_start_btn = document.getElementById('game_start');
     var game_reset_btn = document.getElementById('game_reset');
     var proper_noun_btn = document.getElementById('proper_noun');
-    var get_game_state_btn = document.getElementById('get_game_state');
-    var undo_btn = document.getElementById('undo');
-    var make_me_mayor_btn = document.getElementById('make_me_mayor');
+    var nominate_mayor_btn = document.getElementById('nominate_mayor');
    
     // div variables
     var question_div = document.getElementById('question_div');
@@ -58,12 +56,7 @@ ready(function () {
         console.log('Socket disconnected.');
     });
     socket.on('game_state', function (g) {
-        // console.log('Game state received.');
         local_game_state = g;
-        // console.log('game_id: ' + local_game_state.game_id);
-        // console.log('players: ' + local_game_state.players);
-        // console.log('am I mayor?: ' + local_game_state.am_mayor);
-        // console.log('mayor name: ' + local_game_state.mayor);
         if (g.questions.length > 0) {
             questions.innerHTML = g.questions.join('');
             if (local_game_state.am_mayor === true) { unhide_answer_btns(); }
@@ -76,18 +69,18 @@ ready(function () {
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
 
         if (local_game_state.mayor !== 'No Mayor yet elected') {
-            make_me_mayor_btn.hidden = true;
+            nominate_mayor_btn.hidden = true;
         }
         if (local_game_state.am_mayor === true) {
-            make_me_mayor_btn.hidden = true;
+            nominate_mayor_btn.hidden = true;
             proper_noun_btn.hidden = true;
-            undo_btn.hidden = false;
+            // undo_btn.hidden = false;
             question_div.hidden = true;
             unhide_answer_btns();
         } else {
             // question_div.hidden = false;
             proper_noun_btn.hidden = false;
-            undo_btn.hidden = true;
+            // undo_btn.hidden = true;
         }
     });
     socket.on('game_start_rsp', function (game_id) {
@@ -106,6 +99,12 @@ ready(function () {
             modal.style.display = "block";
         }
     });
+    socket.on('admin_error', function (data) {
+        if (local_game_state.am_admin === true) {
+            modal_text.innerHTML = data;
+            modal.style.display = "block";
+        }
+    });
     socket.on('add_question', function (rsp) {
         if (local_game_state.game_id === rsp.game_id) {
             questions.innerHTML = rsp.q + questions.innerHTML
@@ -114,6 +113,7 @@ ready(function () {
     });
     socket.on('force_refresh', function (rsp) {
         if (local_game_state.game_id === rsp) {
+            console.log('Force refresh for ' + local_game_state.game_id);
             get_game_state();
         }
     })
@@ -126,6 +126,7 @@ ready(function () {
         'game_id': null,
         'role': null,
         'am_mayor': null,
+        'am_admin': null,
         'tokens': null,
     }
 
@@ -163,13 +164,19 @@ ready(function () {
 
     game_start_btn.addEventListener('click', send_start_req);
     game_reset_btn.addEventListener('click', send_reset_req);
-    get_game_state_btn.addEventListener('click', get_game_state);
-    undo_btn.addEventListener('click', function () {
-        socket.emit('undo', local_game_state.game_id)
+    if (document.getElementById('undo') !== null) {
+        let undo_btn = document.getElementById('undo');
+        undo_btn.addEventListener('click', function () {
+            socket.emit('undo', local_game_state.game_id)
+        })
+    }
+    nominate_mayor_btn.addEventListener('click', function () {
+        socket.emit('nominate_mayor', local_game_state.game_id)
     })
-    make_me_mayor_btn.addEventListener('click', function () {
-        socket.emit('make_me_mayor', local_game_state.game_id)
-    })
+    if (document.getElementById('get_game_state')) {
+        let get_game_state_btn = document.getElementById('get_game_state');
+        get_game_state_btn.addEventListener('click', get_game_state);
+    }
     proper_noun_btn.addEventListener('click', function () {
         socket.emit('question', "Is it a proper noun?");
     });
@@ -189,19 +196,16 @@ ready(function () {
     function game_start() {
         console.log('Attempting to start game');
         timer.start();
-        game_start_btn.hidden = true;
-        game_reset_btn.hidden = false;
+        // game_start_btn.hidden = true;
+        // game_reset_btn.hidden = false;
 
-        // make_me_mayor_btn.hidden = true
         // if (local_game_state.am_mayor === true) {
-        //     undo_btn.hidden = false;
         //     unhide_answer_btns();
         //     question_div.hidden = true;
         //     proper_noun_btn.hidden = true;
         // } else {
         //     question_div.hidden = false;
         //     proper_noun_btn.hidden = false;
-        //     undo_btn.hidden = false;
         // }
 
     }
@@ -218,7 +222,7 @@ ready(function () {
     }
     function get_game_state() {
         socket.emit('get_game_state');
-        console.log('Game state request initiated');
+        console.log('Game state refresh requested');
     }
     function get_role(game_id) {
         socket.emit('get_role', game_id);

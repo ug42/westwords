@@ -6,30 +6,36 @@
     <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
     <!-- TODO: set clock to run based on the current state. -->
     <div id="controls">
-        <!-- <p><a href="/join/defaultgame">Join default game</a></p> -->
         <p><button id="game_start">Start game</button></p>
-        <!-- <p><button id="game_pause" disabled>Pause game</button></p> -->
         <p><button id="game_reset">Reset game</button></p>
-        <p><button id="get_game_state">Get game state</button></p>
         <p><button id="proper_noun" hidden>Is it a proper noun?</button></p>
-        <p><button id="undo" hidden>Undo last answer</button></p>
-        <p><button id="make_me_mayor">Make me mayor</button></p>
-
+        <p><button id="nominate_mayor">Run for Mayor!</button></p>
+        {% if DEBUG %}
+        <b>Mayor controls</b>
+        <button id="undo">Undo last answer</button>
+        {% endif %}
+        {% if DEBUG %}
+        <b>DEBUGGING</b>
+        <button id="get_game_state">Get game state</button>
+        {% endif %}
         <div id="question_div">
             Question: <input type="text" id="question"><button id="question_submit">
-            Submit question</button></p>
+                Submit question</button></p>
         </div>
         <div id="game_state">Game state: {{game_state}}</div>
         <div id="mayor_name">Mayor: {{mayor}}</div>
         <div id="token_count">Remaining tokens: {{tokens}}</div>
         {% for p in players %}
-            <br>{{ p.name }} {{ p.role }}
+        <br>{{ p.name }} {{ p.role }}
         {% endfor %}
     </div>
     <div id="questions" style="width:100%; display: inline-block">
         {% for q in questions %}
         {{ q|e }}
         {% endfor %}
+    </div>
+    <div id="controls">
+
     </div>
 </div>
 {% endblock %}
