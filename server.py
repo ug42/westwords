@@ -26,8 +26,8 @@ app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
 
-if DEBUG:
-    app.config['DEBUG'] = True
+# if DEBUG:
+#     app.config['DEBUG'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
