@@ -8,6 +8,7 @@
 # requirements.txt may still need Flask-Session==0.4.0 : but testing without it.
 
 import re
+import sys
 from uuid import uuid4
 from random import randint, choice
 from string import ascii_uppercase
@@ -19,15 +20,15 @@ from flask_socketio import SocketIO, emit
 
 from westwords.enums import AnswerToken, GameState
 
-# TODO: remove or factor out so only set if flag is set.
+# Set to False when deploying
 DEBUG = True
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
 
-# if DEBUG:
-#     app.config['DEBUG'] = True
+if DEBUG:
+    app.config['DEBUG'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
@@ -157,6 +158,7 @@ def index():
         am_mayor=game_state['am_mayor'],
         am_admin=game_state['am_admin'],
         role=str(game_state['role']) or None,
+        # Remove this when done poking at things. :P
         DEBUG=DEBUG,
     )
 

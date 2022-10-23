@@ -16,6 +16,7 @@ class Role(object):
         self.team_loses_if_killed = False
         self.required = False
         self.required_players = 0
+        self.max_instances = 1
 
     def __str__(self):
         return type(self).__name__
@@ -75,6 +76,7 @@ class Werewolf(Role):
         self.required = True
         self.required_players = 0
         self.team_loses_if_killed = True
+        self.max_instances = 4
     
     def __str__(self):
         return "Werewolf"
@@ -88,6 +90,8 @@ class Villager(Role):
         Village team.
         """
         self.required_players = 3
+        self.max_instances = 8
+        
     
     def __str__(self):
         return "Villager"
@@ -179,6 +183,8 @@ class Mason(Villager):
         Villager who happens to know which players are the other Masons.
         """
         self.required_players = 8
+        self.max_instances = 2
+
 
     def __str__(self):
         return "Mason"
