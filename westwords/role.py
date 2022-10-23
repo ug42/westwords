@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class Affiliation(Enum):
     WEREWOLF = 'werewolf'
     VILLAGE = 'village'
@@ -26,6 +25,16 @@ class Role(object):
 
     def guess_werewolf(self, player_sid):
         pass
+
+    def get_max_instances(self):
+        return self.max_instances
+    
+    def is_required(self):
+        return self.required
+    
+    def get_required_players(self):
+        return self.required_players
+
 
 
 class Mayor(Role):

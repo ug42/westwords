@@ -5,9 +5,22 @@ from random import shuffle, choice
 from westwords.question import QuestionError
 
 from .enums import AnswerToken, GameState
-from .role import (Apprentice, Beholder, Doppelganger,
-                   FortuneTeller, Mason, Mayor, Minion, Role, Seer,
-                   Tapper, Villager, Werewolf)
+from .role import (Apprentice, Beholder, Doppelganger, FortuneTeller, Mason,
+                   Minion, Seer, Tapper, Villager, Werewolf)
+
+
+ROLES = {
+    'apprentice': Apprentice(),
+    'beholder': Beholder(),
+    'doppelganger': Doppelganger(),
+    'fortuneteller': FortuneTeller(),
+    'mason': Mason(),
+    'minion': Minion(),
+    'seer': Seer(),
+    'tapper': Tapper(),
+    'villager': Villager(),
+    'werewolf': Werewolf(),
+}
 
 
 class Game(object):
@@ -45,18 +58,7 @@ class Game(object):
         self.tokens = self.token_defaults.copy()
         self.mayor = None
         self.questions = []
-        self.selected_roles = {
-            Apprentice: 0,
-            Beholder: 0,
-            Doppelganger: 0,
-            FortuneTeller: 0,
-            Mason: 0,
-            Minion: 0,
-            Seer: 1,
-            Tapper: 0,
-            Villager: 0,
-            Werewolf: 1,
-        }
+        self.selected_roles = []
         self.mayor_nominees = []
         self._choose_admin()
         # This should be implemented so we can undo last action in case it was
@@ -66,6 +68,7 @@ class Game(object):
     def __repr__(self):
         return f'Game(timer={self.timer},player_sids={self.player_sids.keys()})'
 
+    # Game state functions
     def start(self):
         """Start the game.
 
@@ -73,21 +76,17 @@ class Game(object):
             A tuple of bool status on successful start of game and a message of
             any applicable errors.
         """
-        if sum(self.selected_roles.values()) != len(self.player_sids):
+        if sum(self.selected_roles) != len(self.player_sids):
             print('Unable to start game. Role/Player count mismatch.')
-            
-            print(f'{sum(self.selected_roles.values())} vs {len(self.player_sids)}')
+
+            print(f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
             return (False, 'Not enough selected roles!')
 
         # Set the player roles by shuffling the selected roles and assigning
-        roles = []
-        for role in self.selected_roles:
-            for x in range(self.selected_roles[role]):
-                roles.append(role)
-        
+        roles = self.selected_roles.copy()
         shuffle(roles)
         for player_sid in self.player_sids:
-            self.player_sids[player_sid] = roles.pop()()
+            self.player_sids[player_sid] = roles.pop()
 
         # Find the mayor from nominated mayors or all players if no nominations
         if not self.mayor_nominees:
@@ -141,6 +140,7 @@ class Game(object):
         }
         return (game_status, self.questions, self.player_sids)
 
+    # Player and Role functions
     def get_player_role(self, sid):
         """Returns a string format version of the player's role."""
         return str(self.player_sids[sid])
@@ -174,6 +174,122 @@ class Game(object):
         else:
             print(f'DELETE: User {sid} not in game')
 
+    def _current_role_instances(self, role):
+        """Returns the number of instances of provided role in selected roles.
+        
+        Args:
+            A string role to lookup that matches an existing role value.
+
+        Returns:
+            An integer value of number instances.
+        """
+        if role in ROLES:
+            return len([r for r in self.selected_roles if r == role])
+        print(f'Role {role} not found.')
+        return 0
+    
+    def _get_role_info(self, role):
+        """Return a dict of information on a given role.
+        
+        Args:
+            A string role to lookup that matches an existing role value.
+            
+        Returns:
+            A dict of an integer required_players, bool is_required, integer
+            max_instances, and integer current_instances, if role found. Empty
+            dict otherwise.
+        """
+        try:
+            role = role.lower()
+            role_info = {
+                'required_players': ROLES[role].get_required_players(),
+                'is_required': ROLES[role].is_required(),
+                'max_instances': ROLES[role].get_max_instances(),
+                'current_instances': self._current_role_instances(role),
+            }
+            return role_info
+        except KeyError as e:
+            print(f'Unable to find role: {role}')
+            return {}
+
+
+    def add_role(self, role):
+        """Add the selected role to game.
+
+        Args:
+            role: a string role name to be added.
+
+        Returns:
+            True if role is known and able to be added; False otherwise.
+        """
+        if self.game_state.name != GameState.SETUP:
+            return False
+
+        role = role.lower()
+        role_info = self._get_role_info(role)
+        if not role_info:
+            return False
+        if role_info['current_instances'] >= role_info['max_instances']:
+            print(f'Unable to add {role}: too many of that role.')
+            return False
+        if len(self.player_sids) < role['required_players']:
+            print(f'Unable to add {role}: too few players.')
+        
+        # Fall through to success against my better judgement.
+        self.selected_roles.append(role)
+        return True
+    
+    def remove_role(self, role):
+        """Remove the provided role from the game.
+        
+        Args:
+            role: a string role name to be removed.
+        
+        Returns:
+            True if able to remove role, False otherwise.
+        """
+        if self.game_state.name != GameState.SETUP:
+            return False
+
+        role = role.lower()
+        role_info = self._get_role_info(role)
+        if not role_info:
+            return False
+        if role['is_required'] and role_info['current_instances'] == 1:
+            print(f'Unable to remove {role} as it is required.')
+            return False
+        if role['current_instances'] < 1:
+            print(f'Unable to remove role {role} as it is not selected.')
+            return False
+        
+        for i in range(len(self.selected_roles)):
+            if self.selected_roles[i] == role:
+                removed_role = self.selected_roles[i].pop()
+                print(f'Removed role: {removed_role}')
+                return True
+        
+        # In case I missed something :)
+        return False
+
+    def get_selected_roles(self):
+        """Gets the list of roles that are currently selected.
+
+        Returns:
+            A list of strings representing each role's name in the amount of """
+        return sorted(self.selected_roles)
+
+    def get_possible_roles(self):
+        """Get all possible roles for this game.
+
+        Returns a list of strings enumerating each possible role invocation.
+        """
+        roles = []
+        for role in ROLES:
+            for _ in range(role.get_max_instances()):
+                roles.append(role)
+        return roles
+
+    # Question functions
     def answer_question(self, question_id: int, answer: AnswerToken):
         self.questions[question_id].answer_question(answer)
         self.last_answered = question_id
