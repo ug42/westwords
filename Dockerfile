@@ -8,10 +8,15 @@ ENV PYTHONUNBUFFERED True
 # Copy local code to the container image.
 ENV APP_HOME /app
 WORKDIR $APP_HOME
-COPY . ./
+COPY . /app
 
 # Install production dependencies.
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Run as non-root
+RUN adduser --system --group --no-create-home app
+RUN chown -R app:app /app
+USER app
 
 EXPOSE 80/tcp
 EXPOSE 8000/tcp
