@@ -38,12 +38,10 @@ class Game(object):
         self.game_state = GameState.SETUP
         self.timer = timer
         self.start_time = None
-        # TODO: Make this to a dict so it can contain roles
         self.player_sids = {}
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
         self.spectators = []
-        # TODO: Move this to use the AnswerToken Enum and update remove_token()
         self.token_defaults = {
             # YES and NO share the same token count
             AnswerToken.YES: 36,
@@ -60,9 +58,8 @@ class Game(object):
         self.questions = []
         self.selected_roles = []
         self.mayor_nominees = []
-        self._choose_admin()
-        # This should be implemented so we can undo last action in case it was
-        # done accidentally.
+        self.admin = self._get_next_admin()
+        self.votes = {}
         self.last_answered = None
 
     def __repr__(self):
@@ -77,9 +74,8 @@ class Game(object):
             any applicable errors.
         """
         if sum(self.selected_roles) != len(self.player_sids):
-            print('Unable to start game. Role/Player count mismatch.')
-
-            print(f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
+            print('Unable to start game. Role/Player count mismatch: '
+                  f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
             return (False, 'Not enough selected roles!')
 
         # Set the player roles by shuffling the selected roles and assigning
@@ -94,19 +90,33 @@ class Game(object):
         self.mayor = choice(self.mayor_nominees)
 
         self.game_state = GameState.STARTED
+        self.start_time = datetime.now()
         return (True, None)
-
-    def pause(self):
-        self.game_state = GameState.PAUSED
 
     def start_vote(self):
         self.game_state = GameState.VOTING
 
-    def set_timer(self, time_in_seconds):
-        self.timer = time_in_seconds
-
-    def finish(self):
+    def get_results(self):
+        """Get results of a game after all voting has completed.
+        
+        Returns:
+            A list of player SIDs that were voted for if votes are done, and
+            None if no status to give.
+        """
+        if set(self.player_sids) != set(self.votes):
+            print(f'Voting has not finished, no results to give.')
+            return None
         self.game_state = GameState.FINISHED
+        return [self.votes[vote] for vote in self.votes]
+
+
+    def set_timer(self, time_in_seconds):
+        """Set the timer amount in seconds.
+        
+        Args:
+            time_in_seconds: Integer time. in. seconds.
+        """
+        self.timer = time_in_seconds
 
     def reset(self):
         self.game_state = GameState.SETUP
@@ -114,6 +124,26 @@ class Game(object):
         self.mayor = None
         self.questions = []
         self.last_answered = None
+        self.start_time = None
+        self.votes = {}
+
+    def vote(self, voter_sid, target_sid):
+        """Votes for player identified by session ID.
+        
+        Args:
+            voter_sid: SID for the player voting.
+            target_sid: SID of the targer player for which the player is voting.
+        
+        Returns:
+            True if vote was successfully cast; False otherwise.
+        """
+        if voter_sid not in self.player_sids:
+            print(f'Unable to cast vote. Player {voter_sid} not in game.')
+            return False
+        if target_sid not in self.player_sids:
+            print(f'Unable to vote for player {target_sid}; Not found in game.')
+            return False
+        self.player_sids[voter_sid]
 
     def get_tokens(self):
         return ' '.join([f'{token.name}: {self.tokens[token]}'
@@ -145,15 +175,12 @@ class Game(object):
         """Returns a string format version of the player's role."""
         return str(self.player_sids[sid])
 
-    def _choose_admin(self):
-        if self.player_sids and not admin:
-            self.admin = next(iter(self.player_sids))
-        if self.player_sids and self.admin not in self.player_sids:
-            # Get the first key by getting "next" [read: first] key value in
-            # epxlicitly interable handler for dict
-            self.admin = next(iter(self.player_sids))
-        else:
-            self.admin = None
+    def _get_next_admin(self):
+        try:
+            return next(iter(self.player_sids))
+        except StopIteration:
+            print(f'No player to assign admin role.')
+        return None
 
     def nominate_for_mayor(self, sid):
         if sid in self.player_sids and sid not in self.mayor_nominees:
@@ -176,7 +203,7 @@ class Game(object):
 
     def _current_role_instances(self, role):
         """Returns the number of instances of provided role in selected roles.
-        
+
         Args:
             A string role to lookup that matches an existing role value.
 
@@ -187,13 +214,13 @@ class Game(object):
             return len([r for r in self.selected_roles if r == role])
         print(f'Role {role} not found.')
         return 0
-    
+
     def _get_role_info(self, role):
         """Return a dict of information on a given role.
-        
+
         Args:
             A string role to lookup that matches an existing role value.
-            
+
         Returns:
             A dict of an integer required_players, bool is_required, integer
             max_instances, and integer current_instances, if role found. Empty
@@ -211,7 +238,6 @@ class Game(object):
         except KeyError as e:
             print(f'Unable to find role: {role}')
             return {}
-
 
     def add_role(self, role):
         """Add the selected role to game.
@@ -234,17 +260,17 @@ class Game(object):
             return False
         if len(self.player_sids) < role['required_players']:
             print(f'Unable to add {role}: too few players.')
-        
+
         # Fall through to success against my better judgement.
         self.selected_roles.append(role)
         return True
-    
+
     def remove_role(self, role):
         """Remove the provided role from the game.
-        
+
         Args:
             role: a string role name to be removed.
-        
+
         Returns:
             True if able to remove role, False otherwise.
         """
@@ -261,13 +287,13 @@ class Game(object):
         if role['current_instances'] < 1:
             print(f'Unable to remove role {role} as it is not selected.')
             return False
-        
+
         for i in range(len(self.selected_roles)):
             if self.selected_roles[i] == role:
                 removed_role = self.selected_roles[i].pop()
                 print(f'Removed role: {removed_role}')
                 return True
-        
+
         # In case I missed something :)
         return False
 

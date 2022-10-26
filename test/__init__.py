@@ -1,4 +1,4 @@
-# westwords test module
+# test module for westwords
 
 import westwords
 
