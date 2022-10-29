@@ -9,26 +9,22 @@
 
 import re
 import sys
-from uuid import uuid4
-from random import randint, choice
+from random import choice, randint
 from string import ascii_uppercase
-import westwords
+from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
                    request, session)
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from westwords.enums import AnswerToken, GameState
+import westwords
+from westwords.enums import AnswerToken
 
-# Set to False when deploying
-DEBUG = True
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8fdd9716f2f66f1390440cbef84a4bd825375e12a4d31562a4ec8bda4cddc3a4'
+app.config['SECRET_KEY'] = 'secret'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
 
-if DEBUG:
-    app.config['DEBUG'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
@@ -50,15 +46,25 @@ GAMES = {
 # URL routing
 
 
+def log(text):
+    print(text)
+    if app.config['DEBUG']:
+        print(str(GAMES))
+        print(str(PLAYERS))
+
+        
+        
+
+
 def parse_game_state(unparsed_game_state, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
-    
+
     Args:
         unparsed_game_state: A tuple containing [0] dict of str game_state, int
             timer, str game_id, and str mayor player session ID, [1] a list of
             westword.question.Question objects, and [2] a dict of str player
             sessions IDs to westword.role.Role type objects.
-        
+
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id', 
             str 'mayor' name, bool 'am_mayor', a list of str 'questions', a list
@@ -67,7 +73,6 @@ def parse_game_state(unparsed_game_state, session_sid):
     game_state = unparsed_game_state[0]
     questions = unparsed_game_state[1]
     player_sids = unparsed_game_state[2]
-
 
     game_state['questions'] = []
     for id, question in enumerate(questions):
@@ -99,13 +104,14 @@ def parse_game_state(unparsed_game_state, session_sid):
     try:
         game_state['role'] = str(player_sids[session_sid])
     except KeyError as e:
-        print(f'Unable to find player role from SID in game: {e}')
+        log(f'Unable to find player role from SID in game: {e}')
 
     return game_state
 
 
 @app.route('/')
 def index():
+    log(app.config)
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     if 'username' not in session:
@@ -146,7 +152,7 @@ def index():
         am_admin=game_state['am_admin'],
         role=str(game_state['role']) or None,
         # Remove this when done poking at things. :P
-        DEBUG=DEBUG,
+        DEBUG=app.config['DEBUG'],
     )
 
 
@@ -155,7 +161,7 @@ def username():
     if request.method == 'POST' and request.form.get('username'):
         if re.search(r'mayor', request.form.get('username').casefold()):
             flash('Cute, smartass.')
-            return redirect('/')                    
+            return redirect('/')
         session['username'] = request.form.get('username')
         if session['sid'] in PLAYERS:
             PLAYERS[session['sid']].name = session['username']
@@ -168,6 +174,20 @@ def join_game(game):
         GAMES[game].add_player(session['sid'])
         PLAYERS[session['sid']].game = game
     return redirect('/')
+
+
+@app.route('/get_words/<game_id>')
+def get_words(game_id):
+    if game_id in GAMES and GAMES[game_id].is_started():
+        if GAMES[game_id].chosen_word:
+            return None
+        words = GAMES[game_id].get_words()
+        if words:
+            return render_template(
+                'word_choice.html.j2', words=words)
+        else:
+            return 'Unable to provide word choices.'
+
 
 
 # TODO: Move this to use Flask rooms, if useful above current setup
@@ -200,19 +220,19 @@ def connect(auth):
         if session['sid'] not in PLAYERS:
             PLAYERS[session['sid']] = westwords.Player(session['username'])
     except KeyError as e:
-        print(f'Unable to register Player, due to lookup failure. {e}')
+        log(f'Unable to register Player, due to lookup failure. {e}')
     game_status()
     try:
         game_status(PLAYERS[session['sid']].game)
     except KeyError as e:
-        print(f'No key value found: {e}')
+        log(f'No key value found: {e}')
 
 
 @socketio.on('question')
-def question(question_text):
+def add_question(question_text):
     game_id = PLAYERS[session['sid']].game
     question = westwords.Question(session['sid'], question_text)
-    if game_id in GAMES:
+    if game_id in GAMES and GAMES[game_id].is_started():
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
         # FIXME: Move this to use a page reload instead of rendering question
@@ -235,34 +255,40 @@ def answer_question(question_id, answer):
         answer: A string for the answer type
 
         (Yes/No/Maybe/So Close/So Far/Correct)
+    
+    Returns:
+        True is answer is successfully set; False otherwise.
     """
     if session['sid'] not in PLAYERS:
-        print('No player found for session: ' + session['sid'])
-        return
+        log('No player found for session: ' + session['sid'])
+        return False
 
     game_id = PLAYERS[session['sid']].game
     if game_id not in GAMES:
-        print('Unable to find game: ' + game_id)
-        return
+        log('Unable to find game: ' + game_id)
+        return False
 
     if GAMES[game_id].mayor != session['sid']:
-        print('User is not mayor!')
-        return
+        log('User is not mayor!')
+        return False
+
 
     if question_id >= len(GAMES[game_id].questions):
-        print(f'Question {question_id} is an out of array index.')
+        log(f'Question {question_id} is an out of array index.')
+        return False
 
     try:
         answer_token = westwords.AnswerToken[answer.upper()]
-        print(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
+        log(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
     except KeyError as e:
-        print(f'Unknown answer: {e}')
+        log(f'Unknown answer: {e}')
+        return False
 
     # Question ID is basically just the index offset starting at 0
     results = GAMES[game_id].remove_token(answer_token)
     if not results['success']:
         socketio.emit('mayor_error', f'Out of {answer_token.value} tokens')
-        return
+        return False
 
     GAMES[game_id].answer_question(question_id, answer_token)
     asking_player = GAMES[game_id].questions[question_id].player_sid
@@ -270,9 +296,9 @@ def answer_question(question_id, answer):
 
     if results['end_of_game']:
         socketio.emit('mayor_error',
-                        f'Last token played, Undo or Move to vote.')
-
+                      f'Last token played, Undo or Move to vote.')
     socketio.emit('force_refresh', game_id, broadcast=True)
+    return True
 
 
 @socketio.on('get_game_state')
@@ -306,18 +332,12 @@ def add_mayor_nominee(game_id):
 # Timer functions
 @socketio.on('game_start_req')
 def start_game(game_id):
-    print(f'Starting timer for game {game_id}')
+    log(f'Starting timer for game {game_id}')
     if game_id in GAMES:
         (success, message) = GAMES[game_id].start()
         if not success:
             emit('admin_error', f'Unable to start game: {message}')
             return
-        #################################
-        # REMOVE ME
-        ######################
-        for p in GAMES[game_id].player_sids:
-            print(f'{PLAYERS[p]}: {GAMES[game_id].player_sids[p]}')
-        ########### TIL HERE
         emit('game_start_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
 
@@ -325,7 +345,7 @@ def start_game(game_id):
 @socketio.on('game_reset_req')
 def reset_game(game_id):
     # Implement game reset feature
-    print(f'Resetting game: {game_id}')
+    log(f'Resetting game: {game_id}')
     if game_id in GAMES:
         GAMES[game_id].reset()
         emit('game_reset_rsp', game_id, broadcast=True)

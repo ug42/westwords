@@ -49,7 +49,7 @@ class Mayor(Role):
         A Villager Mayor: Wins with the Village.
         A Seer Mayor: Wins with the village, but may choose from a larger set of
         words since no Seer will be able to help. Extra words do not come into
-        play if an Apprentice is in play.
+        play if an Intern is in play.
         """
         self.sees_word = True
         self.wins_with = Affiliation.UNKNOWN
@@ -122,13 +122,13 @@ class Seer(Villager):
         return "Seer"
 
 
-class Apprentice(Villager):
+class Intern(Villager):
     def __init__(self):
         super().__init__()
         # Will only see word if Mayor is Seer
         self.description = """
         Ordinary villager unless the Mayor is a Seer, in which case, they become
-        the Seer. Werewolves executing the Apprentice is only a win condition if
+        the Seer. Werewolves executing the Intern is only a win condition if
         the Mayor is a Seer.
         """
         self.sees_word = False
@@ -137,7 +137,7 @@ class Apprentice(Villager):
         self.team_loses_if_killed = False
 
     def __str__(self):
-        return "Apprentice"
+        return "Intern"
 
 
 class FortuneTeller(Villager):
@@ -175,7 +175,7 @@ class Beholder(Villager):
     def __init__(self):
         super().__init__()
         self.description = """
-        Villager who knows the players with the Apprentice, Seer and Fortune
+        Villager who knows the players with the Intern, Seer and Fortune
         Teller roles. Does not lose on being targetted by Werewolves. Otherwise
         known as the villager who know too much.
         """
@@ -199,7 +199,7 @@ class Mason(Villager):
         return "Mason"
 
 
-class Tapper(Villager):
+class Esper(Villager):
     def __init__(self):
         super().__init__()
         self.description = """
@@ -209,4 +209,4 @@ class Tapper(Villager):
         self.required_players = 5
 
     def __str__(self):
-        return "The Tapper"
+        return "Esper"
