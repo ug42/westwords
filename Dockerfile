@@ -19,7 +19,6 @@ RUN chown -R app:app /app
 USER app
 
 EXPOSE 80/tcp
-EXPOSE 8000/tcp
 EXPOSE 443/tcp
 
 # Run the web service on container startup. Here we use the gunicorn

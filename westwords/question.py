@@ -3,19 +3,6 @@ from html import escape
 from westwords.enums import AnswerToken
 
 
-HTML_ANSWER_TEMPLATE = """
-<div id="answers_{id}" style="display: inline">
-<button class="answer" onclick="answer({id}, 'yes')" hidden>Yes</button>
-<button class="answer" onclick="answer({id}, 'no')" hidden>No</button>
-<button class="answer" onclick="answer({id}, 'maybe')" hidden>Maybe</button>
-<button class="answer" onclick="answer({id}, 'so_close')" hidden>So Close</button>
-<button class="answer" onclick="answer({id}, 'so_far')" hidden>Very far off</button>
-<button class="answer" onclick="answer({id}, 'correct')" hidden>Correct!</button>
-</div>
-</div>
-"""
-
-
 class QuestionError(BaseException):
     """Simple exception class for Question objects."""
     pass
@@ -34,6 +21,11 @@ class Question(object):
 
     def __repr__(self):
         return f'Question({self.player_sid}, {self.question_text})'
+
+    def get_answer(self):
+        if self.answer:
+            return self.answer.name
+        return None
 
     def _html_format(self):
         """Provides a baseline HTML format for the question."""

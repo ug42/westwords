@@ -52,11 +52,8 @@ def log(text):
         print(str(GAMES))
         print(str(PLAYERS))
 
-        
-        
 
-
-def parse_game_state(unparsed_game_state, session_sid):
+def parse_game_state(game_id, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
 
     Args:
@@ -70,26 +67,37 @@ def parse_game_state(unparsed_game_state, session_sid):
             str 'mayor' name, bool 'am_mayor', a list of str 'questions', a list
             of str 'players' names, and a str 'role' for the player.
     """
-    game_state = unparsed_game_state[0]
-    questions = unparsed_game_state[1]
-    player_sids = unparsed_game_state[2]
+    if game_id:
+        (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
+    else:
+        (game_state, questions, player_sids) = westwords.Game(
+            timer=0, player_sids=[]).get_state(None)
 
     game_state['questions'] = []
+    # for id, question in enumerate(questions):
+    #     if game_state['mayor'] == session_sid:
+    #         question_html = question.mayor_html_format()
+    #     else:
+    #         question_html = question.html_format()
+    #     formatted_question = question_html.format(
+    #         game_id=game_id, id=id,
+    #         player_name=PLAYERS[question.player_sid].name)
+    #     game_state['questions'].append(formatted_question)
+    # # Let's make it show most recent at the top. :)
     for id, question in enumerate(questions):
-        if game_state['mayor'] == session_sid:
-            question_html = question.mayor_html_format()
-        else:
-            question_html = question.html_format()
-        formatted_question = question_html.format(
-            id=id, player_name=PLAYERS[question.player_sid].name)
-        game_state['questions'].append(formatted_question)
-    # Let's make it show most recent at the top. :)
+        game_state['questions'].append({
+            'id': id,
+            'question': question.question_text,
+            'player': PLAYERS[question.player_sid].name,
+            'answer': question.get_answer(),
+        })
     game_state['questions'].reverse()
 
     game_state['players'] = []
     for sid in player_sids:
         if sid in PLAYERS:
-            game_state['players'].append(PLAYERS[sid].name)
+            game_state['players']
+        
 
     game_state['am_mayor'] = game_state['mayor'] == session_sid
     game_state['am_admin'] = game_state['admin'] == session_sid
@@ -101,10 +109,10 @@ def parse_game_state(unparsed_game_state, session_sid):
         # No mayor is yet selected. and this is now a load-bearing string. :|
         game_state['mayor'] = 'No Mayor yet elected'
 
-    try:
-        game_state['role'] = str(player_sids[session_sid])
-    except KeyError as e:
-        log(f'Unable to find player role from SID in game: {e}')
+    if session_sid in player_sids:
+        game_state['role'] = str(player_sids[session_sid]).capitalize()
+    else:
+        game_state['role'] = None
 
     return game_state
 
@@ -128,20 +136,18 @@ def index():
     ###########
     # Remove to here.
     ############
-    GAMES
+
     if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
         game_id = PLAYERS[session['sid']].game
-        game_state = parse_game_state(
-            GAMES[game_id].get_state(game_id), session['sid'])
+        game_state = parse_game_state(game_id, session['sid'])
     else:
         # Return the values from an empty game
-        game_state = parse_game_state(
-            westwords.Game(timer=0, player_sids=[]).get_state(None),
-            session['sid'])
+        game_id = None
+        game_state = parse_game_state(None, session['sid'])
 
     return render_template(
-        'game.html',
-        questions=game_state['questions'],
+        'game.html.j2',
+        question_list=game_state['questions'],
         players=game_state['players'],
         game_name=game_state['game_id'],
         game_state=game_state['game_state'],
@@ -150,7 +156,8 @@ def index():
         tokens=game_state['tokens'],
         am_mayor=game_state['am_mayor'],
         am_admin=game_state['am_admin'],
-        role=str(game_state['role']) or None,
+        role=game_state['role'],
+        game_id=game_id,
         # Remove this when done poking at things. :P
         DEBUG=app.config['DEBUG'],
     )
@@ -184,10 +191,12 @@ def get_words(game_id):
         words = GAMES[game_id].get_words()
         if words:
             return render_template(
-                'word_choice.html.j2', words=words)
+                'word_choice.html.j2',
+                words=words,
+                game_id=game_id,
+            )
         else:
             return 'Unable to provide word choices.'
-
 
 
 # TODO: Move this to use Flask rooms, if useful above current setup
@@ -229,10 +238,11 @@ def connect(auth):
 
 
 @socketio.on('question')
-def add_question(question_text):
-    game_id = PLAYERS[session['sid']].game
-    question = westwords.Question(session['sid'], question_text)
-    if game_id in GAMES and GAMES[game_id].is_started():
+def add_question(game_id, question_text):
+    if (game_id in GAMES and
+        GAMES[game_id].is_player_in_game(session['sid']) and
+        GAMES[game_id].is_started()):
+        question = westwords.Question(session['sid'], question_text)
         # Race condition is only an issue if you lose the race. :|
         question_id = len(GAMES[game_id].questions)
         # FIXME: Move this to use a page reload instead of rendering question
@@ -243,11 +253,13 @@ def add_question(question_text):
 
         GAMES[game_id].questions.append(question)
         emit('add_question',
-             {'q': question_html, 'game_id': game_id}, broadcast=True)
+                {'q': question_html, 'game_id': game_id}, broadcast=True)
+
+    print(f'Unable to add question for game {game_id}')
 
 
 @socketio.on('answer_question')
-def answer_question(question_id, answer):
+def answer_question(game_id, question_id, answer):
     """Answer the question for a given game, if the user is the mayor.
 
     Args:
@@ -255,7 +267,7 @@ def answer_question(question_id, answer):
         answer: A string for the answer type
 
         (Yes/No/Maybe/So Close/So Far/Correct)
-    
+
     Returns:
         True is answer is successfully set; False otherwise.
     """
@@ -271,7 +283,6 @@ def answer_question(question_id, answer):
     if GAMES[game_id].mayor != session['sid']:
         log('User is not mayor!')
         return False
-
 
     if question_id >= len(GAMES[game_id].questions):
         log(f'Question {question_id} is an out of array index.')
@@ -308,7 +319,7 @@ def game_status(game_id=None):
     if game_id in GAMES:
         emit(
             'game_state',
-            parse_game_state(GAMES[game_id].get_state(game_id), session['sid'])
+            parse_game_state(game_id, session['sid'])
         )
 
 
@@ -332,12 +343,12 @@ def add_mayor_nominee(game_id):
 # Timer functions
 @socketio.on('game_start_req')
 def start_game(game_id):
-    log(f'Starting timer for game {game_id}')
     if game_id in GAMES:
         (success, message) = GAMES[game_id].start()
         if not success:
             emit('admin_error', f'Unable to start game: {message}')
             return
+        log(f'Starting timer for game {game_id}')
         emit('game_start_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
 
@@ -356,6 +367,27 @@ def reset_game(game_id):
 def get_role(game_id):
     if PLAYERS[session['sid']].game == game_id and game_id in GAMES:
         emit('player_role', GAMES[game_id].get_player_role(session['sid']))
+
+
+@socketio.on('word_choice')
+def set_word(game_id, word):
+    """Set the chosen word for the provided game ID.
+
+    Args:
+        game_id: String game ID referencing the game.
+        word: String word referencing the word to set as the chosen word for the
+            game.
+    """
+    if game_id not in GAMES:
+        socket.emit('mayor_error', f'Unable to set word for game {game_id}.')
+        return
+
+    if session['sid'] != GAMES[game_id].mayor:
+        socket.emit('mayor_error',
+                    f'Word set attempt failed. User is not mayor.')
+        return
+
+    GAMES[game_id].set_word()
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 # Game and player-related classes
 from datetime import datetime
-from random import shuffle, choice
+from operator import truediv
+from random import shuffle, choice, choices
 
 from westwords.question import QuestionError
 
@@ -25,6 +26,8 @@ ROLES = {
 
 # TODO: Make this a better solution. This is hacky.
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
+    '1': ['villager'],
+    '2': ['villager', 'werewolf'],
     '3': ['villager', 'seer', 'werewolf'],
     '4': ['villager', 'villager', 'seer', 'werewolf'],
     '5': ['villager', 'villager', 'villager', 'seer', 'werewolf'],
@@ -71,7 +74,7 @@ class Game(object):
         self.reset()
 
     def __repr__(self):
-        return f'Game(timer={self.timer},player_sids={self.player_sids.keys()})'
+        return f'Game(timer={self.timer},player_sids={list(self.player_sids.keys())})'
 
     # Game state functions
     def start(self):
@@ -81,14 +84,18 @@ class Game(object):
             A tuple of bool status on successful start of game and a message of
             any applicable errors.
         """
+        if self.game_state != GameState.SETUP:
+            return (False, f'Game not in SETUP state.')
         # TODO: Remove this in favor of choosing roles
         try:
-            roles = DEFAULT_ROLES_BY_PLAYER_COUNT[str(len(self.player_sids))]
+            if not self.selected_roles:
+                self.selected_roles = DEFAULT_ROLES_BY_PLAYER_COUNT[
+                    str(len(self.player_sids))]
         except KeyError:
             print(f'Config not defined for {len(self.player_sids)} players')
             return (False,
                     f'Config not defined for {len(self.player_sids)} players')
-        if sum(self.selected_roles) != len(self.player_sids):
+        if len(self.selected_roles) != len(self.player_sids):
             print('Unable to start game. Role/Player count mismatch: '
                   f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
             return (False, 'Not enough selected roles!')
@@ -108,11 +115,27 @@ class Game(object):
         self.start_time = datetime.now()
         return (True, None)
 
-    def is_started(self):
-        return self.game_state == GameState.STARTED
+    def reset(self):
+        self.admin = self._get_next_admin()
+        self.game_state = GameState.SETUP
+        self.last_answered = None
+        self.mayor = None
+        self.mayor_nominees = []
+        self.questions = []
+        self.selected_roles = []
+        self.start_time = None
+        self.tokens = self.token_defaults.copy()
+        self.votes = {}
+        self.word = None
+        self.word_choices = []
+        for player_sid in self.player_sids:
+            self.player_sids[player_sid] = None
 
     def start_vote(self):
         self.game_state = GameState.VOTING
+
+    def is_started(self):
+        return self.game_state == GameState.STARTED
 
     def is_voting(self):
         return self.game_state == GameState.VOTING
@@ -121,7 +144,28 @@ class Game(object):
         all_words = []
         for word_list in WORDLISTS:
             all_words.append(word_list.get_words)
-        return random.choices(all_words, k=self.word_choice_count)
+
+        self.word_choices = choices(all_words, k=self.word_choice_count)
+        return self.word_choices
+
+    def set_word_choice_count(self, count):
+        if count > 0 and count < 42:
+            self.word_choice_count = count
+
+    def set_word(self, word):
+        """Sets the word to the selected choice.
+        
+        Args:
+            word: String word to set as the selected word.
+            
+        Returns:
+            True if set successfully; False otherwise.
+        """
+        if word not in self.word_choices:
+            print(f'Unable to set {word}. Word not in: {self.word_choices}')
+            return False
+        self.word = word
+        return True
 
     def get_results(self):
         """Get results of a game after all voting has completed.
@@ -144,25 +188,6 @@ class Game(object):
         """
         if time_in_seconds > 0:
             self.timer = time_in_seconds
-
-    def set_word_choice_count(self, count):
-        if count > 0 and count < 42:
-            self.word_choice_count = count
-
-    def reset(self):
-        self.admin = self._get_next_admin()
-        self.chosen_word = None
-        self.game_state = GameState.SETUP
-        self.last_answered = None
-        self.mayor = None
-        self.mayor_nominees = []
-        self.questions = []
-        self.selected_roles = []
-        self.start_time = None
-        self.tokens = self.token_defaults.copy()
-        self.votes = {}
-        for player_sid in self.player_sids:
-            self.player_sids[player_sid] = None
 
     def vote(self, voter_sid, target_sid):
         """Votes for player identified by session ID.
@@ -238,6 +263,11 @@ class Game(object):
                 self.admin = next(iter(self.player_sids))
         else:
             print(f'DELETE: User {sid} not in game')
+
+    def is_player_in_game(self, sid):
+        if sid in self.player_sids:
+            return True
+        return False
 
     def _current_role_instances(self, role):
         """Returns the number of instances of provided role in selected roles.

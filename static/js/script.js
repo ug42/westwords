@@ -1,11 +1,15 @@
+// TODO: add separate sockets for each of the game comms
+// TODO: Reload the page with the correct buttons appearing
 var socket = io.connect({ autoconnect: true });
-function hideSidebar() {
-    document.getElementById('openSideMenu').checked = false;
+function answer(game_id, id, answer) {
+    socket.emit('answer_question', game_id, id, answer);
 }
-function answer(id, answer) {
-    socket.emit('answer_question', id, answer);
+function sendWord(game_id, word) {
+    socket.emit('word_choice', game_id, word);
 }
-
+function undoAnswer(game_id) {
+    socket.emit('undo', game_id)
+}
 
 function ready(fn) {
     if (document.readyState !== 'loading') {
@@ -27,28 +31,8 @@ ready(function () {
     var game_state = document.getElementById('game_state');
     var mayor_name = document.getElementById('mayor_name');
     var token_count = document.getElementById('token_count');
-    var questions = document.getElementById('questions');
-    // Get the button that opens the modal
-    var modal = document.getElementById("modal-div");
-    var modal_text = document.getElementById('modal-text');
-    // Get the <span> element that closes the modal
-    var close_modal = document.getElementsByClassName("close")[0];
 
-    document.addEventListener('click', function (event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-        if (!sidebarContainer.contains(event.target))
-            hideSidebar();
-    });
-    close_modal.onclick = function () {
-        modal.style.display = "none";
-    }
-
-    // TODO: add separate sockets for each of the game comms
-    // TODO: Reload the page with the correct buttons appearing
-    // var socket = io.connect({ autoconnect: true });
-    var questions = document.getElementById("questions");
+    var question_div = document.getElementById("");
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
     });
@@ -57,31 +41,19 @@ ready(function () {
     });
     socket.on('game_state', function (g) {
         local_game_state = g;
-        if (g.questions.length > 0) {
-            questions.innerHTML = g.questions.join('');
-            if (local_game_state.am_mayor === true) { unhide_answer_btns(); }
-        } else {
-            questions.innerHTML = '';
-        }
-
-        token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
+        // token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
         game_state.innerHTML = 'Game state: ' + local_game_state.game_state;
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
 
         if (local_game_state.mayor !== 'No Mayor yet elected') {
             nominate_mayor_btn.hidden = true;
         }
-        if (local_game_state.am_mayor === true) {
-            nominate_mayor_btn.hidden = true;
-            proper_noun_btn.hidden = true;
-            // undo_btn.hidden = false;
-            question_div.hidden = true;
-            unhide_answer_btns();
-        } else {
-            // question_div.hidden = false;
-            proper_noun_btn.hidden = false;
-            // undo_btn.hidden = true;
-        }
+        // if (local_game_state.am_mayor === true) {
+        //     nominate_mayor_btn.hidden = true;
+        //     proper_noun_btn.hidden = true;
+        // } else {
+        //     proper_noun_btn.hidden = false;
+        // }
     });
     socket.on('game_start_rsp', function (game_id) {
         if (local_game_state.game_id === game_id) {
@@ -107,7 +79,7 @@ ready(function () {
     });
     socket.on('add_question', function (rsp) {
         if (local_game_state.game_id === rsp.game_id) {
-            questions.innerHTML = rsp.q + questions.innerHTML
+            question_div.innerHTML = rsp.q + question_div.innerHTML
             if (local_game_state.am_mayor) { unhide_answer_btns(); }
         }
     });
@@ -147,19 +119,12 @@ ready(function () {
         });
     }
 
-    function unhide_answer_btns() {
-        answer_btns = document.querySelectorAll('.answer');
-        for (i = 0; i < answer_btns.length; i++) {
-            answer_btns[i].hidden = false;
-        }
-    }
-
     var question = document.getElementById('question');
     question.addEventListener('keypress', function (event) {
         if (event.key === "Enter") {
             console.log('emitting question: ' + question.value);
             if (question.value != "") {
-                socket.emit('question', question.value);
+                socket.emit('question', local_game_state.game_id, question.value);
                 question.value = "";
             }
         }
@@ -167,7 +132,7 @@ ready(function () {
     document.getElementById('question_submit').addEventListener('click', function () {
         console.log('emitting question: ' + question.value);
         if (question.value != "") {
-            socket.emit('question', question.value);
+            socket.emit('question', local_game_state.game_id, question.value);
             question.value = "";
         }
     });
@@ -188,7 +153,7 @@ ready(function () {
         get_game_state_btn.addEventListener('click', get_game_state);
     }
     proper_noun_btn.addEventListener('click', function () {
-        socket.emit('question', "Is it a proper noun?");
+        socket.emit('question', local_game_state.game_id, "Is it a proper noun?");
     });
     function send_start_req() {
         console.log('Attempting to start');
@@ -206,18 +171,6 @@ ready(function () {
     function game_start() {
         console.log('Attempting to start game');
         timer.start();
-        // game_start_btn.hidden = true;
-        // game_reset_btn.hidden = false;
-
-        // if (local_game_state.am_mayor === true) {
-        //     unhide_answer_btns();
-        //     question_div.hidden = true;
-        //     proper_noun_btn.hidden = true;
-        // } else {
-        //     question_div.hidden = false;
-        //     proper_noun_btn.hidden = false;
-        // }
-
     }
     function game_reset(game_id) {
         // FIXME: Game reset does not remove existing questions from board.

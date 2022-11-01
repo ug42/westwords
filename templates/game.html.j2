@@ -1,0 +1,65 @@
+{% extends "_layout.html" %}
+{% block body %}
+
+
+<div class="main">
+    <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
+    <!-- TODO: set clock to run based on the current state. -->
+    <div id="controls">
+        <div id="game_timer"></div>
+        <!-- These two controls should be gated -->
+        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="game_start">Start game</button></p>
+        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="game_reset">Reset game</button></p>
+        <!-- so break them into a if game is started thing. -->
+        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="proper_noun" hidden>Is it a proper noun?</button></p>
+        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="nominate_mayor">Run for Mayor!</button></p>
+        {% if DEBUG %}
+        <b>DEBUGGING</b>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="get_game_state">Get game state</button>
+        {% endif %}
+        Role {{ role }}
+        <div id="question_div">
+            Question: <input type="text" id="question">
+            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="question_submit">Submit question</button>
+        </div>
+        <div id="game_state">Game state: {{game_state}}</div>
+        <div id="mayor_name">Mayor: {{mayor}}</div>
+        <div>Am I the mayor: {{ am_mayor }}</div>
+        <div id="token_count">Remaining tokens: {{tokens}}</div>
+        <div id="players">
+        {% for p in players %}
+        <br>{{ p }}
+        {% endfor %}
+        </div>
+    </div>
+    <div id="questions_div">
+        <!-- HTML provided from questions is already escaped. -->
+        {% for question_object in question_list -%}
+            <div>{{ question_object.player }}: {{ question_object.question }}
+                <div id="q{{question_object.id}}a" style="display: inline">
+                {% if question_object.answer -%}
+                    {{ question_object.answer }}
+                {%- else -%}
+                    {% if am_mayor -%}
+                    {# <div style="display: inline"> #}
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')">Yes</button>
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')">No</button>
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'maybe')">Maybe</button>
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_close')">So Close</button>
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_far')">Very far off</button>
+                        <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'correct')">Correct!</button>
+                    {# </div> #}
+                    {%- endif %}
+                {%- endif %}
+                </div>
+            </div>
+        {%- endfor %}
+    </div>
+    <div id="controls">
+        {% if am_mayor %}
+        <b>Mayor controls</b>
+        <button click="undoAnswer({{ game_id }})" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="undo">Undo last answer</button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
