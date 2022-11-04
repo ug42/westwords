@@ -11,6 +11,7 @@ class Role(object):
     def __init__(self):
         self.description = 'Generic night action, no vote ability.'
         self.see_word = False
+        self.votes_on_guessed_word = False
         self.wins_with = Affiliation.VILLAGE
         self.team_loses_if_killed = False
         self.required = False
@@ -80,12 +81,13 @@ class Werewolf(Role):
         Tries to lead guesses away from the word. Sees word and other
         werewolves, but not minion.
         """
-        self.sees_word = True
-        self.wins_with = Affiliation.WEREWOLF
+        self.max_instances = 4
         self.required = True
         self.required_players = 0
+        self.sees_word = True
         self.team_loses_if_killed = True
-        self.max_instances = 4
+        self.votes_on_guessed_word = True
+        self.wins_with = Affiliation.WEREWOLF
     
     def __str__(self):
         return "Werewolf"
@@ -162,10 +164,11 @@ class Minion(Werewolf):
         Werewolf-aligned character that doesn't get seen by Werewolves. Village
         team still wins if executing the Minion.
 
-        Does not vote with Werewolves to find the Seer.
+        Does not vote with Werewolves to find the Seer/Fortune Teller.
         """
         self.required_players = 7
         self.team_loses_if_killed = True
+        self.votes_on_guessed_word = False
 
     def __str__(self):
         return "Minion"
@@ -204,7 +207,7 @@ class Esper(Villager):
         super().__init__()
         self.description = """
         Villager who lets their neighbor know they're not a Werewolf by 
-        "tapping their shoulder."
+        sending good vibes to another person.
         """
         self.required_players = 5
 

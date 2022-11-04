@@ -1,6 +1,18 @@
 // TODO: add separate sockets for each of the game comms
 // TODO: Reload the page with the correct buttons appearing
 var socket = io.connect({ autoconnect: true });
+var local_game_state = {
+    'game_state': null,
+    'players': [],
+    'questions': [],
+    'time': 0,
+    'game_id': null,
+    'role': null,
+    'am_mayor': null,
+    'am_admin': null,
+    'tokens': null,
+}
+
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
 }
@@ -9,6 +21,23 @@ function sendWord(game_id, word) {
 }
 function undoAnswer(game_id) {
     socket.emit('undo', game_id)
+}
+function send_start_req() {
+    console.log('Attempting to start');
+    if (local_game_state.game_id !== '') {
+        console.log('Start timer for game: ' + local_game_state.game_id);
+        socket.emit('game_start_req', local_game_state.game_id);
+    }
+}
+function send_reset_req() {
+    if (local_game_state.game_id !== '') {
+        console.log('Start timer for game: ' + local_game_state.game_id);
+        socket.emit('game_reset_req', local_game_state.game_id);
+    }
+}
+function get_game_state() {
+    socket.emit('get_game_state');
+    console.log('Game state refresh requested');
 }
 
 function ready(fn) {
@@ -90,18 +119,6 @@ ready(function () {
         }
     })
 
-    var local_game_state = {
-        'game_state': null,
-        'players': [],
-        'questions': [],
-        'time': 420,
-        'game_id': null,
-        'role': null,
-        'am_mayor': null,
-        'am_admin': null,
-        'tokens': null,
-    }
-
     var timer;
     game_timer = document.getElementById('game_timer');
     reset_game_timer(local_game_state['time']);
@@ -155,19 +172,8 @@ ready(function () {
     proper_noun_btn.addEventListener('click', function () {
         socket.emit('question', local_game_state.game_id, "Is it a proper noun?");
     });
-    function send_start_req() {
-        console.log('Attempting to start');
-        if (local_game_state.game_id !== '') {
-            console.log('Start timer for game: ' + local_game_state.game_id);
-            socket.emit('game_start_req', local_game_state.game_id);
-        }
-    }
-    function send_reset_req() {
-        if (local_game_state.game_id !== '') {
-            console.log('Start timer for game: ' + local_game_state.game_id);
-            socket.emit('game_reset_req', local_game_state.game_id);
-        }
-    }
+
+
     function game_start() {
         console.log('Attempting to start game');
         timer.start();
@@ -182,10 +188,6 @@ ready(function () {
             game_reset_btn.hidden = true;
             proper_noun_btn.hidden = true;
         }
-    }
-    function get_game_state() {
-        socket.emit('get_game_state');
-        console.log('Game state refresh requested');
     }
     function get_role(game_id) {
         socket.emit('get_role', game_id);

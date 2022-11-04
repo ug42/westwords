@@ -57,15 +57,15 @@ def parse_game_state(game_id, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
 
     Args:
-        unparsed_game_state: A tuple containing [0] dict of str game_state, int
-            timer, str game_id, and str mayor player session ID, [1] a list of
-            westword.question.Question objects, and [2] a dict of str player
-            sessions IDs to westword.role.Role type objects.
+        game_id: String game id on which to get game state.
+        session_id: String session ID of requesting user.
 
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id', 
-            str 'mayor' name, bool 'am_mayor', a list of str 'questions', a list
-            of str 'players' names, and a str 'role' for the player.
+            str 'mayor' name, bool 'am_mayor', bool 'am_admin', a list of 
+            'questions' dicts of int 'id', str 'question', str 'player', str 
+            'answer', a list of str 'players' names, and a str 'role' for the
+            player.
     """
     if game_id:
         (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
@@ -361,6 +361,15 @@ def reset_game(game_id):
         GAMES[game_id].reset()
         emit('game_reset_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
+
+@socketio.on('vote')
+def vote(game_id, target_id):
+    log(f'{PLAYERS[session["sid"]].name} voted for {PLAYERS[target_id].name}')
+    if game_id in GAMES:
+        success = GAMES[game_id].vote(session['sid'], target_id)
+        if not success:
+            log(f'Unable to cast vote.')
+
 
 
 @socketio.on('get_role')

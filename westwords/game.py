@@ -122,17 +122,38 @@ class Game(object):
         self.mayor = None
         self.mayor_nominees = []
         self.questions = []
+        self.required_voters = []
         self.selected_roles = []
         self.start_time = None
         self.tokens = self.token_defaults.copy()
         self.votes = {}
         self.word = None
         self.word_choices = []
+        self.word_guessed = False
         for player_sid in self.player_sids:
             self.player_sids[player_sid] = None
 
     def start_vote(self):
+        """Start the voting process.
+        
+        Returns:
+            A list of strings"""
+        if self.game_state != GameState.STARTED:
+            print(f'Current game state {self.game_state} is not STARTED.')
+            return (False, [])
+        
+        if self.word_guessed:
+            for player_sid in self.player_sids:
+                player_role = ROLES[self.get_player_role(player_sid)]
+                if player_role.votes_on_guessed_word:
+                    self.required_voters.append(player_sid)
+        else:
+            self.required_voters = list(self.player_sids.keys())
+
         self.game_state = GameState.VOTING
+    
+    def finish_game(self):
+        self.game_state = GameState.FINISHED
 
     def is_started(self):
         return self.game_state == GameState.STARTED
@@ -199,14 +220,20 @@ class Game(object):
         Returns:
             True if vote was successfully cast; False otherwise.
         """
-        if voter_sid not in self.player_sids:
-            print(f'Unable to cast vote. Player {voter_sid} not in game.')
+        if not self.is_voting():
+            print(f'Game not in voting state.')
+            return False
+        if voter_sid not in self.required_voters:
+            print(f'Player {voter_sid} is ineligible to vote.')
             return False
         if target_sid not in self.player_sids:
             print(
                 f'Unable to vote for player {target_sid}; Not found in game.')
             return False
-        self.player_sids[voter_sid]
+        
+        self.votes[voter_sid] = target_sid
+        if set(self.votes) == set(self.required_voters):
+            self.finish_game()
 
     def get_tokens(self):
         return ' '.join([f'{token.name}: {self.tokens[token]}'
