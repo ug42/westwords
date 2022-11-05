@@ -18,4 +18,10 @@ class AnswerToken(Enum):
     CORRECT = "correct"
     LARAMIE = "laramie"
     NONE = ""
-    
+
+
+class Affiliation(Enum):
+    WEREWOLF = 'Werewolf'
+    VILLAGE = 'Village'
+    # To be determined in course of game
+    UNKNOWN = 'Unknown'

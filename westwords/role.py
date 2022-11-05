@@ -1,18 +1,11 @@
-from enum import Enum
-
-class Affiliation(Enum):
-    WEREWOLF = 'werewolf'
-    VILLAGE = 'village'
-    # To be determined in course of game
-    UNKNOWN = 'unknown'
-
+from westwords.enums import Affiliation
 
 class Role(object):
     def __init__(self):
         self.description = 'Generic night action, no vote ability.'
         self.see_word = False
         self.votes_on_guessed_word = False
-        self.wins_with = Affiliation.VILLAGE
+        self.affiliation = Affiliation.VILLAGE
         self.team_loses_if_killed = False
         self.required = False
         self.required_players = 0
@@ -53,7 +46,7 @@ class Mayor(Role):
         play if an Intern is in play.
         """
         self.sees_word = True
-        self.wins_with = Affiliation.UNKNOWN
+        self.affiliation = Affiliation.UNKNOWN
         self.required = True
 
     def __str__(self):
@@ -67,7 +60,7 @@ class Doppelganger(Role):
         Doppelganger chooses a player to see their role, and inherits that
         player's ability and alignment.
         """
-        self.wins_with = Affiliation.UNKNOWN
+        self.affiliation = Affiliation.UNKNOWN
         self.required_players = 4
 
     def __str__(self):
@@ -87,7 +80,7 @@ class Werewolf(Role):
         self.sees_word = True
         self.team_loses_if_killed = True
         self.votes_on_guessed_word = True
-        self.wins_with = Affiliation.WEREWOLF
+        self.affiliation = Affiliation.WEREWOLF
     
     def __str__(self):
         return "Werewolf"

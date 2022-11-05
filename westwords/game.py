@@ -5,7 +5,7 @@ from random import shuffle, choice, choices
 
 from westwords.question import QuestionError
 
-from .enums import AnswerToken, GameState
+from .enums import AnswerToken, GameState, Affiliation
 from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
                    Minion, Seer, Esper, Villager, Werewolf)
 from .wordlists import WORDLISTS
@@ -126,7 +126,9 @@ class Game(object):
         self.selected_roles = []
         self.start_time = None
         self.tokens = self.token_defaults.copy()
+        self.vote_count = []
         self.votes = {}
+        self.winner = None
         self.word = None
         self.word_choices = []
         self.word_guessed = False
@@ -153,6 +155,7 @@ class Game(object):
         self.game_state = GameState.VOTING
     
     def finish_game(self):
+        self._tally_results()
         self.game_state = GameState.FINISHED
 
     def is_started(self):
@@ -188,18 +191,47 @@ class Game(object):
         self.word = word
         return True
 
+    def _tally_results(self):
+        self.game_state = GameState.FINISHED
+        vote_count = {}
+        for voter in self.votes:
+            target = self.votes[voter]
+            if target not in votes:
+                vote_count[target] = 0
+            vote_count[target] += 1
+        
+        self.vote_count = sorted(
+            self.vote_count, reverse=True, key=lambda x: self.vote_count[x])
+        
+        most_voted_player_sids = [
+            v for v in vote_count if vote_count[v] == vote_count[0]]
+        if self.word_guessed:
+            self.winner = Affiliation.VILLAGE
+            for player_sid in most_voted_player_sids:
+                role = self.player_sids[player_sid]
+                if (ROLES[role].team_loses_if_killed and 
+                    ROLES[role].affiliation == Affiliation.VILLAGE):
+                    self.winner = Affiliation.WEREWOLF
+        else:
+            self.winner = Affiliation.WEREWOLF
+            for player_sid in most_voted_player_sids:
+                role = self.player_sids[player_sid]
+                if (ROLES[role].team_loses_if_killed and 
+                    ROLES[role].affiliation == Affiliation.WEREWOLF):
+                    self.winner = Affiliation.VILLAGE
+
+
     def get_results(self):
         """Get results of a game after all voting has completed.
-
+        
         Returns:
-            A list of player SIDs that were voted for if votes are done, and
-            None if no status to give.
-        """
-        if set(self.player_sids) != set(self.votes):
-            print(f'Voting has not finished, no results to give.')
+            A tuple Affilition enum for winner, and a dict of votes for each
+            player."""
+        if self.game_state != GameState.FINISHED:
+            print(f'Game not finished, no results to give.')
             return None
-        self.game_state = GameState.FINISHED
-        return [self.votes[vote] for vote in self.votes]
+
+        return (self.winner, self.vote_count)
 
     def set_timer(self, time_in_seconds):
         """Set the timer amount in seconds.
@@ -399,6 +431,7 @@ class Game(object):
 
         Returns:
             A list of strings representing each role's name in the amount of """
+        
         return sorted(self.selected_roles)
 
     def get_possible_roles(self):
