@@ -2,4 +2,4 @@
 
 import westwords
 
-from .test_game import testGame
+from . import test_game

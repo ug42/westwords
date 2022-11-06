@@ -1,9 +1,9 @@
 # Game and player-related classes
-from datetime import datetime
+from datetime import datetime, timedelta
 from operator import truediv
 from random import shuffle, choice, choices
 
-from westwords.question import QuestionError
+from westwords.question import QuestionError, Question
 
 from .enums import AnswerToken, GameState, Affiliation
 from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
@@ -135,16 +135,19 @@ class Game(object):
         for player_sid in self.player_sids:
             self.player_sids[player_sid] = None
 
-    def start_vote(self):
-        """Start the voting process.
-        
-        Returns:
-            A list of strings"""
+    def start_vote(self, word_guessed: bool):
+        """Start the voting process."""
+        self.word_guessed = word_guessed
+        elapsed_time = (datetime.now() - self.start_time).seconds
+        if elapsed_time < self.timer and not word_guessed:
+            print(f'End of game conditions not met.')
+
         if self.game_state != GameState.STARTED:
             print(f'Current game state {self.game_state} is not STARTED.')
             return (False, [])
         
-        if self.word_guessed:
+        if word_guessed:
+
             for player_sid in self.player_sids:
                 player_role = ROLES[self.get_player_role(player_sid)]
                 if player_role.votes_on_guessed_word:
@@ -196,30 +199,39 @@ class Game(object):
         vote_count = {}
         for voter in self.votes:
             target = self.votes[voter]
-            if target not in votes:
+            if target not in vote_count:
                 vote_count[target] = 0
             vote_count[target] += 1
         
-        self.vote_count = sorted(
-            self.vote_count, reverse=True, key=lambda x: self.vote_count[x])
-        
-        most_voted_player_sids = [
-            v for v in vote_count if vote_count[v] == vote_count[0]]
+       
         if self.word_guessed:
             self.winner = Affiliation.VILLAGE
-            for player_sid in most_voted_player_sids:
+            # All werewolf votes count to kill someone.
+            for player_sid in vote_count:
                 role = self.player_sids[player_sid]
-                if (ROLES[role].team_loses_if_killed and 
+                if (vote_count[player_sid] > 0 and
+                    ROLES[role].team_loses_if_killed and 
                     ROLES[role].affiliation == Affiliation.VILLAGE):
                     self.winner = Affiliation.WEREWOLF
+            return True
         else:
+            # Outputs sorted list of highest voted player
+            voted_player_sids_sorted = sorted(
+                self.vote_count, 
+                reverse=True,
+                key=lambda x: self.vote_count[x])
+
             self.winner = Affiliation.WEREWOLF
+            # Explicitly check if the most voted player has one vote. If so,
+            # then all players have one vote and werewolfs win.
+            if vote_count[voted_player_sids_sorted[0]] == 1:
+                return True
             for player_sid in most_voted_player_sids:
                 role = self.player_sids[player_sid]
                 if (ROLES[role].team_loses_if_killed and 
                     ROLES[role].affiliation == Affiliation.WEREWOLF):
                     self.winner = Affiliation.VILLAGE
-
+            return True
 
     def get_results(self):
         """Get results of a game after all voting has completed.
@@ -266,6 +278,7 @@ class Game(object):
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):
             self.finish_game()
+        return True
 
     def get_tokens(self):
         return ' '.join([f'{token.name}: {self.tokens[token]}'
@@ -301,7 +314,7 @@ class Game(object):
         try:
             return next(iter(self.player_sids))
         except StopIteration:
-            print(f'No player to assign admin role.')
+            pass
         return None
 
     def nominate_for_mayor(self, sid):
@@ -312,11 +325,13 @@ class Game(object):
     def add_player(self, sid):
         if sid not in self.player_sids:
             self.player_sids[sid] = None
+            if not self.admin:
+                self.admin = self._get_next_admin()
         else:
             print(f'ADD: User {sid} already in game')
 
     def remove_player(self, sid):
-        if sid not in self.player_sids:
+        if sid in self.player_sids:
             del self.player_sids[sid]
             if self.admin not in self.player_sids:
                 self.admin = next(iter(self.player_sids))
@@ -446,9 +461,59 @@ class Game(object):
         return roles
 
     # Question functions
+    def add_question(self, sid, question_text):
+        """Add a question to the game.
+        
+        Args:
+            sid: A string player session id of the question asker.
+            question_text: String question text.
+            
+        Returns:
+            A tuple of success boolean and the int id of the added question, if
+            the question was added successfuly; (False, None) otherwise.
+        """
+        if (self.is_player_in_game(sid) and sid != self.mayor and
+            self.is_started()):
+            question = Question(sid, question_text)
+            question_id = self._get_next_question_id()            
+            self.questions.append(question)
+            return (True, question_id)
+        return (False, None)
+
+    def get_question(self, id):
+        """Returns the Question object for the specified ID.
+        
+        Args:
+            id: Integer ID for the question to retrieve.
+            
+        Returns:
+            A Question object for the specified ID, if found; None otherwise.
+        """
+        try:
+            return self.questions[id]
+        except KeyError:
+            return None
+
+    def _get_next_question_id(self):
+        return len(self.questions)
+
     def answer_question(self, question_id: int, answer: AnswerToken):
-        self.questions[question_id].answer_question(answer)
-        self.last_answered = question_id
+        """Answer a question for the given id.
+        
+        Args:
+            question_id: An integer id for the question to answer.
+            answer: An AnswerToken answer for the given question.
+            
+        Returns:
+            True if answer is set successfully; False otherwise.
+        """
+        if question_id < len(self.questions) and answer is not AnswerToken.NONE:
+            self.questions[question_id].answer_question(answer)
+            self.last_answered = question_id
+            return True
+        return False
+        
+        
 
     def undo_answer(self):
         try:

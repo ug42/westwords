@@ -46,11 +46,9 @@ GAMES = {
 # URL routing
 
 
+# TODO: Replace this with a proper log to file statement.
 def log(text):
     print(text)
-    if app.config['DEBUG']:
-        print(str(GAMES))
-        print(str(PLAYERS))
 
 
 def parse_game_state(game_id, session_sid):
@@ -61,30 +59,23 @@ def parse_game_state(game_id, session_sid):
         session_id: String session ID of requesting user.
 
     Returns:
-        game_state: a dict of str 'game_state', int 'timer', str 'game_id', 
-            str 'mayor' name, bool 'am_mayor', bool 'am_admin', a list of 
-            'questions' dicts of int 'id', str 'question', str 'player', str 
+        game_state: a dict of str 'game_state', int 'timer', str 'game_id',
+            str 'mayor' name, bool 'am_mayor', bool 'am_admin', a list of
+            'questions' dicts of int 'id', str 'question', str 'player', str
             'answer', a list of str 'players' names, and a str 'role' for the
             player.
     """
     if game_id:
-        (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
+        (game_state, questions,
+         player_sids) = GAMES[game_id].get_state(game_id)
     else:
         (game_state, questions, player_sids) = westwords.Game(
             timer=0, player_sids=[]).get_state(None)
 
     game_state['questions'] = []
-    # for id, question in enumerate(questions):
-    #     if game_state['mayor'] == session_sid:
-    #         question_html = question.mayor_html_format()
-    #     else:
-    #         question_html = question.html_format()
-    #     formatted_question = question_html.format(
-    #         game_id=game_id, id=id,
-    #         player_name=PLAYERS[question.player_sid].name)
-    #     game_state['questions'].append(formatted_question)
-    # # Let's make it show most recent at the top. :)
+
     for id, question in enumerate(questions):
+        get_question_info(question, id)
         game_state['questions'].append({
             'id': id,
             'question': question.question_text,
@@ -97,7 +88,6 @@ def parse_game_state(game_id, session_sid):
     for sid in player_sids:
         if sid in PLAYERS:
             game_state['players']
-        
 
     game_state['am_mayor'] = game_state['mayor'] == session_sid
     game_state['am_admin'] = game_state['admin'] == session_sid
@@ -115,6 +105,15 @@ def parse_game_state(game_id, session_sid):
         game_state['role'] = None
 
     return game_state
+
+
+def get_question_info(question, id):
+    return {
+        'id': id,
+        'question': question.question_text,
+        'player': PLAYERS[question.player_sid].name,
+        'answer': question.get_answer(),
+    }
 
 
 @app.route('/')
@@ -239,26 +238,30 @@ def connect(auth):
 
 @socketio.on('question')
 def add_question(game_id, question_text):
-    if (game_id in GAMES and
-        GAMES[game_id].is_player_in_game(session['sid']) and
-        GAMES[game_id].is_started()):
-        question = westwords.Question(session['sid'], question_text)
-        # Race condition is only an issue if you lose the race. :|
-        question_id = len(GAMES[game_id].questions)
-        # FIXME: Move this to use a page reload instead of rendering question
-        # This will not handle roles very well. Drop questions off to another
-        # page and have it loaded via an iframe, maybe?
-        question_html = question.html_format().format(
-            id=question_id, player_name=PLAYERS[question.player_sid].name)
-
-        GAMES[game_id].questions.append(question)
-        emit('add_question',
-                {'q': question_html, 'game_id': game_id}, broadcast=True)
+    if game_id in GAMES:
+        success, id = GAMES[game_id].add_question(
+            session['sid'], question_text)
+        if success:
+            emit('new_question', {
+                'game_id': game_id, 'question_id': id}, broadcast=True)
 
     print(f'Unable to add question for game {game_id}')
 
 
-@socketio.on('answer_question')
+@socketio.on('get_question_req')
+def send_question(game_id, question_id):
+    if game_id in GAMES and int(question_id) < len(GAMES[game_id].questions):
+        question = GAMES[game_id].questions[question_id]
+        response = {
+            'game_id': game_id,
+            'question': render_template(
+                'question_layout.html.j2',
+                question_object=get_question_info(question, question_id))
+        }
+        socketio.emit('get_question_rsp', response)
+
+
+@ socketio.on('answer_question')
 def answer_question(game_id, question_id, answer):
     """Answer the question for a given game, if the user is the mayor.
 
@@ -275,7 +278,7 @@ def answer_question(game_id, question_id, answer):
         log('No player found for session: ' + session['sid'])
         return False
 
-    game_id = PLAYERS[session['sid']].game
+    game_id=PLAYERS[session['sid']].game
     if game_id not in GAMES:
         log('Unable to find game: ' + game_id)
         return False
@@ -289,33 +292,33 @@ def answer_question(game_id, question_id, answer):
         return False
 
     try:
-        answer_token = westwords.AnswerToken[answer.upper()]
+        answer_token=westwords.AnswerToken[answer.upper()]
         log(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
     except KeyError as e:
         log(f'Unknown answer: {e}')
         return False
 
     # Question ID is basically just the index offset starting at 0
-    results = GAMES[game_id].remove_token(answer_token)
+    results=GAMES[game_id].remove_token(answer_token)
     if not results['success']:
         socketio.emit('mayor_error', f'Out of {answer_token.value} tokens')
         return False
 
     GAMES[game_id].answer_question(question_id, answer_token)
-    asking_player = GAMES[game_id].questions[question_id].player_sid
+    asking_player=GAMES[game_id].questions[question_id].player_sid
     PLAYERS[asking_player].add_token(answer_token)
 
     if results['end_of_game']:
         socketio.emit('mayor_error',
                       f'Last token played, Undo or Move to vote.')
-    socketio.emit('force_refresh', game_id, broadcast=True)
+    socketio.emit('force_refresh', game_id, broadcast = True)
     return True
 
 
-@socketio.on('get_game_state')
-def game_status(game_id=None):
+@ socketio.on('get_game_state')
+def game_status(game_id = None):
     if not game_id:
-        game_id = PLAYERS[session['sid']].game
+        game_id=PLAYERS[session['sid']].game
     if game_id in GAMES:
         emit(
             'game_state',
@@ -362,6 +365,7 @@ def reset_game(game_id):
         emit('game_reset_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
 
+
 @socketio.on('vote')
 def vote(game_id, target_id):
     log(f'{PLAYERS[session["sid"]].name} voted for {PLAYERS[target_id].name}')
@@ -369,7 +373,6 @@ def vote(game_id, target_id):
         success = GAMES[game_id].vote(session['sid'], target_id)
         if not success:
             log(f'Unable to cast vote.')
-
 
 
 @socketio.on('get_role')

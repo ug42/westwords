@@ -9,9 +9,9 @@
         <div id="game_timer"></div>
         <!-- These two controls should be gated -->
         {% if game_state == 'SETUP' %}
-            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="game_start">Start game</button>
+            <button onclick="send_start_req()" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" id="game_start">Start game</button>
         {% else %}
-            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="game_reset">Reset game</button></p>
+            <button onclick="send_reset_req()" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="game_reset">Reset game</button></p>
         {% endif %}
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="proper_noun" hidden>Is it a proper noun?</button></p>

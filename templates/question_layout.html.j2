@@ -1,0 +1,19 @@
+
+<div>{{ question_object.player }}: {{ question_object.question }}
+    <div id="q{{question_object.id}}a" style="display: inline">
+    {% if question_object.answer -%}
+        {{ question_object.answer }}
+    {%- else -%}
+        {% if am_mayor -%}
+        <div style="display: inline">
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')">Yes</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')">No</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'maybe')">Maybe</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_close')">So Close</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_far')">Very far off</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'correct')">Correct!</button>
+        </div>
+        {%- endif %}
+    {%- endif %}
+    </div>
+</div>

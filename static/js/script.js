@@ -11,7 +11,7 @@ var local_game_state = {
     'am_mayor': null,
     'am_admin': null,
     'tokens': null,
-}
+};
 
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
@@ -20,7 +20,7 @@ function sendWord(game_id, word) {
     socket.emit('word_choice', game_id, word);
 }
 function undoAnswer(game_id) {
-    socket.emit('undo', game_id)
+    socket.emit('undo', game_id);
 }
 function send_start_req() {
     console.log('Attempting to start');
@@ -50,18 +50,15 @@ function ready(fn) {
 
 ready(function () {
     // Button variables
-    var game_start_btn = document.getElementById('game_start');
-    var game_reset_btn = document.getElementById('game_reset');
     var proper_noun_btn = document.getElementById('proper_noun');
     var nominate_mayor_btn = document.getElementById('nominate_mayor');
 
     // div variables
     var question_div = document.getElementById('question_div');
-    var game_state = document.getElementById('game_state');
-    var mayor_name = document.getElementById('mayor_name');
-    var token_count = document.getElementById('token_count');
+    // var game_state = document.getElementById('game_state');
+    // var mayor_name = document.getElementById('mayor_name');
+    // var token_count = document.getElementById('token_count');
 
-    var question_div = document.getElementById("");
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');
     });
@@ -94,24 +91,31 @@ ready(function () {
             game_reset(game_id);
         }
     });
-    socket.on('mayor_error', function (data) {
-        if (local_game_state.am_mayor === true) {
-            modal_text.innerHTML = data;
-            modal.style.display = "block";
-        }
-    });
-    socket.on('admin_error', function (data) {
-        if (local_game_state.am_admin === true) {
-            modal_text.innerHTML = data;
-            modal.style.display = "block";
-        }
-    });
-    socket.on('add_question', function (rsp) {
+    // socket.on('mayor_error', function (data) {
+    //     // if (local_game_state.am_mayor === true) {
+    //     //     modal_text.innerHTML = data;
+    //     //     modal.style.display = "block";
+    //     // }
+    // });
+    // socket.on('admin_error', function (data) {
+    //     // if (local_game_state.am_admin === true) {
+    //     //     modal_text.innerHTML = data;
+    //     //     modal.style.display = "block";
+    //     // }
+    // });
+    socket.on('new_question', function (rsp) {
+        console.log('Checkpoint 3');
         if (local_game_state.game_id === rsp.game_id) {
-            question_div.innerHTML = rsp.q + question_div.innerHTML
-            if (local_game_state.am_mayor) { unhide_answer_btns(); }
+           socket.emit('get_question_req', rsp.game_id, rsp.question_id);            
+           console.log('Checkpoint 3.5');
         }
     });
+    socket.on('get_question_rsp'), function(rsp) {
+        console.log('Checkpoint 4');
+        if (local_game_state.game_id === rsp.game_id) {
+            question_div.innerHTML = rsp.question + question_div.innerHTML;
+        }
+    }
     socket.on('force_refresh', function (rsp) {
         if (local_game_state.game_id === rsp) {
             console.log('Force refresh for ' + local_game_state.game_id);
@@ -154,8 +158,6 @@ ready(function () {
         }
     });
 
-    game_start_btn.addEventListener('click', send_start_req);
-    game_reset_btn.addEventListener('click', send_reset_req);
     if (document.getElementById('undo') !== null) {
         let undo_btn = document.getElementById('undo');
         undo_btn.addEventListener('click', function () {
@@ -165,10 +167,10 @@ ready(function () {
     nominate_mayor_btn.addEventListener('click', function () {
         socket.emit('nominate_mayor', local_game_state.game_id)
     })
-    if (document.getElementById('get_game_state')) {
-        let get_game_state_btn = document.getElementById('get_game_state');
-        get_game_state_btn.addEventListener('click', get_game_state);
-    }
+    // if (document.getElementById('get_game_state')) {
+    //     let get_game_state_btn = document.getElementById('get_game_state');
+    //     get_game_state_btn.addEventListener('click', get_game_state);
+    // }
     proper_noun_btn.addEventListener('click', function () {
         socket.emit('question', local_game_state.game_id, "Is it a proper noun?");
     });
@@ -184,9 +186,9 @@ ready(function () {
         if (game_id === local_game_state.game_id) {
             socket.emit('game_reset', game_id);
             reset_game_timer(local_game_state.time);
-            game_start_btn.hidden = false;
-            game_reset_btn.hidden = true;
-            proper_noun_btn.hidden = true;
+            // game_start_btn.hidden = false;
+            // game_reset_btn.hidden = true;
+            // proper_noun_btn.hidden = true;
         }
     }
     function get_role(game_id) {
