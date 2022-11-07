@@ -1,6 +1,7 @@
 # Game and player-related classes
+from copy import deepcopy
 from datetime import datetime, timedelta
-from operator import truediv
+import logging
 from random import shuffle, choice, choices
 
 from westwords.question import QuestionError, Question
@@ -9,6 +10,22 @@ from .enums import AnswerToken, GameState, Affiliation
 from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
                    Minion, Seer, Esper, Villager, Werewolf)
 from .wordlists import WORDLISTS
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M',
+                    filename='/tmp/westwords.log',
+                    filemode='w')
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+console.setFormatter(
+    logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s'))
+logging.getLogger('').addHandler(console)
+
+
+def log(text, log_level=logging.INFO):
+    # TODO: Replace this with a logging logger
+    print(text)
 
 
 ROLES = {
@@ -26,19 +43,19 @@ ROLES = {
 
 # TODO: Make this a better solution. This is hacky.
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
-    '1': ['villager'],
-    '2': ['villager', 'werewolf'],
-    '3': ['villager', 'seer', 'werewolf'],
-    '4': ['villager', 'villager', 'seer', 'werewolf'],
-    '5': ['villager', 'villager', 'villager', 'seer', 'werewolf'],
-    '6': ['villager', 'villager', 'villager', 'villager', 'seer', 'werewolf'],
-    '7': ['villager', 'villager', 'villager', 'villager', 'intern', 'seer', 'werewolf'],
-    '8': ['villager', 'villager', 'villager', 'villager', 'intern', 'seer', 'werewolf', 'werewolf'],
-    '9': ['villager', 'villager', 'villager', 'villager', 'esper', 'intern', 'seer', 'werewolf', 'werewolf'],
-    '10': ['villager', 'villager', 'villager', 'villager', 'villager', 'esper', 'intern', 'seer', 'werewolf', 'werewolf'],
-    '11': ['villager', 'villager', 'villager', 'villager', 'villager', 'beholder', 'intern', 'seer', 'werewolf', 'werewolf', 'werewolf'],
-    '12': ['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'beholder', 'intern', 'seer', 'werewolf', 'werewolf', 'werewolf'],
-    '13': ['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'mason', 'mason', 'intern', 'seer', 'werewolf', 'werewolf', 'werewolf'],
+    '1': [Villager()],
+    '2': [Villager(), Werewolf()],
+    '3': [Villager(), Seer(), Werewolf()],
+    '4': [Villager(), Villager(), Seer(), Werewolf()],
+    '5': [Villager(), Villager(), Villager(), Seer(), Werewolf()],
+    '6': [Villager(), Villager(), Villager(), Villager(), Seer(), Werewolf()],
+    '7': [Villager(), Villager(), Villager(), Villager(), Intern(), Seer(), Werewolf()],
+    '8': [Villager(), Villager(), Villager(), Villager(), Intern(), Seer(), Werewolf(), Werewolf()],
+    '9': [Villager(), Villager(), Villager(), Villager(), Esper(), Intern(), Seer(), Werewolf(), Werewolf()],
+    '10': [Villager(), Villager(), Villager(), Villager(), Villager(), Esper(), Intern(), Seer(), Werewolf(), Werewolf()],
+    '11': [Villager(), Villager(), Villager(), Villager(), Villager(), Beholder(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
+    '12': [Villager(), Villager(), Villager(), Villager(), Villager(), Villager(), Beholder(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
+    '13': [Villager(), Villager(), Villager(), Villager(), Villager(), Villager(), Mason(), Mason(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
 }
 
 
@@ -77,31 +94,30 @@ class Game(object):
         return f'Game(timer={self.timer},player_sids={list(self.player_sids.keys())})'
 
     # Game state functions
-    def start(self):
-        """Start the game.
+    def start_night_phase(self):
+        """Start the night phase of game.
 
         Returns:
-            A tuple of bool status on successful start of game and a message of
-            any applicable errors.
+            True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            return (False, f'Game not in SETUP state.')
+            log(f'Game not in SETUP state: {self.game_state}')
+            return False
         # TODO: Remove this in favor of choosing roles
         try:
             if not self.selected_roles:
-                self.selected_roles = DEFAULT_ROLES_BY_PLAYER_COUNT[
-                    str(len(self.player_sids))]
+                self.selected_roles = deepcopy(DEFAULT_ROLES_BY_PLAYER_COUNT[
+                    str(len(self.player_sids))])
         except KeyError:
-            print(f'Config not defined for {len(self.player_sids)} players')
-            return (False,
-                    f'Config not defined for {len(self.player_sids)} players')
+            log(f'Config not defined for {len(self.player_sids)} players')
+            return False,
         if len(self.selected_roles) != len(self.player_sids):
-            print('Unable to start game. Role/Player count mismatch: '
-                  f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
-            return (False, 'Not enough selected roles!')
+            log('Unable to start game. Role/Player count mismatch: '
+                f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
+            return False
 
         # Set the player roles by shuffling the selected roles and assigning
-        roles = self.selected_roles.copy()
+        roles = deepcopy(self.selected_roles)
         shuffle(roles)
         for player_sid in self.player_sids:
             self.player_sids[player_sid] = roles.pop()
@@ -111,13 +127,23 @@ class Game(object):
             self.mayor_nominees = list(self.player_sids.keys())
         self.mayor = choice(self.mayor_nominees)
 
-        self.game_state = GameState.STARTED
+        self.game_state = GameState.NIGHT_PHASE_WORD_CHOICE_TARGETTING
+        return True
+
+    def start_day_phase(self):
+        """Start the question-asking phase of game.
+
+        Returns:
+            A tuple of bool status on successful start of game and a message of
+            any applicable errors.
+        """
+        self.game_state = GameState.DAY_PHASE_QUESTIONS
         self.start_time = datetime.now()
-        return (True, None)
 
     def reset(self):
         self.admin = self._get_next_admin()
         self.game_state = GameState.SETUP
+        self.killed_players = []
         self.last_answered = None
         self.mayor = None
         self.mayor_nominees = []
@@ -136,33 +162,45 @@ class Game(object):
             self.player_sids[player_sid] = None
 
     def start_vote(self, word_guessed: bool):
-        """Start the voting process."""
+        """Start the voting process.
+
+        Args: 
+            word_guessed: Boolean for whether the word was successfully guessed.
+
+        Returns:
+            A tuple of True and a list of required voter SIDs if successful; 
+            False and an empty list, otherwise.
+        """
         self.word_guessed = word_guessed
         elapsed_time = (datetime.now() - self.start_time).seconds
         if elapsed_time < self.timer and not word_guessed:
-            print(f'End of game conditions not met.')
-
-        if self.game_state != GameState.STARTED:
-            print(f'Current game state {self.game_state} is not STARTED.')
+            log('End of game conditions not met.'
+                f'Word guessed: {word_guessed}'
+                f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
             return (False, [])
-        
-        if word_guessed:
 
+        if self.game_state != GameState.DAY_PHASE_QUESTIONS:
+            log(f'Current game state {self.game_state} is not DAY_PHASE_QUESTIONS.')
+            return (False, [])
+
+        if word_guessed:
             for player_sid in self.player_sids:
-                player_role = ROLES[self.get_player_role(player_sid)]
-                if player_role.votes_on_guessed_word:
+                if self.player_sids[player_sid].votes_on_guessed_word:
                     self.required_voters.append(player_sid)
         else:
-            self.required_voters = list(self.player_sids.keys())
+            # Drop all player_sids into required voters since everyone can vote
+            # including Werewolfs and Minions during this state.
+            self.required_voters = list(self.player_sids)
 
         self.game_state = GameState.VOTING
-    
+        return (True, self.required_voters)
+
     def finish_game(self):
         self._tally_results()
         self.game_state = GameState.FINISHED
 
     def is_started(self):
-        return self.game_state == GameState.STARTED
+        return self.game_state == GameState.DAY_PHASE_QUESTIONS
 
     def is_voting(self):
         return self.game_state == GameState.VOTING
@@ -181,15 +219,15 @@ class Game(object):
 
     def set_word(self, word):
         """Sets the word to the selected choice.
-        
+
         Args:
             word: String word to set as the selected word.
-            
+
         Returns:
             True if set successfully; False otherwise.
         """
         if word not in self.word_choices:
-            print(f'Unable to set {word}. Word not in: {self.word_choices}')
+            log(f'Unable to set {word}. Word not in: {self.word_choices}')
             return False
         self.word = word
         return True
@@ -202,48 +240,53 @@ class Game(object):
             if target not in vote_count:
                 vote_count[target] = 0
             vote_count[target] += 1
-        
-       
+
         if self.word_guessed:
             self.winner = Affiliation.VILLAGE
             # All werewolf votes count to kill someone.
             for player_sid in vote_count:
+                if player_sid not in self.killed_players:
+                    self.killed_players.append(player_sid)
                 role = self.player_sids[player_sid]
                 if (vote_count[player_sid] > 0 and
-                    ROLES[role].team_loses_if_killed and 
-                    ROLES[role].affiliation == Affiliation.VILLAGE):
+                    role.team_loses_if_killed and
+                        role.affiliation == Affiliation.VILLAGE):
                     self.winner = Affiliation.WEREWOLF
             return True
         else:
             # Outputs sorted list of highest voted player
             voted_player_sids_sorted = sorted(
-                self.vote_count, 
+                vote_count,
                 reverse=True,
-                key=lambda x: self.vote_count[x])
+                key=lambda x: vote_count[x])
+            self.killed_players = [voted_player_sids_sorted[0]]
+            for player_sid in vote_count:
+                if vote_count[player_sid] >= vote_count[self.killed_players[0]]:
+                    if player_sid not in self.killed_players:
+                        self.killed_players.append(player_sid)
 
             self.winner = Affiliation.WEREWOLF
             # Explicitly check if the most voted player has one vote. If so,
             # then all players have one vote and werewolfs win.
             if vote_count[voted_player_sids_sorted[0]] == 1:
                 return True
-            for player_sid in most_voted_player_sids:
+            for player_sid in self.killed_players:
                 role = self.player_sids[player_sid]
-                if (ROLES[role].team_loses_if_killed and 
-                    ROLES[role].affiliation == Affiliation.WEREWOLF):
+                if (role.team_loses_if_killed and
+                        role.affiliation == Affiliation.WEREWOLF):
                     self.winner = Affiliation.VILLAGE
             return True
 
     def get_results(self):
         """Get results of a game after all voting has completed.
-        
-        Returns:
-            A tuple Affilition enum for winner, and a dict of votes for each
-            player."""
-        if self.game_state != GameState.FINISHED:
-            print(f'Game not finished, no results to give.')
-            return None
 
-        return (self.winner, self.vote_count)
+        Returns:
+            A tuple Affilition enum for winner, list of str killed player sids,
+            and a dict of votes for each player."""
+        if self.game_state != GameState.FINISHED:
+            log(f'Game not finished, no results to give.')
+            return None
+        return (self.winner, self.killed_players, self.votes)
 
     def set_timer(self, time_in_seconds):
         """Set the timer amount in seconds.
@@ -252,6 +295,7 @@ class Game(object):
             time_in_seconds: Integer time. in. seconds.
         """
         if time_in_seconds > 0:
+            log(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
     def vote(self, voter_sid, target_sid):
@@ -265,16 +309,16 @@ class Game(object):
             True if vote was successfully cast; False otherwise.
         """
         if not self.is_voting():
-            print(f'Game not in voting state.')
+            log(f'Game not in voting state.')
             return False
         if voter_sid not in self.required_voters:
-            print(f'Player {voter_sid} is ineligible to vote.')
+            log(f'Player {voter_sid} is ineligible to vote.')
             return False
         if target_sid not in self.player_sids:
-            print(
+            log(
                 f'Unable to vote for player {target_sid}; Not found in game.')
             return False
-        
+
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):
             self.finish_game()
@@ -320,15 +364,22 @@ class Game(object):
     def nominate_for_mayor(self, sid):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
-            print(f'Adding {sid} to mayor nominees')
+            log(f'Adding {sid} to mayor nominees')
 
     def add_player(self, sid):
+        """Add player to game.
+
+        Returns:
+            True if successful; False otherwise.
+        """
         if sid not in self.player_sids:
             self.player_sids[sid] = None
             if not self.admin:
                 self.admin = self._get_next_admin()
+            return True
         else:
-            print(f'ADD: User {sid} already in game')
+            log(f'ADD: User {sid} already in game')
+            return False
 
     def remove_player(self, sid):
         if sid in self.player_sids:
@@ -336,7 +387,7 @@ class Game(object):
             if self.admin not in self.player_sids:
                 self.admin = next(iter(self.player_sids))
         else:
-            print(f'DELETE: User {sid} not in game')
+            log(f'DELETE: User {sid} not in game')
 
     def is_player_in_game(self, sid):
         if sid in self.player_sids:
@@ -352,40 +403,14 @@ class Game(object):
         Returns:
             An integer value of number instances.
         """
-        if role in ROLES:
-            return len([r for r in self.selected_roles if r == role])
-        print(f'Role {role} not found.')
-        return 0
-
-    def _get_role_info(self, role):
-        """Return a dict of information on a given role.
-
-        Args:
-            A string role to lookup that matches an existing role value.
-
-        Returns:
-            A dict of an integer required_players, bool is_required, integer
-            max_instances, and integer current_instances, if role found. Empty
-            dict otherwise.
-        """
-        try:
-            role = role.lower()
-            role_info = {
-                'required_players': ROLES[role].get_required_players(),
-                'is_required': ROLES[role].is_required(),
-                'max_instances': ROLES[role].get_max_instances(),
-                'current_instances': self._current_role_instances(role),
-            }
-            return role_info
-        except KeyError as e:
-            print(f'Unable to find role: {role}')
-            return {}
+        return len([
+            r for r in self.selected_roles if str(r) == role.capitalize()])
 
     def add_role(self, role):
         """Add the selected role to game.
 
         Args:
-            role: a string role name to be added.
+            role: An object inheriting the westwords.Role object.
 
         Returns:
             True if role is known and able to be added; False otherwise.
@@ -393,19 +418,13 @@ class Game(object):
         if self.game_state.name != GameState.SETUP:
             return False
 
-        role = role.lower()
-        role_info = self._get_role_info(role)
-        if not role_info:
-            print(f'Unknown role: {role}')
+        if self._current_role_instances(role) >= role.get_max_instances():
+            log(f'Unable to add {role}: too many of that role.')
             return False
-        if role_info['current_instances'] >= role_info['max_instances']:
-            print(f'Unable to add {role}: too many of that role.')
-            return False
-        if len(self.player_sids) < role['required_players']:
-            print(f'Unable to add {role}: too few players.')
+        if len(self.player_sids) < role.get_required_players():
+            log(f'Unable to add {role}: too few players.')
             return False
 
-        # Fall through to success against my better judgement.
         self.selected_roles.append(role)
         return True
 
@@ -421,21 +440,17 @@ class Game(object):
         if self.game_state.name != GameState.SETUP:
             return False
 
-        role = role.lower()
-        role_info = self._get_role_info(role)
-        if not role_info:
+        if role.is_required() and self._current_role_instances(role) == 1:
+            log(f'Unable to remove {role} as it is required.')
             return False
-        if role['is_required'] and role_info['current_instances'] == 1:
-            print(f'Unable to remove {role} as it is required.')
-            return False
-        if role['current_instances'] < 1:
-            print(f'Unable to remove role {role} as it is not selected.')
+        if self._current_role_instances(role) < 1:
+            log(f'Unable to remove role {role} as it is not selected.')
             return False
 
         for i in range(len(self.selected_roles)):
             if self.selected_roles[i] == role:
                 removed_role = self.selected_roles[i].pop()
-                print(f'Removed role: {removed_role}')
+                log(f'Removed role: {removed_role}')
                 return True
 
         # In case I missed something :)
@@ -446,7 +461,7 @@ class Game(object):
 
         Returns:
             A list of strings representing each role's name in the amount of """
-        
+
         return sorted(self.selected_roles)
 
     def get_possible_roles(self):
@@ -463,29 +478,29 @@ class Game(object):
     # Question functions
     def add_question(self, sid, question_text):
         """Add a question to the game.
-        
+
         Args:
             sid: A string player session id of the question asker.
             question_text: String question text.
-            
+
         Returns:
             A tuple of success boolean and the int id of the added question, if
             the question was added successfuly; (False, None) otherwise.
         """
         if (self.is_player_in_game(sid) and sid != self.mayor and
-            self.is_started()):
+                self.is_started()):
             question = Question(sid, question_text)
-            question_id = self._get_next_question_id()            
+            question_id = self._get_next_question_id()
             self.questions.append(question)
             return (True, question_id)
         return (False, None)
 
     def get_question(self, id):
         """Returns the Question object for the specified ID.
-        
+
         Args:
             id: Integer ID for the question to retrieve.
-            
+
         Returns:
             A Question object for the specified ID, if found; None otherwise.
         """
@@ -499,11 +514,11 @@ class Game(object):
 
     def answer_question(self, question_id: int, answer: AnswerToken):
         """Answer a question for the given id.
-        
+
         Args:
             question_id: An integer id for the question to answer.
             answer: An AnswerToken answer for the given question.
-            
+
         Returns:
             True if answer is set successfully; False otherwise.
         """
@@ -512,20 +527,18 @@ class Game(object):
             self.last_answered = question_id
             return True
         return False
-        
-        
 
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
-                print(f'Undoing answer for question id {self.last_answered}')
+                log(f'Undoing answer for question id {self.last_answered}')
                 token = self.questions[self.last_answered].clear_answer()
                 self._add_token(token)
                 self.last_answered = None
                 return
         except (TypeError, KeyError) as e:
-            print(f'Encountered error: {e}')
-        print(f'No answer to undo for question id: {self.last_answered}')
+            log(f'Encountered error: {e}')
+        log(f'No answer to undo for question id: {self.last_answered}')
 
     def _add_token(self, token: AnswerToken):
         self.tokens[token] += 1

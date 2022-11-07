@@ -2,23 +2,21 @@ from westwords.enums import Affiliation
 
 class Role(object):
     def __init__(self):
-        self.description = 'Generic night action, no vote ability.'
-        self.see_word = False
-        self.votes_on_guessed_word = False
+        self.description = "Generic night action, no vote ability."
         self.affiliation = Affiliation.VILLAGE
-        self.team_loses_if_killed = False
+        self.known_players = {}
+        self.max_instances = 1
         self.required = False
         self.required_players = 0
-        self.max_instances = 1
+        self.sees_word = False
+        self.targetted_player = None
+        self.night_phase_complete = False
+        self.targetting_role = False
+        self.team_loses_if_killed = False
+        self.votes_on_guessed_word = False
 
     def __str__(self):
         return type(self).__name__
-
-    def guess_seer(self, player_sid):
-        pass
-
-    def guess_werewolf(self, player_sid):
-        pass
 
     def get_max_instances(self):
         return self.max_instances
@@ -29,6 +27,14 @@ class Role(object):
     def get_required_players(self):
         return self.required_players
 
+    def target_player(self, player_sid):
+        if self.targetting_role:
+            self.targetted_player = player_sid
+            return True
+        return False
+
+    def get_known_players(self):
+        return self.known_players
 
 
 class Mayor(Role):
@@ -62,9 +68,11 @@ class Doppelganger(Role):
         """
         self.affiliation = Affiliation.UNKNOWN
         self.required_players = 4
+        self.targetting_role = True
 
     def __str__(self):
         return "Doppelganger"
+
 
 
 class Werewolf(Role):
@@ -159,6 +167,7 @@ class Minion(Werewolf):
 
         Does not vote with Werewolves to find the Seer/Fortune Teller.
         """
+        self.sees_word = False
         self.required_players = 7
         self.team_loses_if_killed = True
         self.votes_on_guessed_word = False
@@ -203,6 +212,7 @@ class Esper(Villager):
         sending good vibes to another person.
         """
         self.required_players = 5
+        self.targetting_role = True
 
     def __str__(self):
         return "Esper"

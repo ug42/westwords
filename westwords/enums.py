@@ -1,11 +1,14 @@
-from enum import Enum
+from enum import Enum, auto
 
 class GameState(Enum):
-    SETUP = 1
-    STARTED = 2
-    PAUSED = 3
-    VOTING = 4
-    FINISHED = 5
+    SETUP = auto()
+    # Doppelganger/Esper action and Mayor Word Choice
+    NIGHT_PHASE_WORD_CHOICE_TARGETTING = auto()
+    # Reveal all known roles and words or word portions
+    NIGHT_PHASE_REVEAL = auto()
+    DAY_PHASE_QUESTIONS = auto()
+    VOTING = auto()
+    FINISHED = auto()
 
 
 class AnswerToken(Enum):
@@ -21,7 +24,7 @@ class AnswerToken(Enum):
 
 
 class Affiliation(Enum):
-    WEREWOLF = 'Werewolf'
-    VILLAGE = 'Village'
+    WEREWOLF = "Werewolf"
+    VILLAGE = "Village"
     # To be determined in course of game
-    UNKNOWN = 'Unknown'
+    UNKNOWN = "Unknown"

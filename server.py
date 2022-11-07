@@ -45,10 +45,8 @@ GAMES = {
 # TODO: Make it so the updated game_status and the dynamic status is the same
 # URL routing
 
-
-# TODO: Replace this with a proper log to file statement.
 def log(text):
-    print(text)
+    westwords.log(text)
 
 
 def parse_game_state(game_id, session_sid):
@@ -245,7 +243,7 @@ def add_question(game_id, question_text):
             emit('new_question', {
                 'game_id': game_id, 'question_id': id}, broadcast=True)
 
-    print(f'Unable to add question for game {game_id}')
+    log(f'Unable to add question for game {game_id}')
 
 
 @socketio.on('get_question_req')
@@ -328,7 +326,7 @@ def game_status(game_id = None):
 
 @socketio.on('undo')
 def undo(game_id):
-    print(f'Attempting to undo something for {game_id}')
+    log(f'Attempting to undo something for {game_id}')
     if game_id in GAMES:
         if (game_id == PLAYERS[session['sid']].game and
                 GAMES[game_id].mayor == session['sid']):
@@ -347,11 +345,9 @@ def add_mayor_nominee(game_id):
 @socketio.on('game_start_req')
 def start_game(game_id):
     if game_id in GAMES:
-        (success, message) = GAMES[game_id].start()
-        if not success:
+        if not GAMES[game_id].start_night_phase():
             emit('admin_error', f'Unable to start game: {message}')
             return
-        log(f'Starting timer for game {game_id}')
         emit('game_start_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
 
