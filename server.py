@@ -345,7 +345,7 @@ def add_mayor_nominee(game_id):
 @socketio.on('game_start_req')
 def start_game(game_id):
     if game_id in GAMES:
-        if not GAMES[game_id].start_night_phase():
+        if not GAMES[game_id].start_night_phase_word_choice():
             emit('admin_error', f'Unable to start game: {message}')
             return
         emit('game_start_rsp', game_id, broadcast=True)

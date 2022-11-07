@@ -94,7 +94,7 @@ class Game(object):
         return f'Game(timer={self.timer},player_sids={list(self.player_sids.keys())})'
 
     # Game state functions
-    def start_night_phase(self):
+    def start_night_phase_word_choice(self):
         """Start the night phase of game.
 
         Returns:
@@ -127,8 +127,82 @@ class Game(object):
             self.mayor_nominees = list(self.player_sids.keys())
         self.mayor = choice(self.mayor_nominees)
 
-        self.game_state = GameState.NIGHT_PHASE_WORD_CHOICE_TARGETTING
+        self.game_state = GameState.NIGHT_PHASE_WORD_CHOICE
         return True
+
+    def _start_night_phase_targetting(self):
+        if (self.game_state in [
+                GameState.NIGHT_PHASE_WORD_CHOICE,
+                GameState.NIGHT_PHASE_DOPPELGANGER,
+            ] and
+            self.word is not None):
+            self.night_actions_required = [
+                p for p in self.player_sids if self.player_sids[p].targetting_role]
+            self.game_state = GameState.NIGHT_PHASE_TARGETTING
+            return True
+        return False
+
+    def _start_night_phase_reveal(self):
+        if (self.game_state == GameState.NIGHT_PHASE_TARGETTING and
+            not self.night_actions_required):
+            self.reveal_ack_required = self.player_sids.copy()
+            self.game_state = GameState.NIGHT_PHASE_REVEAL
+            return True
+        return False
+
+    def get_player_revealed_information(self, player_sid):
+        """Return information known by the provided player SID.
+        
+        Args:
+            player_sid: A string player SID for which to retrieve known
+                information.
+        
+        Returns:
+            A dict of known information about each player
+        """
+        if player_sid in self.player_sids:
+            return self.player_sids[player_sid].known_players
+        return {}
+
+    def acknowledge_revealed_info(self, player_sid):
+        """Acknoledge that player has seen the revealed information.
+        
+        Args:
+            player_sid: A string player SID for which to acknowledge the info.
+
+        Returns:
+            True if successfully acknowledged; False otherwise."""
+        if player_sid in self.reveal_ack_required:
+            for i in range(len(self.reveal_ack_required)):
+                if self.reveal_ack_required[i] == player_sid:
+                    self.reveal_ack_required[i].pop()
+                    return True
+        return False
+
+    def set_player_target(self, player_sid, target_sid):
+        """Set the target of player's night action.
+        
+        Args:
+            player_sid: String player SID that is doing the targetting.
+            target_sid: String player SID of the targetted player.
+            
+        Returns:
+            True if successful set; False otherwise."""
+        if (self.game_state == GameState.NIGHT_PHASE_TARGETTING and
+            player_sid in self.night_actions_required and
+            target_sid in self.player_sids):
+            
+            if self.player_sids[player_sid].target_player(target_sid,
+                                                          self.player_sids):
+                for i in range(len(self.night_actions_required)):
+                    if self.night_actions_required[i] == player_sid:
+                        self.night_actions_required[i].pop()
+                if len(self.night_actions_required) == 0:
+                    self._start_night_phase_reveal()
+                return True
+
+        return False
+
 
     def start_day_phase(self):
         """Start the question-asking phase of game.
@@ -147,6 +221,8 @@ class Game(object):
         self.last_answered = None
         self.mayor = None
         self.mayor_nominees = []
+        self.night_actions_required = []
+        self.reveal_ack_required = []
         self.questions = []
         self.required_voters = []
         self.selected_roles = []
@@ -214,11 +290,12 @@ class Game(object):
         return self.word_choices
 
     def set_word_choice_count(self, count):
-        if count > 0 and count < 42:
-            self.word_choice_count = count
+        if self.game_state == GameState.SETUP:
+            if count > 0 and count < 42:
+                self.word_choice_count = count
 
     def set_word(self, word):
-        """Sets the word to the selected choice.
+        """Sets the word to the selected choice and starts the targetting phase.
 
         Args:
             word: String word to set as the selected word.
@@ -230,7 +307,37 @@ class Game(object):
             log(f'Unable to set {word}. Word not in: {self.word_choices}')
             return False
         self.word = word
+        self._start_night_phase_doppelganger()
         return True
+
+    def _start_night_phase_doppelganger(self):
+        doppelganger_player = [
+            p for p in self.player_sids if isinstance(self.player_sids[p],
+                                                      Doppelganger)
+        ]
+        if doppelganger_player:
+            self.night_actions_required.append(p)
+            self.game_state = GameState.NIGHT_PHASE_DOPPELGANGER
+        else:
+            self._start_night_phase_targetting()
+
+    def set_doppelganger_role_target(self, player_sid, target_sid):
+        """Attempts to set Doppelganger role target.
+        
+        Args:
+            player_sid: String player SID for the Doppelganger.
+            target_sid: String player SID of target whose role to copy.
+        
+        Returns:
+            String representing new role if successful; None otherwise.
+        """
+        if (target_sid in self.player_sids and
+            isinstance(self.player_sids[player_sid], Doppelganger)):
+            self.player_sids[player_sid] = deepcopy(self.player_sids[target_sid])
+            self.player_sids[player_sid].doppelganger = True
+            self._start_night_phase_targetting()
+            return str(self.player_sids[player_sid])
+        return None
 
     def _tally_results(self):
         self.game_state = GameState.FINISHED

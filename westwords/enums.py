@@ -3,7 +3,9 @@ from enum import Enum, auto
 class GameState(Enum):
     SETUP = auto()
     # Doppelganger/Esper action and Mayor Word Choice
-    NIGHT_PHASE_WORD_CHOICE_TARGETTING = auto()
+    NIGHT_PHASE_WORD_CHOICE = auto()
+    NIGHT_PHASE_DOPPELGANGER = auto()
+    NIGHT_PHASE_TARGETTING = auto()
     # Reveal all known roles and words or word portions
     NIGHT_PHASE_REVEAL = auto()
     DAY_PHASE_QUESTIONS = auto()

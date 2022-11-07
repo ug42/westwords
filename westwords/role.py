@@ -10,10 +10,13 @@ class Role(object):
         self.required_players = 0
         self.sees_word = False
         self.targetted_player = None
+        # Whether this role's night action are done
         self.night_phase_complete = False
+        # Whether this role targets another player with an action
         self.targetting_role = False
         self.team_loses_if_killed = False
         self.votes_on_guessed_word = False
+        self.doppelganger = False
 
     def __str__(self):
         return type(self).__name__
@@ -26,10 +29,16 @@ class Role(object):
     
     def get_required_players(self):
         return self.required_players
+    
+    def _role_night_action(self, target_sid, player_roles):
+        if not self.targetting_role:
+            return False
+        pass
 
-    def target_player(self, player_sid):
+    def target_player(self, target_sid, player_roles):
         if self.targetting_role:
-            self.targetted_player = player_sid
+            self.targetted_player = target_sid
+            self._role_night_action(target_sid, player_roles)
             return True
         return False
 
@@ -63,7 +72,7 @@ class Doppelganger(Role):
     def __init__(self):
         super().__init__()
         self.description = """
-        Doppelganger chooses a player to see their role, and inherits that
+        Doppelganger chooses a player to see their role, and copies that
         player's ability and alignment.
         """
         self.affiliation = Affiliation.UNKNOWN
@@ -72,7 +81,6 @@ class Doppelganger(Role):
 
     def __str__(self):
         return "Doppelganger"
-
 
 
 class Werewolf(Role):
