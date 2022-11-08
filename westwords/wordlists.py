@@ -26,6 +26,14 @@ WORDLISTS = {
         hard=[],
         impossible=[],
     ),
+    'famous_books': WordList(
+        short_name='Famous Books',
+        description='Famous books known by most people',
+        easy=[],
+        medium=[],
+        hard=[],
+        impossible=[],
+    ),
     'locations': WordList(
         short_name='Locations',
         description="""
@@ -274,6 +282,13 @@ WORDLISTS = {
             'sculpture',
             'chicken feed',
             'lime',
+            'pi',
+            'pillar',
+            'delta',
+            'rudder',
+            'car horn',
+            'chocolate milk'
+            'Heart of Darkness'
         ]
     ),
     'nouns': WordList(

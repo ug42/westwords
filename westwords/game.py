@@ -11,21 +11,10 @@ from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
                    Minion, Seer, Esper, Villager, Werewolf)
 from .wordlists import WORDLISTS
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%m-%d %H:%M',
-                    filename='/tmp/westwords.log',
-                    filemode='w')
-console = logging.StreamHandler()
-console.setLevel(logging.DEBUG)
-console.setFormatter(
-    logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s'))
-logging.getLogger('').addHandler(console)
-
-
-def log(text, log_level=logging.INFO):
+logging.basicConfig(level=logging.DEBUG)
+def log(text):
     # TODO: Replace this with a logging logger
-    print(text)
+    logging.info(text)
 
 
 ROLES = {
@@ -316,7 +305,7 @@ class Game(object):
                                                       Doppelganger)
         ]
         if doppelganger_player:
-            self.night_actions_required.append(p)
+            self.night_actions_required.append(doppelganger_player)
             self.game_state = GameState.NIGHT_PHASE_DOPPELGANGER
         else:
             self._start_night_phase_targetting()

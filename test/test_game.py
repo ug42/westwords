@@ -13,13 +13,10 @@ class testGameUnits(unittest.TestCase):
         self.game = GameClass(timer=300, player_sids=[])
         self.player_sids = ['foo', 'bar', 'baz', 'xxx']
 
-    def tearDown(self):
-        pass
-
     def testReset(self):
         self.game = GameClass(player_sids=['foo', 'bar', 'baz', 'xxx'])
         self.game.nominate_for_mayor('baz')
-        self.game.start_night_phase()
+        self.game.start_night_phase_word_choice()
         self.assertEqual(self.game.mayor, 'baz')
         self.game.reset()
         self.assertIsNone(self.game.mayor)
@@ -199,70 +196,6 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertEqual(winner, Affiliation.VILLAGE)
         self.assertEqual(killed, ['bar'])
         self.assertEqual(votes, {'xxx': 'bar'})
-
-    def testFullGameWorkflow(self):
-        self.game = GameClass(player_sids=['foo', 'bar', 'baz', 'xxx'])
-        self.game.nominate_for_mayor('baz')
-        self.game.start_night_phase()
-        self.assertEqual(self.game.mayor, 'baz')
-        self.game.reset()
-        self.assertIsNone(self.game.mayor)
-        self.game.nominate_for_mayor('foo')
-        self.game.start_night_phase()
-        # Add role-related stuff
-        self.game.start_day_phase()
-
-        for player_sid in self.player_sids:
-            self.assertIsNotNone(self.game.player_sids[player_sid])
-        self.game.player_sids['foo'] = Villager()
-        self.game.player_sids['bar'] = Villager()
-        self.game.player_sids['baz'] = Seer()
-        self.game.player_sids['xxx'] = Werewolf()
-
-        success, id = self.game.add_question('foo', 'How can this be?')
-        self.assertFalse(success)
-        self.assertIsNone(id)
-        # Assure we can't answer a question that doesn't yet exist
-        self.assertFalse(self.game.answer_question(0, AnswerToken.NONE))
-
-        success, id = self.game.add_question('bar', 'Am I the first question?')
-        self.assertTrue(success)
-        self.assertEqual(id, 0)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.YES))
-
-        success, id = self.game.add_question('baz', 'Is it a squirrel?')
-        self.assertTrue(success)
-        self.assertEqual(id, 1)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.NO))
-
-        success, id = self.game.add_question('xxx', 'Chimpanzee?')
-        self.assertTrue(success)
-        self.assertEqual(id, 2)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.CORRECT))
-
-        success, players = self.game.start_vote(word_guessed=True)
-        self.assertEqual(self.game.required_voters, ['xxx'])
-        self.assertEqual(players, ['xxx'])
-
-        self.assertFalse(self.game.vote('baz', 'xxx'))
-        self.assertTrue(self.game.vote('xxx', 'bar'))
-        self.assertEqual(self.game.get_results(),
-                         (Affiliation.VILLAGE, ['bar'], {'xxx': 'bar'}))
-
-    def testAllRolesFullGameWorkflow(self):
-        """
-        Doppelganger
-        Mason
-        Werewolf
-        Villager
-        Seer
-        FortuneTeller
-        Intern
-        Esper
-        Beholder
-        Minion
-        """
-        pass
 
 
 if __name__ == '__main__':

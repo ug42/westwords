@@ -5,10 +5,7 @@
 # to account for a reverse proxy and keeping each server with a single worker
 # thread.
 
-# requirements.txt may still need Flask-Session==0.4.0 : but testing without it.
-
 import re
-import sys
 from random import choice, randint
 from string import ascii_uppercase
 from uuid import uuid4
@@ -24,7 +21,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['USE_PERMANENT_SESSION'] = True
-
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
@@ -42,12 +38,6 @@ GAMES = {
     # TODO: replace with real player objects associated with session
     'defaultgame': westwords.Game(timer=300, player_sids=[]),
 }
-# TODO: Make it so the updated game_status and the dynamic status is the same
-# URL routing
-
-def log(text):
-    westwords.log(text)
-
 
 def parse_game_state(game_id, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
@@ -116,7 +106,6 @@ def get_question_info(question, id):
 
 @app.route('/')
 def index():
-    log(app.config)
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     if 'username' not in session:
@@ -174,6 +163,7 @@ def username():
 
 @app.route('/join/<game>')
 def join_game(game):
+    app.logger.debug(f"{session['sid']} attempting to join {game}")
     if game in GAMES:
         GAMES[game].add_player(session['sid'])
         PLAYERS[session['sid']].game = game
@@ -226,12 +216,12 @@ def connect(auth):
         if session['sid'] not in PLAYERS:
             PLAYERS[session['sid']] = westwords.Player(session['username'])
     except KeyError as e:
-        log(f'Unable to register Player, due to lookup failure. {e}')
+        app.logger.error(f'Unable to register Player, due to lookup failure. {e}')
     game_status()
     try:
         game_status(PLAYERS[session['sid']].game)
     except KeyError as e:
-        log(f'No key value found: {e}')
+        app.logger.error(f'No key value found: {e}')
 
 
 @socketio.on('question')
@@ -243,7 +233,7 @@ def add_question(game_id, question_text):
             emit('new_question', {
                 'game_id': game_id, 'question_id': id}, broadcast=True)
 
-    log(f'Unable to add question for game {game_id}')
+    app.logger.error(f'Unable to add question for game {game_id}')
 
 
 @socketio.on('get_question_req')
@@ -273,27 +263,26 @@ def answer_question(game_id, question_id, answer):
         True is answer is successfully set; False otherwise.
     """
     if session['sid'] not in PLAYERS:
-        log('No player found for session: ' + session['sid'])
+        app.logger.error('No player found for session: ' + session['sid'])
         return False
 
     game_id=PLAYERS[session['sid']].game
     if game_id not in GAMES:
-        log('Unable to find game: ' + game_id)
+        app.logger.error('Unable to find game: ' + game_id)
         return False
 
     if GAMES[game_id].mayor != session['sid']:
-        log('User is not mayor!')
+        app.logger.error('User is not mayor!')
         return False
 
     if question_id >= len(GAMES[game_id].questions):
-        log(f'Question {question_id} is an out of array index.')
+        app.logger.error(f'Question {question_id} is an out of array index.')
         return False
 
     try:
         answer_token=westwords.AnswerToken[answer.upper()]
-        log(f'Answer at beginning: {answer_token.value}/{answer_token.name}')
     except KeyError as e:
-        log(f'Unknown answer: {e}')
+        app.logger.error(f'Unknown answer: {e}')
         return False
 
     # Question ID is basically just the index offset starting at 0
@@ -326,7 +315,7 @@ def game_status(game_id = None):
 
 @socketio.on('undo')
 def undo(game_id):
-    log(f'Attempting to undo something for {game_id}')
+    app.logger.debug(f'Attempting to undo something for {game_id}')
     if game_id in GAMES:
         if (game_id == PLAYERS[session['sid']].game and
                 GAMES[game_id].mayor == session['sid']):
@@ -355,7 +344,7 @@ def start_game(game_id):
 @socketio.on('game_reset_req')
 def reset_game(game_id):
     # Implement game reset feature
-    log(f'Resetting game: {game_id}')
+    app.logger.info(f'Resetting game: {game_id}')
     if game_id in GAMES:
         GAMES[game_id].reset()
         emit('game_reset_rsp', game_id, broadcast=True)
@@ -364,11 +353,11 @@ def reset_game(game_id):
 
 @socketio.on('vote')
 def vote(game_id, target_id):
-    log(f'{PLAYERS[session["sid"]].name} voted for {PLAYERS[target_id].name}')
+    app.logger.debug(f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
     if game_id in GAMES:
         success = GAMES[game_id].vote(session['sid'], target_id)
         if not success:
-            log(f'Unable to cast vote.')
+            app.logger.error(f'Unable to cast vote.')
 
 
 @socketio.on('get_role')

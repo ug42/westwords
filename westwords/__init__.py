@@ -1,7 +1,7 @@
 # westwords module
 
 from .game import Game, log # OutOfTokenError, OutOfYesNoTokenError
-from .role import (Role, Mayor, Doppelganger, Mason,
+from .role import (Role, Doppelganger, Mason,
                    Werewolf, Villager, Seer, FortuneTeller, Intern, Esper,
                    Beholder, Minion)
 from .wordlists import WordList, WORDLISTS
