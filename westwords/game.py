@@ -12,9 +12,7 @@ from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
 from .wordlists import WORDLISTS
 
 logging.basicConfig(level=logging.DEBUG)
-def log(text):
-    # TODO: Replace this with a logging logger
-    logging.info(text)
+# logging.basicConfig(level=logging.INFO)
 
 
 ROLES = {
@@ -66,6 +64,7 @@ class Game(object):
             self.player_sids[player_sid] = None
         self.spectators = []
         self.word_choice_count = 5
+        self.word_difficulty = 'medium'
         self.token_defaults = {
             # YES and NO share the same token count
             AnswerToken.YES: 36,
@@ -90,7 +89,7 @@ class Game(object):
             True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            log(f'Game not in SETUP state: {self.game_state}')
+            logging.debug(f'Game not in SETUP state: {self.game_state}')
             return False
         # TODO: Remove this in favor of choosing roles
         try:
@@ -98,11 +97,12 @@ class Game(object):
                 self.selected_roles = deepcopy(DEFAULT_ROLES_BY_PLAYER_COUNT[
                     str(len(self.player_sids))])
         except KeyError:
-            log(f'Config not defined for {len(self.player_sids)} players')
+            logging.debug(
+                f'Config not defined for {len(self.player_sids)} players')
             return False,
         if len(self.selected_roles) != len(self.player_sids):
-            log('Unable to start game. Role/Player count mismatch: '
-                f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
+            logging.debug('Unable to start game. Role/Player count mismatch: '
+                          f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
             return False
 
         # Set the player roles by shuffling the selected roles and assigning
@@ -124,7 +124,7 @@ class Game(object):
                 GameState.NIGHT_PHASE_WORD_CHOICE,
                 GameState.NIGHT_PHASE_DOPPELGANGER,
             ] and
-            self.word is not None):
+                self.word is not None):
             self.night_actions_required = [
                 p for p in self.player_sids if self.player_sids[p].targetting_role]
             self.game_state = GameState.NIGHT_PHASE_TARGETTING
@@ -133,67 +133,69 @@ class Game(object):
 
     def _start_night_phase_reveal(self):
         if (self.game_state == GameState.NIGHT_PHASE_TARGETTING and
-            not self.night_actions_required):
-            self.reveal_ack_required = self.player_sids.copy()
+                not self.night_actions_required):
+            self.reveal_ack_required = list(self.player_sids)
             self.game_state = GameState.NIGHT_PHASE_REVEAL
             return True
         return False
 
-    def get_player_revealed_information(self, player_sid):
+    def get_player_revealed_information(self, player_sid, acknowledge=False):
         """Return information known by the provided player SID.
-        
+
         Args:
             player_sid: A string player SID for which to retrieve known
                 information.
-        
+
         Returns:
             A dict of known information about each player
         """
         if player_sid in self.player_sids:
+            if acknowledge:
+                self.acknowledge_revealed_info(player_sid)
             return self.player_sids[player_sid].known_players
+
         return {}
 
     def acknowledge_revealed_info(self, player_sid):
         """Acknoledge that player has seen the revealed information.
-        
+
         Args:
             player_sid: A string player SID for which to acknowledge the info.
 
         Returns:
             True if successfully acknowledged; False otherwise."""
         if player_sid in self.reveal_ack_required:
-            for i in range(len(self.reveal_ack_required)):
-                if self.reveal_ack_required[i] == player_sid:
-                    self.reveal_ack_required[i].pop()
-                    return True
+            self.reveal_ack_required.remove(player_sid)
+            if not self.reveal_ack_required:
+                # No more acks needed
+                self._start_day_phase()
+            return True
         return False
 
     def set_player_target(self, player_sid, target_sid):
         """Set the target of player's night action.
-        
+
         Args:
             player_sid: String player SID that is doing the targetting.
             target_sid: String player SID of the targetted player.
-            
+
         Returns:
             True if successful set; False otherwise."""
         if (self.game_state == GameState.NIGHT_PHASE_TARGETTING and
             player_sid in self.night_actions_required and
-            target_sid in self.player_sids):
-            
-            if self.player_sids[player_sid].target_player(target_sid,
-                                                          self.player_sids):
-                for i in range(len(self.night_actions_required)):
-                    if self.night_actions_required[i] == player_sid:
-                        self.night_actions_required[i].pop()
-                if len(self.night_actions_required) == 0:
+                target_sid in self.player_sids):
+            if self.player_sids[player_sid].target_player(
+                    player_sid, target_sid, self.player_sids):
+                if player_sid in self.night_actions_required:
+                    self.night_actions_required.remove(player_sid)
+                if not self.night_actions_required:
+                    # All night actions are completed.
                     self._start_night_phase_reveal()
                 return True
 
         return False
 
-
-    def start_day_phase(self):
+    def _start_day_phase(self):
         """Start the question-asking phase of game.
 
         Returns:
@@ -239,13 +241,14 @@ class Game(object):
         self.word_guessed = word_guessed
         elapsed_time = (datetime.now() - self.start_time).seconds
         if elapsed_time < self.timer and not word_guessed:
-            log('End of game conditions not met.'
-                f'Word guessed: {word_guessed}'
-                f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
+            logging.debug('End of game conditions not met.'
+                          f'Word guessed: {word_guessed}'
+                          f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
             return (False, [])
 
         if self.game_state != GameState.DAY_PHASE_QUESTIONS:
-            log(f'Current game state {self.game_state} is not DAY_PHASE_QUESTIONS.')
+            logging.debug(
+                f'Current game state {self.game_state} is not DAY_PHASE_QUESTIONS.')
             return (False, [])
 
         if word_guessed:
@@ -260,30 +263,54 @@ class Game(object):
         self.game_state = GameState.VOTING
         return (True, self.required_voters)
 
-    def finish_game(self):
-        self._tally_results()
-        self.game_state = GameState.FINISHED
+    def _finish_game(self):
+        if self.game_state == GameState.VOTING:
+            self._tally_results()
+            self.game_state = GameState.FINISHED
+            return True
+        return False
 
     def is_started(self):
-        return self.game_state == GameState.DAY_PHASE_QUESTIONS
+        return self.game_state in [
+            GameState.DAY_PHASE_QUESTIONS,
+            GameState.NIGHT_PHASE_DOPPELGANGER,
+            GameState.NIGHT_PHASE_REVEAL,
+            GameState.NIGHT_PHASE_TARGETTING,
+            GameState.NIGHT_PHASE_WORD_CHOICE,
+        ]
 
     def is_voting(self):
         return self.game_state == GameState.VOTING
 
     def get_words(self):
-        all_words = []
-        for word_list in WORDLISTS:
-            all_words.append(word_list.get_words)
+        """Returns list of word choices if in word choice phase."""
+        if self.game_state == GameState.NIGHT_PHASE_WORD_CHOICE:
+            if not self.word_choices:
+                all_words = []
+                for word_list in WORDLISTS:
+                    all_words.append(WORDLISTS[word_list].get_words(
+                        level=self.word_difficulty))
+                self.word_choices = choices(
+                    all_words, k=self.word_choice_count)
+            return self.word_choices
+        return None
 
-        self.word_choices = choices(all_words, k=self.word_choice_count)
-        return self.word_choices
+    def set_word_choice_count(self, count: int) -> bool:
+        """Set the number of word choices a mayor will receive.
 
-    def set_word_choice_count(self, count):
+        Args:
+            count: An integer between 0 and 42 for number of word choices.
+
+        Returns:
+            True if successfully set; False otherwise.
+        """
         if self.game_state == GameState.SETUP:
             if count > 0 and count < 42:
                 self.word_choice_count = count
+                return True
+        return False
 
-    def set_word(self, word):
+    def set_word(self, word: str) -> bool:
         """Sets the word to the selected choice and starts the targetting phase.
 
         Args:
@@ -292,39 +319,48 @@ class Game(object):
         Returns:
             True if set successfully; False otherwise.
         """
-        if word not in self.word_choices:
-            log(f'Unable to set {word}. Word not in: {self.word_choices}')
-            return False
-        self.word = word
-        self._start_night_phase_doppelganger()
-        return True
+        if self.game_state == GameState.NIGHT_PHASE_WORD_CHOICE:
+            if word not in self.word_choices:
+                logging.debug(
+                    f'Unable to set {word}. Word not in: {self.word_choices}')
+                return False
+            self.word = word
+            self._start_night_phase_doppelganger()
+            return True
+        return False
 
     def _start_night_phase_doppelganger(self):
-        doppelganger_player = [
+        doppelganger_players = [
             p for p in self.player_sids if isinstance(self.player_sids[p],
                                                       Doppelganger)
         ]
-        if doppelganger_player:
-            self.night_actions_required.append(doppelganger_player)
+        if doppelganger_players:
+            self.night_actions_required += doppelganger_players
             self.game_state = GameState.NIGHT_PHASE_DOPPELGANGER
         else:
             self._start_night_phase_targetting()
 
-    def set_doppelganger_role_target(self, player_sid, target_sid):
+    def set_doppelganger_role_target(self, player_sid: str, target_sid: str):
         """Attempts to set Doppelganger role target.
-        
+
         Args:
             player_sid: String player SID for the Doppelganger.
             target_sid: String player SID of target whose role to copy.
-        
+
         Returns:
             String representing new role if successful; None otherwise.
         """
         if (target_sid in self.player_sids and
-            isinstance(self.player_sids[player_sid], Doppelganger)):
-            self.player_sids[player_sid] = deepcopy(self.player_sids[target_sid])
+                isinstance(self.player_sids[player_sid], Doppelganger)):
+
+            self.player_sids[player_sid] = deepcopy(
+                self.player_sids[target_sid])
             self.player_sids[player_sid].doppelganger = True
-            self._start_night_phase_targetting()
+            if player_sid in self.night_actions_required:
+                self.night_actions_required.remove(player_sid)
+            if not self.night_actions_required:
+                # No more doppelganger or copy roles.
+                self._start_night_phase_targetting()
             return str(self.player_sids[player_sid])
         return None
 
@@ -378,9 +414,10 @@ class Game(object):
 
         Returns:
             A tuple Affilition enum for winner, list of str killed player sids,
-            and a dict of votes for each player."""
+            and a dict of votes for each player.
+        """
         if self.game_state != GameState.FINISHED:
-            log(f'Game not finished, no results to give.')
+            logging.debug(f'Game not finished, no results to give.')
             return None
         return (self.winner, self.killed_players, self.votes)
 
@@ -391,7 +428,7 @@ class Game(object):
             time_in_seconds: Integer time. in. seconds.
         """
         if time_in_seconds > 0:
-            log(f'Setting time to {time_in_seconds}')
+            logging.debug(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
     def vote(self, voter_sid, target_sid):
@@ -405,19 +442,19 @@ class Game(object):
             True if vote was successfully cast; False otherwise.
         """
         if not self.is_voting():
-            log(f'Game not in voting state.')
+            logging.error(f'Game not in voting state.')
             return False
         if voter_sid not in self.required_voters:
-            log(f'Player {voter_sid} is ineligible to vote.')
+            logging.error(f'Player {voter_sid} is ineligible to vote.')
             return False
         if target_sid not in self.player_sids:
-            log(
+            logging.error(
                 f'Unable to vote for player {target_sid}; Not found in game.')
             return False
 
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):
-            self.finish_game()
+            self._finish_game()
         return True
 
     def get_tokens(self):
@@ -460,7 +497,7 @@ class Game(object):
     def nominate_for_mayor(self, sid):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
-            log(f'Adding {sid} to mayor nominees')
+            logging.debug(f'Adding {sid} to mayor nominees')
 
     def add_player(self, sid):
         """Add player to game.
@@ -474,7 +511,7 @@ class Game(object):
                 self.admin = self._get_next_admin()
             return True
         else:
-            log(f'ADD: User {sid} already in game')
+            logging.debug(f'ADD: User {sid} already in game')
             return False
 
     def remove_player(self, sid):
@@ -483,7 +520,7 @@ class Game(object):
             if self.admin not in self.player_sids:
                 self.admin = next(iter(self.player_sids))
         else:
-            log(f'DELETE: User {sid} not in game')
+            logging.debug(f'DELETE: User {sid} not in game')
 
     def is_player_in_game(self, sid):
         if sid in self.player_sids:
@@ -515,10 +552,10 @@ class Game(object):
             return False
 
         if self._current_role_instances(role) >= role.get_max_instances():
-            log(f'Unable to add {role}: too many of that role.')
+            logging.info(f'Unable to add {role}: too many of that role.')
             return False
         if len(self.player_sids) < role.get_required_players():
-            log(f'Unable to add {role}: too few players.')
+            logging.info(f'Unable to add {role}: too few players.')
             return False
 
         self.selected_roles.append(role)
@@ -537,16 +574,17 @@ class Game(object):
             return False
 
         if role.is_required() and self._current_role_instances(role) == 1:
-            log(f'Unable to remove {role} as it is required.')
+            logging.info(f'Unable to remove {role} as it is required.')
             return False
         if self._current_role_instances(role) < 1:
-            log(f'Unable to remove role {role} as it is not selected.')
+            logging.info(
+                f'Unable to remove role {role} as it is not selected.')
             return False
 
         for i in range(len(self.selected_roles)):
             if self.selected_roles[i] == role:
                 removed_role = self.selected_roles[i].pop()
-                log(f'Removed role: {removed_role}')
+                logging.debug(f'Removed role: {removed_role}')
                 return True
 
         # In case I missed something :)
@@ -627,14 +665,16 @@ class Game(object):
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
-                log(f'Undoing answer for question id {self.last_answered}')
+                logging.debug(
+                    f'Undoing answer for question id {self.last_answered}')
                 token = self.questions[self.last_answered].clear_answer()
                 self._add_token(token)
                 self.last_answered = None
                 return
         except (TypeError, KeyError) as e:
-            log(f'Encountered error: {e}')
-        log(f'No answer to undo for question id: {self.last_answered}')
+            logging.error(f'Encountered error: {e}')
+        logging.debug(
+            f'No answer to undo for question id: {self.last_answered}')
 
     def _add_token(self, token: AnswerToken):
         self.tokens[token] += 1
