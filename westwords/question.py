@@ -45,13 +45,6 @@ class Question(object):
             answer = ''
         return self._html_format() + f'({answer})</div>'
 
-    def mayor_html_format(self):
-        # TODO: Move these all to be images greyed out with alt-text and
-        # mouseover highlight to non-greyed out image
-        if not self.answer:
-            return self._html_format() + HTML_ANSWER_TEMPLATE
-        else:
-            return self.html_format()
 
     def answer_question(self, answer: AnswerToken):
         """Sets the answer for this question."""

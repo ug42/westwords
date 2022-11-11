@@ -104,23 +104,31 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertFalse(success)
         self.assertIsNone(id)
         # Assure we can't answer a question that doesn't yet exist
-        self.assertFalse(self.game.answer_question(0, AnswerToken.NONE))
+        success, end_of_game = self.game.answer_question(0, AnswerToken.NONE)
+        self.assertFalse(success)
+        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question(
             'mason2', 'Am I the first question?')
         self.assertTrue(success)
         self.assertEqual(id, 0)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.YES))
+        success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
+        self.assertTrue(success)
+        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
         self.assertTrue(success)
         self.assertEqual(id, 1)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.NO))
+        success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
+        self.assertTrue(success)
+        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('villager', 'Chimpanzee?')
         self.assertTrue(success)
         self.assertEqual(id, 2)
-        self.assertTrue(self.game.answer_question(id, AnswerToken.CORRECT))
+        success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
+        self.assertTrue(success)
+        self.assertTrue(end_of_game)
 
         success, players = self.game.start_vote(word_guessed=True)
         self.assertEqual(self.game.game_state, GameState. VOTING)

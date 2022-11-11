@@ -31,6 +31,7 @@ socketio = SocketIO(app)
 # TODO: plumb game state reset functionality
 
 
+SOCKET_MAP = {}
 # TODO: move this off to a backing store.
 PLAYERS = {}
 # TODO: move this off to a backing store.
@@ -38,6 +39,7 @@ GAMES = {
     # TODO: replace with real player objects associated with session
     'defaultgame': westwords.Game(timer=300, player_sids=[]),
 }
+
 
 def parse_game_state(game_id, session_sid):
     """Parses the initial game state dict + tuple into a dict with player info.
@@ -212,16 +214,29 @@ def logout():
 # Socket control functions
 @socketio.on('connect')
 def connect(auth):
-    try:
-        if session['sid'] not in PLAYERS:
-            PLAYERS[session['sid']] = westwords.Player(session['username'])
-    except KeyError as e:
-        app.logger.error(f'Unable to register Player, due to lookup failure. {e}')
+    if 'sid' not in session:
+        session['sid'] = str(uuid4())
+    if session['sid'] not in PLAYERS:
+        PLAYERS[session['sid']] = westwords.Player(session['username'])
+    SOCKET_MAP[session['sid']] = request.sid
+
+    # TODO: Revise this game_status call
     game_status()
     try:
         game_status(PLAYERS[session['sid']].game)
     except KeyError as e:
         app.logger.error(f'No key value found: {e}')
+    app.logger.debug(f'Current socket map: {SOCKET_MAP}')
+
+
+@socketio.on('disconnect')
+def disconnect():
+    try:
+        SOCKET_MAP[session['sid']] = None
+    except KeyError as e:
+        app.logger.debug(
+            f"Unable to remove socket mapping for {session['sid']}: {e}")
+    app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
 
 @socketio.on('question')
@@ -266,7 +281,7 @@ def answer_question(game_id, question_id, answer):
         app.logger.error('No player found for session: ' + session['sid'])
         return False
 
-    game_id=PLAYERS[session['sid']].game
+    game_id = PLAYERS[session['sid']].game
     if game_id not in GAMES:
         app.logger.error('Unable to find game: ' + game_id)
         return False
@@ -280,32 +295,29 @@ def answer_question(game_id, question_id, answer):
         return False
 
     try:
-        answer_token=westwords.AnswerToken[answer.upper()]
+        answer_token = westwords.AnswerToken[answer.upper()]
     except KeyError as e:
         app.logger.error(f'Unknown answer: {e}')
         return False
 
     # Question ID is basically just the index offset starting at 0
-    results=GAMES[game_id].remove_token(answer_token)
-    if not results['success']:
+    success, end_of_game = GAMES[game_id].answer_question(question_id,
+                                                          answer_token)
+    if not success:
         socketio.emit('mayor_error', f'Out of {answer_token.value} tokens')
         return False
 
-    GAMES[game_id].answer_question(question_id, answer_token)
-    asking_player=GAMES[game_id].questions[question_id].player_sid
-    PLAYERS[asking_player].add_token(answer_token)
-
-    if results['end_of_game']:
+    if end_of_game:
         socketio.emit('mayor_error',
                       f'Last token played, Undo or Move to vote.')
-    socketio.emit('force_refresh', game_id, broadcast = True)
+    socketio.emit('force_refresh', game_id, broadcast=True)
     return True
 
 
 @ socketio.on('get_game_state')
-def game_status(game_id = None):
+def game_status(game_id: str = None):
     if not game_id:
-        game_id=PLAYERS[session['sid']].game
+        game_id = PLAYERS[session['sid']].game
     if game_id in GAMES:
         emit(
             'game_state',
@@ -335,7 +347,7 @@ def add_mayor_nominee(game_id):
 def start_game(game_id):
     if game_id in GAMES:
         if not GAMES[game_id].start_night_phase_word_choice():
-            emit('admin_error', f'Unable to start game: {message}')
+            emit('admin_error', f'Unable to start game. No game: {game_id}.')
             return
         emit('game_start_rsp', game_id, broadcast=True)
         socketio.emit('force_refresh', game_id, broadcast=True)
@@ -353,7 +365,8 @@ def reset_game(game_id):
 
 @socketio.on('vote')
 def vote(game_id, target_id):
-    app.logger.debug(f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
+    app.logger.debug(
+        f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
     if game_id in GAMES:
         success = GAMES[game_id].vote(session['sid'], target_id)
         if not success:
@@ -376,12 +389,12 @@ def set_word(game_id, word):
             game.
     """
     if game_id not in GAMES:
-        socket.emit('mayor_error', f'Unable to set word for game {game_id}.')
+        emit('mayor_error', f'Unable to set word for game {game_id}.')
         return
 
     if session['sid'] != GAMES[game_id].mayor:
-        socket.emit('mayor_error',
-                    f'Word set attempt failed. User is not mayor.')
+        emit('mayor_error',
+             f'Word set attempt failed. User is not mayor.')
         return
 
     GAMES[game_id].set_word()

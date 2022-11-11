@@ -1,14 +1,15 @@
 # Game and player-related classes
+import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
-import logging
-from random import shuffle, choice, choices
+from random import choice, choices, shuffle
 
-from westwords.question import QuestionError, Question
+from westwords.enums import AnswerToken
+from westwords.question import Question, QuestionError
 
-from .enums import AnswerToken, GameState, Affiliation
-from .role import (Intern, Beholder, Doppelganger, FortuneTeller, Mason,
-                   Minion, Seer, Esper, Villager, Werewolf)
+from .enums import Affiliation, AnswerToken, GameState
+from .role import (Beholder, Doppelganger, Esper, FortuneTeller, Intern, Mason,
+                   Minion, Seer, Villager, Werewolf)
 from .wordlists import WORDLISTS
 
 logging.basicConfig(level=logging.DEBUG)
@@ -27,6 +28,7 @@ ROLES = {
     'villager': Villager(),
     'werewolf': Werewolf(),
 }
+
 
 # TODO: Make this a better solution. This is hacky.
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
@@ -213,6 +215,7 @@ class Game(object):
         self.mayor = None
         self.mayor_nominees = []
         self.night_actions_required = []
+        self.player_token_count = {}
         self.reveal_ack_required = []
         self.questions = []
         self.required_voters = []
@@ -458,8 +461,10 @@ class Game(object):
         return True
 
     def get_tokens(self):
-        return ' '.join([f'{token.name}: {self.tokens[token]}'
-                        for token in self.tokens])
+        result = {i.value: self.tokens[i] for i in self.tokens if i not in [
+            AnswerToken.NO, AnswerToken.YES]}
+        result['yesno'] = self.tokens[AnswerToken.YES]
+        return result
 
     def get_state(self, game_id):
         """Returns a dict of the current game state.
@@ -485,7 +490,9 @@ class Game(object):
     # Player and Role functions
     def get_player_role(self, sid):
         """Returns a string format version of the player's role."""
-        return str(self.player_sids[sid])
+        if self.player_sids[sid]:
+            return str(self.player_sids[sid])
+        return None
 
     def _get_next_admin(self):
         try:
@@ -518,14 +525,13 @@ class Game(object):
         if sid in self.player_sids:
             del self.player_sids[sid]
             if self.admin not in self.player_sids:
-                self.admin = next(iter(self.player_sids))
+                self.admin = self._get_next_admin()
         else:
             logging.debug(f'DELETE: User {sid} not in game')
 
     def is_player_in_game(self, sid):
-        if sid in self.player_sids:
-            return True
-        return False
+        logging.debug(f'Attempting to verify player {sid}')
+        return sid in self.player_sids
 
     def _current_role_instances(self, role):
         """Returns the number of instances of provided role in selected roles.
@@ -654,21 +660,42 @@ class Game(object):
             answer: An AnswerToken answer for the given question.
 
         Returns:
-            True if answer is set successfully; False otherwise.
+            A tuple of booleans for successfully answering question and whether
+            it is an end-of-game condition.
         """
+        if (self.tokens[AnswerToken.CORRECT] <= 0 or
+            self.tokens[AnswerToken.YES] <= 0):
+            return False, True
+
         if question_id < len(self.questions) and answer is not AnswerToken.NONE:
-            self.questions[question_id].answer_question(answer)
-            self.last_answered = question_id
-            return True
-        return False
+            success, end_of_game = self._remove_token(answer)
+            if success:
+                asking_player_sid = self.questions[question_id].player_sid
+                self.questions[question_id].answer_question(answer)
+                self.last_answered = question_id
+                if asking_player_sid not in self.player_token_count:
+                    self.player_token_count[asking_player_sid] = {
+                        AnswerToken.YES: 0,
+                        AnswerToken.NO: 0,
+                        AnswerToken.MAYBE: 0,
+                        AnswerToken.SO_CLOSE: 0,
+                        AnswerToken.SO_FAR: 0,
+                        AnswerToken.LARAMIE: 0,
+                        AnswerToken.CORRECT: 0,
+                    }
+                self.player_token_count[asking_player_sid][answer] += 1
+                return True, end_of_game
+        return False, False
 
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
                 logging.debug(
                     f'Undoing answer for question id {self.last_answered}')
-                token = self.questions[self.last_answered].clear_answer()
+                question = self.questions[self.last_answered]
+                token = question.clear_answer()
                 self._add_token(token)
+                self.player_token_count[question.player_sid][token] -= 1
                 self.last_answered = None
                 return
         except (TypeError, KeyError) as e:
@@ -679,26 +706,26 @@ class Game(object):
     def _add_token(self, token: AnswerToken):
         self.tokens[token] += 1
 
-    def remove_token(self, token: AnswerToken):
+    def _remove_token(self, token: AnswerToken):
         """Decrement the token counter
 
         Args:
             token: An AnswerToken object for the token to decrement.
 
         Returns:
-            A dict of booleans for 'success' on removal of token from pool, and
-            'end_of_game' to denote if it was the last token to play.
+            A tuple of bools indicating successfully removing a token, and
+            whether that marks the end of the game.
         """
         if self.tokens[token] > 0:
             if token in [AnswerToken.NO, AnswerToken.YES]:
                 self.tokens[AnswerToken.NO] -= 1
                 self.tokens[AnswerToken.YES] -= 1
                 if self.tokens[token] < 1:
-                    return {'success': True, 'end_of_game': True}
+                    return (True, True)
             else:
                 self.tokens[token] -= 1
                 if token == AnswerToken.CORRECT:
-                    return {'success': True, 'end_of_game': True}
-            return {'success': True, 'end_of_game': False}
+                    return (True, True)
+            return (True, False)
 
-        return {'success': False, 'end_of_game': False}
+        return (False, False)

@@ -4,6 +4,24 @@ import logging
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 
+
+ROLE_SET = {
+    
+}
+
+
+class RoleSet(object):
+
+    def __init__(self, player_count: int=3):
+        self.player_count = player_count
+
+    def get_role_set(self):
+        pass
+
+    def set_role_set(self):
+        pass
+
+
 class Role(object):
     def __init__(self, doppelganger=False):
         self.affiliation = Affiliation.VILLAGE

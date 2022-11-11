@@ -27,7 +27,3 @@ class Player(object):
 
     def __str__(self):
         return f'Player name: {self.name}, in game id: {self.game}'
-
-    def add_token(self, token):
-        # Add a token of a given enum value to this player's total
-        self.tokens[token] += 1

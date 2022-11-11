@@ -1,13 +1,15 @@
-from datetime import datetime, timedelta
 import unittest
+from datetime import datetime, timedelta
+
+from westwords import (Affiliation, AnswerToken, Beholder, Doppelganger, Esper,
+                       FortuneTeller)
 from westwords import Game as GameClass
+from westwords import GameState, Intern, Mason, Minion
 from westwords import Question as QuestionClass
-from westwords import AnswerToken, GameState, Affiliation
-from westwords import (Doppelganger, Mason, Werewolf, Villager, Seer,
-                       FortuneTeller, Intern, Esper, Beholder, Minion)
+from westwords import Seer, Villager, Werewolf
 
 
-class testGameUnits(unittest.TestCase):
+class testGameControlFunctions(unittest.TestCase):
 
     def setUp(self):
         self.game = GameClass(timer=300)
@@ -46,6 +48,13 @@ class testGameUnits(unittest.TestCase):
         self.game.game_state = GameState.VOTING
         self.assertTrue(self.game.is_voting())
 
+
+class testGameFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.game = GameClass(timer=300)
+        self.player_sids = ['foo', 'bar', 'baz', 'xxx']
+
     def testGetWords(self):
         self.assertIsNone(self.game.get_words())
         self.game.game_state = GameState.NIGHT_PHASE_WORD_CHOICE
@@ -70,10 +79,6 @@ class testGameUnits(unittest.TestCase):
         self.assertEqual(len(self.game.get_words()), 22)
         self.assertFalse(self.game.set_word_choice_count(20))
 
-    def testTallyResults(self):
-
-        pass
-
     def testSetTimer(self):
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(1)
@@ -95,7 +100,7 @@ class testGameUnits(unittest.TestCase):
         self.game.game_state = GameState.FINISHED
         self.assertEqual(self.game.get_results(),
                          ('Werewolf', 'villager', {'werewolf': 'villager'}))
-        
+
     def testVote(self):
         self.assertFalse(self.game.vote('foo', 'bar'))
         self.game.game_state = GameState.VOTING
@@ -103,33 +108,125 @@ class testGameUnits(unittest.TestCase):
         self.game.player_sids = {'foo': None, 'bar': None}
         self.assertTrue(self.game.vote('bar', 'foo'))
         self.assertTrue(self.game.vote('foo', 'bar'))
-    
+
     def testGetState(self):
-        self.game.get_state()
+        game_status, questions, player_sids = self.game.get_state('somename')
+        self.assertEqual(game_status['game_state'], 'SETUP')
+        self.assertEqual(game_status['time'], 300)
+        self.assertEqual(game_status['game_id'], 'somename')
+        self.assertEqual(game_status['admin'], None)
+        self.assertEqual(game_status['mayor'], None)
+        self.assertCountEqual(
+            game_status['tokens'],
+            {
+                AnswerToken.SO_CLOSE.value: 1,
+                AnswerToken.MAYBE.value: 10,
+                AnswerToken.SO_FAR.value: 1,
+                AnswerToken.LARAMIE.value: 1,
+                AnswerToken.CORRECT.value: 1,
+                'yesno': 36,
+            },
+        )
 
-        # self.game._get_next_admin()
 
-        # self.game.get_player_role(sid)
-        # self.game.nominate_for_mayor(sid)
-        # self.game.add_player(sid)
-        # self.game.remove_player(sid)
-        # self.game.is_player_in_game(sid)
+class testEndOfGameFunctions(unittest.TestCase):
 
-        # self.game._current_role_instances(role)
-        # self.game.add_role(role)
-        # self.game.remove_role(role)
-        # self.game.get_selected_roles()
-        # self.game.get_possible_roles()
+    def setUp(self):
+        self.game = GameClass(
+            timer=300,
+            player_sids=['villager', 'werewolf1', 'seer', 'doppelganger',
+                         'mason1', 'mason2', 'werewolf2', 'fortuneteller',
+                         'intern', 'esper', 'beholder', 'minion', ])
+        self.game.set_timer(1)
+        self.game.start_time = datetime.now() - timedelta(seconds=2)
+        self.game.player_sids['villager'] = Villager()
+        self.game.player_sids['werewolf1'] = Werewolf()
+        self.game.player_sids['seer'] = Seer()
+        self.game.player_sids['doppelganger'] = Werewolf()
+        self.game.player_sids['mason1'] = Mason()
+        self.game.player_sids['mason2'] = Mason()
+        self.game.player_sids['werewolf2'] = Werewolf()
+        self.game.player_sids['fortuneteller'] = FortuneTeller()
+        self.game.player_sids['intern'] = Intern()
+        self.game.player_sids['esper'] = Esper()
+        self.game.player_sids['beholder'] = Beholder()
+        self.game.player_sids['minion'] = Minion()
+        self.game.game_state = GameState.FINISHED
 
-        # self.game.add_question(sid, question_text)
-        # self.game.get_question(id)
-        # self.game._get_next_question_id()
-        # self.game.answer_question(question_id, answer)
-        # self.game.undo_answer()
+    def testTallyResultsWerewolfFortuneTellerKillWin(self):
+        self.game.word_guessed = True
+        self.game.votes = {
+            'werewolf1': 'esper',
+            'werewolf2': 'fortuneteller',
+            'doppelganger': 'fortuneteller',
+        }
+        self.assertTrue(self.game._tally_results())
+        self.assertEqual(self.game.winner, Affiliation.WEREWOLF)
 
-        # self.game._add_token(token)
-        # self.game.get_tokens()
-        # self.game.remove_token(token)
+    def testTallyResultsWerewolfSeerKillWin(self):
+        self.game.word_guessed = True
+        self.game.votes = {
+            'werewolf1': 'seer',
+            'werewolf2': 'seer',
+            'doppelganger': 'fortuneteller',
+        }
+        self.assertTrue(self.game._tally_results())
+        self.assertEqual(self.game.winner, Affiliation.WEREWOLF)
+
+    def testTallyResultsWordGuessedVillageWin(self):
+        self.game.word_guessed = True
+        self.game.votes = {
+            'werewolf1': 'beholder',
+            'werewolf2': 'beholder',
+            'doppelganger': 'esper',
+        }
+        self.assertTrue(self.game._tally_results())
+        self.assertEqual(self.game.winner, Affiliation.VILLAGE)
+
+    def testTallyResultsWerewolfWin(self):
+        self.game.word_guessed = False
+        self.game.votes = {
+            'villager': 'werewolf2',
+            'werewolf1': 'seer',
+            'seer': 'werewolf1',
+            'doppelganger': 'seer',
+            'mason1': 'seer',
+            'mason2': 'seer',
+            'werewolf2': 'werewolf1',
+            'fortuneteller': 'esper',
+            'intern': 'seer',
+            'esper': 'werewolf2',
+            'beholder': 'esper',
+            'minion': 'esper',
+        }
+        self.assertTrue(self.game._tally_results())
+        self.assertEqual(self.game.winner, Affiliation.WEREWOLF)
+
+    def testTallyResultsVillageWin(self):
+        self.game.word_guessed = False
+        self.game.votes = {
+            'villager': 'werewolf1',
+            'werewolf1': 'seer',
+            'seer': 'werewolf1',
+            'doppelganger': 'werewolf2',
+            'mason1': 'werewolf1',
+            'mason2': 'seer',
+            'werewolf2': 'werewolf1',
+            'fortuneteller': 'werewolf1',
+            'intern': 'seer',
+            'esper': 'werewolf2',
+            'beholder': 'esper',
+            'minion': 'esper',
+        }
+        self.assertTrue(self.game._tally_results())
+        self.assertEqual(self.game.winner, Affiliation.VILLAGE)
+
+
+class testPlayerControlFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.game = GameClass(timer=300)
+        self.player_sids = ['foo', 'bar', 'baz', 'xxx']
 
     def testAddPlayerSuccess(self):
         self.assertFalse(self.game.is_player_in_game('foo'))
@@ -148,7 +245,7 @@ class testGameUnits(unittest.TestCase):
             self.assertEqual(self.game.is_player_in_game(player_sid), True)
             self.assertIn(player_sid, self.game.player_sids)
 
-    def testInitializeGameSuccess(self):
+    def testInitializeGameWithPlayersSuccess(self):
         self.game = GameClass(player_sids=['foo', 'bar', 'baz', 'xxx'])
         self.assertTrue(self.game.is_player_in_game('foo'))
         self.assertEqual(self.game.admin, 'foo')
@@ -174,6 +271,82 @@ class testGameUnits(unittest.TestCase):
         self.game.remove_player('foo')
         self.assertFalse(self.game.is_player_in_game('foo'))
         self.assertEqual(self.game.admin, 'baz')
+
+    def testGetPlayerRoleFailure(self):
+        self.game = GameClass(timer=300, player_sids=['foo', 'bar'])
+        self.assertIsNone(self.game.get_player_role('foo'))
+
+    def testGetPlayerRoleSuccess(self):
+        self.game = GameClass(timer=300, player_sids=['foo', 'bar'])
+        self.game.start_night_phase_word_choice()
+        self.assertTrue(self.game.get_player_role('bar'))
+
+
+class testRoleSelectionFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.game = GameClass(timer=300,
+                              player_sids=['foo', 'bar', 'baz', 'xxx'])
+
+    def testAddRole(self):
+        roles = self.game.get_selected_roles()
+        self.game.get_possible_roles()
+
+        self.game.add_role(role)
+        self.game.remove_role(role)
+
+class testQuestionFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.player_sids = ['foo', 'bar', 'baz', 'xxx']
+        self.game = GameClass(timer=300, player_sids=self.player_sids)
+        self.game.game_state = GameState.DAY_PHASE_QUESTIONS
+
+    def testAddQuestion(self):
+        success, id = self.game.add_question('foo', 'Am I wrong?')
+        self.assertTrue(success)
+        self.assertIsNotNone(id)
+        success, id = self.game.add_question('not_a_player', 'No matter')
+        self.assertFalse(success)
+        self.assertIsNone(id)
+
+    def testGetQuestion(self):
+        self.game.add_question('foo', 'Am I wrong?')
+        self.game.add_question('foo', 'Am I wrong?')
+        self.game.add_question('foo', 'Am I wrong?')
+        success, id = self.game.add_question('foo', 'Am I right for 3?')
+        self.assertTrue(success)
+        question = self.game.get_question(id)
+        self.assertEqual(question.player_sid, 'foo')
+        self.assertEqual(question.question_text, 'Am I right for 3?')
+
+
+    def testAnswerQuestion(self):
+        self.game.add_question('foo', 'Am I wrong?')
+        success, end_of_game = self.game.answer_question(0, AnswerToken.NO)
+        self.assertTrue(success)
+        self.assertFalse(end_of_game)
+        self.game.add_question('foo', 'Am I wrong?')
+        success, end_of_game = self.game.answer_question(2, AnswerToken.MAYBE)
+        self.assertFalse(success)
+        self.assertFalse(end_of_game)
+        success, end_of_game = self.game.answer_question(1, AnswerToken.CORRECT)
+        self.assertTrue(success)
+        self.assertTrue(end_of_game)
+        self.game.add_question('foo', 'Am I wrong?')
+        success, end_of_game = self.game.answer_question(2, AnswerToken.YES)
+        self.assertFalse(success)
+        self.assertTrue(end_of_game)
+
+    def testUndoAnswer(self):
+        self.game.add_question('foo', 'Am I wrong?')
+        success, end_of_game = self.game.answer_question(0, AnswerToken.CORRECT)
+        self.assertTrue(success)
+        self.assertTrue(end_of_game)
+        self.game.undo_answer()
+        success, end_of_game = self.game.answer_question(0, AnswerToken.YES)
+        self.assertTrue(success)
+        self.assertFalse(end_of_game)
 
 
 class testWestwordsInteraction(unittest.TestCase):

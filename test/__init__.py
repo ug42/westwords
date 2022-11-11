@@ -2,6 +2,9 @@
 
 import westwords
 
-from .game_test import testWestwordsInteraction, testGameUnits
-from .role_test import testWestwordsRoles
 from .functional_test import testWestwordsFunctional
+from .game_test import (testGameControlFunctions, testGameFunctions,
+                        testPlayerControlFunctions, testQuestionFunctions,
+                        testRoleSelectionFunctions, testTokenFunctions,
+                        testWestwordsInteraction)
+from .role_test import testWestwordsRoles
