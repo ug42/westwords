@@ -5,6 +5,5 @@ import westwords
 from .functional_test import testWestwordsFunctional
 from .game_test import (testGameControlFunctions, testGameFunctions,
                         testPlayerControlFunctions, testQuestionFunctions,
-                        testRoleSelectionFunctions, testTokenFunctions,
-                        testWestwordsInteraction)
+                        testWestwordsInteraction, testEndOfGameFunctions)
 from .role_test import testWestwordsRoles

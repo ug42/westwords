@@ -5,6 +5,55 @@
 # to account for a reverse proxy and keeping each server with a single worker
 # thread.
 
+# Overall game flow, make sure each step has plumbing here.
+
+# self.game.game_status == GameState.SETUP
+# self.game.nominate_for_mayor('player1')
+# self.game.set_word_choice_count(word_list_length)
+# self.game.start_night_phase_word_choice()
+# words = self.game.get_words()
+# self.game.set_word(word)
+
+# self.game.game_state == GameState.NIGHT_PHASE_DOPPELGANGER
+# role = self.game.set_doppelganger_role_target('player1', 'player2')
+
+# self.game.game_state == GameState.NIGHT_PHASE_TARGETTING
+# self.game.set_player_target('player1', 'player7') # esper only targetting
+# self.game.set_player_target('player2', 'player3') # and doppelesper
+
+# self.game.game_state == GameState.NIGHT_PHASE_REVEAL
+# self.game.get_players_needing_to_ack()
+# self.game.get_player_revealed_information('player1')
+# self.game.acknowledge_revealed_info('player2')
+# self.game.get_player_revealed_information('player3', acknowledge=True)
+# self.game.get_player_revealed_information('player4', acknowledge=True)
+# self.game.get_player_revealed_information('player5', acknowledge=True)
+# self.game.get_player_revealed_information('player6', acknowledge=True)
+# self.game.get_player_revealed_information('player7')
+# self.game.acknowledge_revealed_info('player7')
+
+
+# self.game.game_state == GameState.DAY_PHASE_QUESTIONS
+# success, id = self.game.add_question('mason2', 'Am I the first question?')
+# success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
+# success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
+# success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
+# success, id = self.game.add_question('villager', 'Chimpanzee?')
+# success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
+# success, players_needing_to_vote = self.game.start_vote(word_guessed=True)
+
+# self.game.game_status == GameState.VOTING
+# self.game.get_required_voters()
+# self.game.vote('werewolf2', 'mason2')
+# self.game.get_results() 
+    # (Affiliation.VILLAGE,
+    # ['villager', 'mason2'],
+    # {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
+# self.game.game_status == GameState.FINISHED
+# self.game.reset()
+# self.game.game_status == GameState.SETUP
+
+
 import re
 from random import choice, randint
 from string import ascii_uppercase
@@ -116,21 +165,47 @@ def index():
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
 
-    #######################################
-    # FIXME: Remove this when game join is more functional
-    #######################################
-    GAMES['defaultgame'].add_player(session['sid'])
-    PLAYERS[session['sid']].game = 'defaultgame'
-    ###########
-    # Remove to here.
-    ############
+    return render_template(
+        'index.html.j2',
+        games=list(GAMES),
+    )
 
-    if PLAYERS[session['sid']] and PLAYERS[session['sid']].game in GAMES:
-        game_id = PLAYERS[session['sid']].game
+
+@app.route('/username', methods=['POST'])
+def username():
+    if request.method == 'POST' and request.form.get('username'):
+        if re.search(r'mayor', request.form.get('username').casefold()):
+            flash('Cute, smartass.')
+            return redirect('/')
+        session['username'] = request.form.get('username')
+        if session['sid'] in PLAYERS:
+            PLAYERS[session['sid']].name = session['username']
+    return redirect('/')
+
+
+@app.route('/join/<game_id>', strict_slashes=False)
+@app.route('/join?game_name=<game_id>', strict_slashes=False)
+def join_game(game_id):
+    app.logger.debug(f"{session['sid']} attempting to join {game_id}")
+    if game_id in GAMES:
+        GAMES[game_id].add_player(session['sid'])
+        PLAYERS[session['sid']].join_room(game_id)
+    return redirect(f'/game/{game_id}')
+
+@app.route('/game/<game_id>')
+def game_index(game_id):
+    if 'sid' not in session:
+        session['sid'] = str(uuid4())
+    if 'username' not in session:
+        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+        return redirect('/login')
+    if session['sid'] not in PLAYERS:
+        PLAYERS[session['sid']] = westwords.Player(session['username'])
+    
+
+    if game_id in GAMES:
         game_state = parse_game_state(game_id, session['sid'])
     else:
-        # Return the values from an empty game
-        game_id = None
         game_state = parse_game_state(None, session['sid'])
 
     return render_template(
@@ -151,34 +226,13 @@ def index():
     )
 
 
-@app.route('/username', methods=['POST'])
-def username():
-    if request.method == 'POST' and request.form.get('username'):
-        if re.search(r'mayor', request.form.get('username').casefold()):
-            flash('Cute, smartass.')
-            return redirect('/')
-        session['username'] = request.form.get('username')
-        if session['sid'] in PLAYERS:
-            PLAYERS[session['sid']].name = session['username']
-    return redirect('/')
-
-
-@app.route('/join/<game>')
-def join_game(game):
-    app.logger.debug(f"{session['sid']} attempting to join {game}")
-    if game in GAMES:
-        GAMES[game].add_player(session['sid'])
-        PLAYERS[session['sid']].game = game
-    return redirect('/')
-
-
 @app.route('/get_words/<game_id>')
 def get_words(game_id):
     if game_id in GAMES and GAMES[game_id].is_started():
-        if GAMES[game_id].chosen_word:
+        if GAMES[game_id].word:
             return None
         words = GAMES[game_id].get_words()
-        if words:
+        if words and GAMES[game_id].mayor == session['sid']:
             return render_template(
                 'word_choice.html.j2',
                 words=words,
@@ -191,10 +245,13 @@ def get_words(game_id):
 # TODO: Move this to use Flask rooms, if useful above current setup
 @app.route('/create', methods=['POST', 'GET'])
 def create_game():
-    if request.method == 'GET':
-        game_id = ''.join(choice(ascii_uppercase) for i in range(4))
-        GAMES[game_id] = westwords.Game(player_sids=[session['id']])
-    return redirect('/')
+    if request.method == 'POST':
+        game_id = request.form['game_id']
+        if game_id not in GAMES:
+            GAMES[game_id] = westwords.Game(player_sids=[session['sid']])
+        return redirect(f'/join/{game_id}')
+    else:
+        return redirect('/')
 
 
 @app.route('/login')
@@ -219,13 +276,10 @@ def connect(auth):
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
     SOCKET_MAP[session['sid']] = request.sid
+    for room in PLAYERS[session['sid']].get_rooms():
+        join_room(room)
+        emit('user_info', f"{PLAYERS[session['sid']]} joined.", to=room)
 
-    # TODO: Revise this game_status call
-    game_status()
-    try:
-        game_status(PLAYERS[session['sid']].game)
-    except KeyError as e:
-        app.logger.error(f'No key value found: {e}')
     app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
 
@@ -233,6 +287,10 @@ def connect(auth):
 def disconnect():
     try:
         SOCKET_MAP[session['sid']] = None
+        if PLAYERS[session['sid']].rooms:
+            for room in PLAYERS[session['sid']].rooms:
+                leave_room(room)
+                emit('user_info', f"{PLAYERS[session['sid']]} left.", to=room)
     except KeyError as e:
         app.logger.debug(
             f"Unable to remove socket mapping for {session['sid']}: {e}")
@@ -247,8 +305,11 @@ def add_question(game_id, question_text):
         if success:
             emit('new_question', {
                 'game_id': game_id, 'question_id': id}, broadcast=True)
+            app.logger.info(f'Successfully added question to {game_id}')
+            return True
 
     app.logger.error(f'Unable to add question for game {game_id}')
+    return False
 
 
 @socketio.on('get_question_req')
@@ -281,7 +342,6 @@ def answer_question(game_id, question_id, answer):
         app.logger.error('No player found for session: ' + session['sid'])
         return False
 
-    game_id = PLAYERS[session['sid']].game
     if game_id not in GAMES:
         app.logger.error('Unable to find game: ' + game_id)
         return False
@@ -315,9 +375,7 @@ def answer_question(game_id, question_id, answer):
 
 
 @ socketio.on('get_game_state')
-def game_status(game_id: str = None):
-    if not game_id:
-        game_id = PLAYERS[session['sid']].game
+def game_status(game_id: str):
     if game_id in GAMES:
         emit(
             'game_state',
@@ -326,25 +384,23 @@ def game_status(game_id: str = None):
 
 
 @socketio.on('undo')
-def undo(game_id):
+def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
-    if game_id in GAMES:
-        if (game_id == PLAYERS[session['sid']].game and
-                GAMES[game_id].mayor == session['sid']):
-            GAMES[game_id].undo_answer()
+    if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
+        GAMES[game_id].undo_answer()
         socketio.emit('force_refresh', game_id, broadcast=True)
 
 
-@socketio.on('nominate_mayor')
-def add_mayor_nominee(game_id):
-    if game_id in GAMES and PLAYERS[session['sid']].game == game_id:
+@socketio.on('nominate_for_mayor')
+def nominate_for_mayor(game_id: str):
+    if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         GAMES[game_id].nominate_for_mayor(session['sid'])
 
 
 # TODO: implement all the scenarios around this
 # Timer functions
 @socketio.on('game_start_req')
-def start_game(game_id):
+def start_game(game_id: str):
     if game_id in GAMES:
         if not GAMES[game_id].start_night_phase_word_choice():
             emit('admin_error', f'Unable to start game. No game: {game_id}.')
@@ -375,7 +431,8 @@ def vote(game_id, target_id):
 
 @socketio.on('get_role')
 def get_role(game_id):
-    if PLAYERS[session['sid']].game == game_id and game_id in GAMES:
+    # TODO: Move this to use a callback
+    if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         emit('player_role', GAMES[game_id].get_player_role(session['sid']))
 
 

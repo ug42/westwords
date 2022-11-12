@@ -282,18 +282,18 @@ class testPlayerControlFunctions(unittest.TestCase):
         self.assertTrue(self.game.get_player_role('bar'))
 
 
-class testRoleSelectionFunctions(unittest.TestCase):
+# class testRoleSelectionFunctions(unittest.TestCase):
 
-    def setUp(self):
-        self.game = GameClass(timer=300,
-                              player_sids=['foo', 'bar', 'baz', 'xxx'])
+#     def setUp(self):
+#         self.game = GameClass(timer=300,
+#                               player_sids=['foo', 'bar', 'baz', 'xxx'])
 
-    def testAddRole(self):
-        roles = self.game.get_selected_roles()
-        self.game.get_possible_roles()
+#     def testAddRole(self):
+#         roles = self.game.get_selected_roles()
+#         self.game.get_possible_roles()
 
-        self.game.add_role(role)
-        self.game.remove_role(role)
+#         self.game.add_role(role)
+#         self.game.remove_role(role)
 
 class testQuestionFunctions(unittest.TestCase):
 

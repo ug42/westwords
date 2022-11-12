@@ -80,6 +80,9 @@ class testWestwordsRoles(unittest.TestCase):
             self.player_sids['mason1'].get_required_players(), 8)
         self.assertEqual(self.player_sids['mason1'].get_max_instances(), 2)
         self.assertFalse(self.player_sids['mason1'].is_required())
+        self.assertIsNone(
+            self.player_sids['mason1'].get_night_action_description())
+        
         # Is the mayor
         self.assertEqual(
             self.player_sids['mason1'].get_night_action_info(
@@ -308,6 +311,8 @@ class testWestwordsRoles(unittest.TestCase):
             self.player_sids['esper'].get_required_players(), 5)
         self.assertEqual(self.player_sids['esper'].get_max_instances(), 1)
         self.assertFalse(self.player_sids['esper'].is_required())
+        self.assertIsNotNone(
+            self.player_sids['esper'].get_night_action_description())
         # Is the mayor
         self.assertEqual(
             self.player_sids['esper'].get_night_action_info(

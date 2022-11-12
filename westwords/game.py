@@ -9,7 +9,8 @@ from westwords.question import Question, QuestionError
 
 from .enums import Affiliation, AnswerToken, GameState
 from .role import (Beholder, Doppelganger, Esper, FortuneTeller, Intern, Mason,
-                   Minion, Seer, Villager, Werewolf)
+                   Minion, Seer, Villager, Werewolf,
+                   DEFAULT_ROLES_BY_PLAYER_COUNT)
 from .wordlists import WORDLISTS
 
 logging.basicConfig(level=logging.DEBUG)
@@ -27,24 +28,6 @@ ROLES = {
     'esper': Esper(),
     'villager': Villager(),
     'werewolf': Werewolf(),
-}
-
-
-# TODO: Make this a better solution. This is hacky.
-DEFAULT_ROLES_BY_PLAYER_COUNT = {
-    '1': [Villager()],
-    '2': [Villager(), Werewolf()],
-    '3': [Villager(), Seer(), Werewolf()],
-    '4': [Villager(), Villager(), Seer(), Werewolf()],
-    '5': [Villager(), Villager(), Villager(), Seer(), Werewolf()],
-    '6': [Villager(), Villager(), Villager(), Villager(), Seer(), Werewolf()],
-    '7': [Villager(), Villager(), Villager(), Villager(), Intern(), Seer(), Werewolf()],
-    '8': [Villager(), Villager(), Villager(), Villager(), Intern(), Seer(), Werewolf(), Werewolf()],
-    '9': [Villager(), Villager(), Villager(), Villager(), Esper(), Intern(), Seer(), Werewolf(), Werewolf()],
-    '10': [Villager(), Villager(), Villager(), Villager(), Villager(), Esper(), Intern(), Seer(), Werewolf(), Werewolf()],
-    '11': [Villager(), Villager(), Villager(), Villager(), Villager(), Beholder(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
-    '12': [Villager(), Villager(), Villager(), Villager(), Villager(), Villager(), Beholder(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
-    '13': [Villager(), Villager(), Villager(), Villager(), Villager(), Villager(), Mason(), Mason(), Intern(), Seer(), Werewolf(), Werewolf(), Werewolf()],
 }
 
 
@@ -151,6 +134,8 @@ class Game(object):
         Returns:
             A dict of known information about each player
         """
+        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
+            return False
         if player_sid in self.player_sids:
             if acknowledge:
                 self.acknowledge_revealed_info(player_sid)
@@ -166,6 +151,8 @@ class Game(object):
 
         Returns:
             True if successfully acknowledged; False otherwise."""
+        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
+            return False
         if player_sid in self.reveal_ack_required:
             self.reveal_ack_required.remove(player_sid)
             if not self.reveal_ack_required:
@@ -173,6 +160,12 @@ class Game(object):
                 self._start_day_phase()
             return True
         return False
+
+    def get_players_needing_to_ack(self):
+        """Returns a list of player SIDs needing to ack the reveal info."""
+        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
+            return None
+        return self.reveal_ack_required
 
     def set_player_target(self, player_sid, target_sid):
         """Set the target of player's night action.
@@ -264,7 +257,7 @@ class Game(object):
             self.required_voters = list(self.player_sids)
 
         self.game_state = GameState.VOTING
-        return (True, self.required_voters)
+        return (True, self.get_required_voters())
 
     def _finish_game(self):
         if self.game_state == GameState.VOTING:
@@ -433,6 +426,11 @@ class Game(object):
         if time_in_seconds > 0:
             logging.debug(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
+
+    def get_required_voters(self):
+        if self.game_state != GameState.VOTING:
+            return None
+        return self.required_voters
 
     def vote(self, voter_sid, target_sid):
         """Votes for player identified by session ID.
@@ -664,7 +662,7 @@ class Game(object):
             it is an end-of-game condition.
         """
         if (self.tokens[AnswerToken.CORRECT] <= 0 or
-            self.tokens[AnswerToken.YES] <= 0):
+                self.tokens[AnswerToken.YES] <= 0):
             return False, True
 
         if question_id < len(self.questions) and answer is not AnswerToken.NONE:

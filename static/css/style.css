@@ -11,3 +11,9 @@ body {
   padding: 0;
   margin: 0;
 }
+
+.mdl-layout__content {
+  margin-left: 10px;
+  margin-top: 10px;
+  margin-bottom: 60px;
+}

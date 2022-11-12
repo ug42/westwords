@@ -51,7 +51,7 @@ function ready(fn) {
 ready(function () {
     // Button variables
     var proper_noun_btn = document.getElementById('proper_noun');
-    var nominate_mayor_btn = document.getElementById('nominate_mayor');
+    var nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
 
     // div variables
     var question_div = document.getElementById('question_div');
@@ -72,10 +72,10 @@ ready(function () {
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
 
         if (local_game_state.mayor !== 'No Mayor yet elected') {
-            nominate_mayor_btn.hidden = true;
+            nominate_for_mayor_btn.hidden = true;
         }
         // if (local_game_state.am_mayor === true) {
-        //     nominate_mayor_btn.hidden = true;
+        //     nominate_for_mayor_btn.hidden = true;
         //     proper_noun_btn.hidden = true;
         // } else {
         //     proper_noun_btn.hidden = false;
@@ -164,8 +164,8 @@ ready(function () {
             socket.emit('undo', local_game_state.game_id)
         })
     }
-    nominate_mayor_btn.addEventListener('click', function () {
-        socket.emit('nominate_mayor', local_game_state.game_id)
+    nominate_for_mayor_btn.addEventListener('click', function () {
+        socket.emit('nominate_for_mayor', local_game_state.game_id)
     })
     // if (document.getElementById('get_game_state')) {
     //     let get_game_state_btn = document.getElementById('get_game_state');

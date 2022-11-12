@@ -68,24 +68,29 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertEqual(self.game.game_state,
                          GameState.NIGHT_PHASE_TARGETTING)
         self.assertCountEqual(self.game.night_actions_required,
-                             ['esper', 'doppelganger'])
+                              ['esper', 'doppelganger'])
         self.assertFalse(self.game.set_player_target('seer', 'werewolf1'))
-        self.assertTrue(self.game.set_player_target('doppelganger', 'werewolf2'))
+        self.assertTrue(self.game.set_player_target(
+            'doppelganger', 'werewolf2'))
         self.assertTrue(self.game.set_player_target('esper', 'seer'))
 
         # Do the reveal and ack knowledge of stuff
         self.assertEqual(self.game.game_state,
                          GameState.NIGHT_PHASE_REVEAL)
-        # TODO: have all roles check in and 
+        self.assertCountEqual(self.game.get_players_needing_to_ack(),
+                              self.player_sid_list)
+
         self.game.get_player_revealed_information('villager')
         self.game.acknowledge_revealed_info('villager')
-        self.game.get_player_revealed_information('werewolf1', acknowledge=True)
+        self.game.get_player_revealed_information(
+            'werewolf1', acknowledge=True)
         self.game.get_player_revealed_information('seer', acknowledge=True)
         self.game.get_player_revealed_information('doppelganger')
         self.game.acknowledge_revealed_info('doppelganger')
         self.game.get_player_revealed_information('mason1', acknowledge=True)
         self.game.get_player_revealed_information('mason2', acknowledge=True)
-        self.game.get_player_revealed_information('werewolf2', acknowledge=True)
+        self.game.get_player_revealed_information(
+            'werewolf2', acknowledge=True)
         self.game.acknowledge_revealed_info('werewolf2')
         self.game.get_player_revealed_information('fortuneteller')
         self.game.acknowledge_revealed_info('fortuneteller')
@@ -126,13 +131,15 @@ class testWestwordsFunctional(unittest.TestCase):
         success, id = self.game.add_question('villager', 'Chimpanzee?')
         self.assertTrue(success)
         self.assertEqual(id, 2)
-        success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
+        success, end_of_game = self.game.answer_question(
+            id, AnswerToken.CORRECT)
         self.assertTrue(success)
         self.assertTrue(end_of_game)
 
         success, players = self.game.start_vote(word_guessed=True)
         self.assertEqual(self.game.game_state, GameState. VOTING)
-        self.assertEqual(self.game.required_voters, ['werewolf1', 'werewolf2'])
+        self.assertEqual(self.game.get_required_voters(),
+                         ['werewolf1', 'werewolf2'])
         self.assertEqual(players, self.game.required_voters)
 
         self.assertTrue(self.game.vote('werewolf1', 'villager'))

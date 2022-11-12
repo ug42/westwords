@@ -6,13 +6,13 @@ logging.basicConfig(level=logging.INFO)
 
 
 ROLE_SET = {
-    
+
 }
 
 
 class RoleSet(object):
 
-    def __init__(self, player_count: int=3):
+    def __init__(self, player_count: int = 3):
         self.player_count = player_count
 
     def get_role_set(self):
@@ -32,6 +32,7 @@ class Role(object):
         self.max_instances = 1
         self.required = False
         self.required_players = 0
+        self.night_action_description = None
         self.targetted_player = None
         # Whether this role's night action are done
         self.night_phase_complete = False
@@ -45,13 +46,13 @@ class Role(object):
 
     def get_max_instances(self):
         return self.max_instances
-    
+
     def is_required(self):
         return self.required
-    
+
     def get_required_players(self):
         return self.required_players
-    
+
     def _role_night_action(self, player_sid, target_sid, player_roles):
         """Night phase targeting-specific role actions."""
         return False
@@ -71,9 +72,15 @@ class Role(object):
             return True
         return False
 
+    def get_night_action_description(self):
+        if self.targetting_role:
+            return self.night_action_description
+        else:
+            return None
+
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         """Calculate any night info and return it for the player role.
-        
+
         Args:
             player_roles: A dict of string player SIDs to Role objects.
             mayor: A string player SID of the current mayor.
@@ -98,11 +105,13 @@ class Doppelganger(Role):
         Doppelganger chooses a player to see their role, and copies that
         player's ability and alignment.
         """
+        self.night_action_description = """
+        Choose a player to mimic. You will become a copy of their role.
+        """
         self.affiliation = Affiliation.UNKNOWN
         self.required_players = 6
         # Doppelganger is special cased to not target during normal phase.
-        self.targetting_role = False
-        
+        self.targetting_role = True
 
     def __str__(self):
         return "Doppelganger"
@@ -122,15 +131,15 @@ class Werewolf(Role):
         self.team_loses_if_killed = True
         self.votes_on_guessed_word = True
         self.affiliation = Affiliation.WEREWOLF
-    
+
     def __str__(self):
         return "Werewolf"
-    
+
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         self.known_word = word
         for p in player_roles:
-            if (self != player_roles[p] and 
-                isinstance(player_roles[p], Werewolf)):
+            if (self != player_roles[p] and
+                    isinstance(player_roles[p], Werewolf)):
                 self.known_players[p] = str(player_roles[p])
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
@@ -167,8 +176,8 @@ class Seer(Role):
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         self.known_word = word
         for p in player_roles:
-            if (self != player_roles[p] and 
-                isinstance(player_roles[p], Seer)):
+            if (self != player_roles[p] and
+                    isinstance(player_roles[p], Seer)):
                 self.known_players[p] = str(player_roles[p])
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
@@ -196,6 +205,7 @@ class Intern(Role):
             self.known_word = word
             self._add_known_role(mayor, str(player_roles[mayor]))
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
+
 
 class FortuneTeller(Role):
     def __init__(self, doppelganger=False):
@@ -239,10 +249,9 @@ class Minion(Role):
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         for p in player_roles:
             if (self != player_roles[p] and
-                isinstance(player_roles[p], (Werewolf, Minion))):
+                    isinstance(player_roles[p], (Werewolf, Minion))):
                 self.known_players[p] = str(player_roles[p])
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
-
 
 
 class Beholder(Role):
@@ -254,7 +263,7 @@ class Beholder(Role):
         known as the villager who know too much.
         """
         self.required_players = 5
-    
+
     def __str__(self):
         return "Beholder"
 
@@ -264,6 +273,7 @@ class Beholder(Role):
                           (Intern, Seer, FortuneTeller)):
                 self.known_players[p] = "???"
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
+
 
 class Mason(Role):
     def __init__(self, doppelganger=False):
@@ -280,8 +290,8 @@ class Mason(Role):
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         logging.debug(f'Processing for {player_sid} in night action')
         for p in player_roles:
-            if (self != player_roles[p] and 
-                isinstance(player_roles[p], Mason)):
+            if (self != player_roles[p] and
+                    isinstance(player_roles[p], Mason)):
                 self.known_players[p] = str(player_roles[p])
         logging.debug(f'Attempting to set night action for {player_sid}')
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
@@ -296,6 +306,10 @@ class Esper(Role):
         """
         self.required_players = 5
         self.targetting_role = True
+        self.night_action_description = """
+        Target a player with whom to send your telepathic communication. They
+        will see you in their mind's eye as a Village-aligned Esper.
+        """
 
     def __str__(self):
         return "Esper"
@@ -303,4 +317,277 @@ class Esper(Role):
     def _role_night_action(self, player_sid, target_sid, player_roles):
         if target_sid in player_roles:
             player_roles[target_sid]._add_known_role(player_sid, str(self))
-        
+
+            
+DEFAULT_ROLES_BY_PLAYER_COUNT = {
+    '1':
+    [
+        Villager()
+    ],
+    '2':
+    [
+        Villager(),
+        Werewolf()
+    ],
+    '3':
+    [
+        Villager(),
+        Seer(),
+        Werewolf()
+    ],
+    '4':
+    [
+        Villager(),
+        Villager(),
+        Seer(),
+        Werewolf()
+    ],
+    '5':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Seer(),
+        Werewolf()
+    ],
+    '6':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Seer(),
+        Werewolf()
+    ],
+    '7':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Intern(),
+        Seer(),
+        Werewolf()
+    ],
+    '8':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '9':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Esper(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '10':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Esper(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '11':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Beholder(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '12':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Beholder(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '13':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '14':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf()
+    ],
+    '15':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller()
+    ],
+    '16':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller(),
+        Beholder()
+    ],
+    '17':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller(),
+        Beholder(),
+        Esper()
+    ],
+    '18':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller(),
+        Beholder(),
+        Esper()
+    ],
+    '19':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Minion(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller(),
+        Beholder(),
+        Esper()
+    ],
+    '20':
+    [
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Villager(),
+        Mason(),
+        Mason(),
+        Intern(),
+        Seer(),
+        Minion(),
+        Werewolf(),
+        Werewolf(),
+        Werewolf(),
+        FortuneTeller(),
+        Beholder(),
+        Esper(),
+        Doppelganger()
+    ],
+}
