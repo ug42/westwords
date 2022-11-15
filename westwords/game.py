@@ -429,7 +429,7 @@ class Game(object):
 
     def get_required_voters(self):
         if self.game_state != GameState.VOTING:
-            return None
+            return []
         return self.required_voters
 
     def vote(self, voter_sid, target_sid):
@@ -488,8 +488,8 @@ class Game(object):
     # Player and Role functions
     def get_player_role(self, sid):
         """Returns a string format version of the player's role."""
-        if self.player_sids[sid]:
-            return str(self.player_sids[sid])
+        if sid in self.player_sids and self.player_sids[sid]:
+            return self.player_sids[sid]
         return None
 
     def _get_next_admin(self):

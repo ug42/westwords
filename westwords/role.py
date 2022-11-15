@@ -50,6 +50,9 @@ class Role(object):
     def is_required(self):
         return self.required
 
+    def is_targetting_role(self):
+        return self.targetting_role
+
     def get_required_players(self):
         return self.required_players
 

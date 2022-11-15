@@ -23,10 +23,10 @@ class Player(object):
         }
 
     def __repr__(self):
-        return f'Player({self.name}, {self.game})'
+        return f'Player({self.name})'
 
     def __str__(self):
-        return f'Player name: {self.name}, in game id: {self.game}'
+        return f'Player name: {self.name}'
 
     def join_room(self, room: str):
         if room not in self.rooms:

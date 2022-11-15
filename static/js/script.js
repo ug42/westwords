@@ -17,7 +17,7 @@ function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
 }
 function sendWord(game_id, word) {
-    socket.emit('word_choice', game_id, word);
+    socket.emit('set_word', game_id, word);
 }
 function undoAnswer(game_id) {
     socket.emit('undo', game_id);
@@ -35,8 +35,8 @@ function send_reset_req() {
         socket.emit('game_reset_req', local_game_state.game_id);
     }
 }
-function get_game_state() {
-    socket.emit('get_game_state');
+function get_game_state(game_id) {
+    socket.emit('get_game_state', game_id);
     console.log('Game state refresh requested');
 }
 
@@ -86,7 +86,7 @@ ready(function () {
             game_start();
         }
     });
-    socket.on('game_reset_rsp', function (game_id) {
+    socket.on('game_reset_rsp', function () {
         if (local_game_state.game_id === game_id) {
             game_reset(game_id);
         }
@@ -180,16 +180,13 @@ ready(function () {
         console.log('Attempting to start game');
         timer.start();
     }
-    function game_reset(game_id) {
+    function game_reset() {
         // FIXME: Game reset does not remove existing questions from board.
         console.log('Attempting to reset game');
-        if (game_id === local_game_state.game_id) {
-            socket.emit('game_reset', game_id);
-            reset_game_timer(local_game_state.time);
-            // game_start_btn.hidden = false;
-            // game_reset_btn.hidden = true;
-            // proper_noun_btn.hidden = true;
-        }
+        reset_game_timer(local_game_state.time);
+        game_start_btn.hidden = false;
+        game_reset_btn.hidden = true;
+        proper_noun_btn.hidden = true;
     }
     function get_role(game_id) {
         socket.emit('get_role', game_id);

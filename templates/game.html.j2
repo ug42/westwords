@@ -18,7 +18,7 @@
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="nominate_for_mayor">Run for Mayor!</button></p>
         {% if DEBUG %}
         <b>DEBUGGING</b>
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="get_game_state">Get game state</button>
+        <button onclick="get_game_state('{{ game_id }}')" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="get_game_state">Get game state</button>
         {% endif %}
         Role {{ role }}
         <div id="question_div">

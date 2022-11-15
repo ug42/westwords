@@ -7,23 +7,34 @@
 
 # Overall game flow, make sure each step has plumbing here.
 
+    # game_reset_req
 # self.game.game_status == GameState.SETUP
+    # nominate_for_mayor
 # self.game.nominate_for_mayor('player1')
+    # set_word_choice_count
 # self.game.set_word_choice_count(word_list_length)
+    # start_game
 # self.game.start_night_phase_word_choice()
+    # /get_words/<game_id>
 # words = self.game.get_words()
+    # set_word
 # self.game.set_word(word)
-
+    # <automatic> on set_word call and doppelganger in game
 # self.game.game_state == GameState.NIGHT_PHASE_DOPPELGANGER
+    # set_doppelganger_role_target
 # role = self.game.set_doppelganger_role_target('player1', 'player2')
-
+    # <automatic> after doppelganger action or if doppelganger not in game
 # self.game.game_state == GameState.NIGHT_PHASE_TARGETTING
+    # set_player_target
 # self.game.set_player_target('player1', 'player7') # esper only targetting
 # self.game.set_player_target('player2', 'player3') # and doppelesper
-
+    # <automatic>
 # self.game.game_state == GameState.NIGHT_PHASE_REVEAL
+    # TODO: Create hook to get list of players needing to ack
 # self.game.get_players_needing_to_ack()
+    # TODO: Create hook for get player revealed info
 # self.game.get_player_revealed_information('player1')
+    # TODO: Create hook for ack reveealed info
 # self.game.acknowledge_revealed_info('player2')
 # self.game.get_player_revealed_information('player3', acknowledge=True)
 # self.game.get_player_revealed_information('player4', acknowledge=True)
@@ -32,24 +43,35 @@
 # self.game.get_player_revealed_information('player7')
 # self.game.acknowledge_revealed_info('player7')
 
-
+    # <automatic> after last player acks
 # self.game.game_state == GameState.DAY_PHASE_QUESTIONS
+    # question
 # success, id = self.game.add_question('mason2', 'Am I the first question?')
+    # answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
+    # question
 # success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
+    # answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
+    # question
 # success, id = self.game.add_question('villager', 'Chimpanzee?')
+    # answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
+    # TODO: Add start_vote hook
 # success, players_needing_to_vote = self.game.start_vote(word_guessed=True)
-
 # self.game.game_status == GameState.VOTING
+    # TODO: add get_required_voters hook
 # self.game.get_required_voters()
+    # vote (game_id, target)
 # self.game.vote('werewolf2', 'mason2')
+    # TODO: Add get_results hook
 # self.game.get_results() 
     # (Affiliation.VILLAGE,
     # ['villager', 'mason2'],
     # {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
+    # <automatic>
 # self.game.game_status == GameState.FINISHED
+    # game_reset_req
 # self.game.reset()
 # self.game.game_status == GameState.SETUP
 
@@ -73,10 +95,8 @@ app.config['USE_PERMANENT_SESSION'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
-# TODO: add roles plumbing
 # TODO: add spectate
 # TODO: game lock for players state
-# TODO: add create game
 # TODO: plumb game state reset functionality
 
 
@@ -84,10 +104,7 @@ SOCKET_MAP = {}
 # TODO: move this off to a backing store.
 PLAYERS = {}
 # TODO: move this off to a backing store.
-GAMES = {
-    # TODO: replace with real player objects associated with session
-    'defaultgame': westwords.Game(timer=300, player_sids=[]),
-}
+GAMES = {}
 
 
 def parse_game_state(game_id, session_sid):
@@ -262,9 +279,9 @@ def login():
 @app.route('/logout')
 def logout():
     response = make_response(render_template('logout.html'))
+    session.clear()
     response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
     flash('Session destroyed. You are now logged out; redirecting to /')
-    session.clear()
     return response
 
 
@@ -278,7 +295,7 @@ def connect(auth):
     SOCKET_MAP[session['sid']] = request.sid
     for room in PLAYERS[session['sid']].get_rooms():
         join_room(room)
-        emit('user_info', f"{PLAYERS[session['sid']]} joined.", to=room)
+        emit('user_info', f"{PLAYERS[session['sid']].name} joined.", room=room)
 
     app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
@@ -290,7 +307,7 @@ def disconnect():
         if PLAYERS[session['sid']].rooms:
             for room in PLAYERS[session['sid']].rooms:
                 leave_room(room)
-                emit('user_info', f"{PLAYERS[session['sid']]} left.", to=room)
+                emit('user_info', f"{PLAYERS[session['sid']]} left.", room=room)
     except KeyError as e:
         app.logger.debug(
             f"Unable to remove socket mapping for {session['sid']}: {e}")
@@ -376,13 +393,15 @@ def answer_question(game_id, question_id, answer):
 
 @ socketio.on('get_game_state')
 def game_status(game_id: str):
+    app.logger.debug(f'Got game state request for {game_id}')
     if game_id in GAMES:
+        app.logger.debug(f'Sending game state.')
         emit(
             'game_state',
             parse_game_state(game_id, session['sid'])
         )
 
-
+# Mayor functions
 @socketio.on('undo')
 def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
@@ -397,6 +416,40 @@ def nominate_for_mayor(game_id: str):
         GAMES[game_id].nominate_for_mayor(session['sid'])
 
 
+@socketio.on('set_word_choice_count')
+def set_word_choice_count(game_id: str, word_count: int):
+    if game_id in GAMES and GAMES[game_id].admin == session['sid']:
+        if not GAMES[game_id].set_word_choice_count(word_count):
+            emit('admin_error', f'Unable to set word count to {word_count}.')
+
+
+# Player targetting functions
+@socketio.on('set_doppelganger_role_target')
+def set_doppelganger_role_target(game_id: str, target_sid: str):
+    if game_id in GAMES:
+        if not isinstance(GAMES[game_id].get_player_role(session['sid']), 
+                       westwords.Doppelganger):
+            app.logger.debug(
+                f"{session['sid']} is not allowed to perform Doppelganger actions.")
+            return False
+        if not GAMES[game_id].is_player_in_game(target_sid):
+            app.logger.debug(
+                f'Doppelganger target {target_sid} not in game.')
+            return False
+        GAMES[game_id].set_doppelganger_role_target(target_sid)
+
+
+@socketio.on('set_player_target')
+def set_player_target(game_id: str, target_sid: str):
+    if game_id in GAMES:
+        player_role = GAMES[game_id].get_player_role(session['sid'])
+        if (isinstance(player_role, westwords.Role) and
+            player_role.is_targetting_role()):
+            if GAMES[game_id].set_player_target(session['sid'], target_sid):
+                return True
+    app.logger.debug(f'Unable to set {target_sid} as target.')
+
+
 # TODO: implement all the scenarios around this
 # Timer functions
 @socketio.on('game_start_req')
@@ -406,26 +459,24 @@ def start_game(game_id: str):
             emit('admin_error', f'Unable to start game. No game: {game_id}.')
             return
         emit('game_start_rsp', game_id, broadcast=True)
-        socketio.emit('force_refresh', game_id, broadcast=True)
 
 
 @socketio.on('game_reset_req')
 def reset_game(game_id):
     # Implement game reset feature
     app.logger.info(f'Resetting game: {game_id}')
-    if game_id in GAMES:
+    if game_id in GAMES and GAMES[game_id].admin == session['sid']:
         GAMES[game_id].reset()
-        emit('game_reset_rsp', game_id, broadcast=True)
-        socketio.emit('force_refresh', game_id, broadcast=True)
+        emit('game_reset_rsp', room=game_id)
 
 
 @socketio.on('vote')
 def vote(game_id, target_id):
     app.logger.debug(
         f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
-    if game_id in GAMES:
-        success = GAMES[game_id].vote(session['sid'], target_id)
-        if not success:
+    if (game_id in GAMES and
+        session['sid'] in GAMES[game_id].get_required_voters()):
+        if not GAMES[game_id].vote(session['sid'], target_id):
             app.logger.error(f'Unable to cast vote.')
 
 
@@ -433,11 +484,13 @@ def vote(game_id, target_id):
 def get_role(game_id):
     # TODO: Move this to use a callback
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
-        emit('player_role', GAMES[game_id].get_player_role(session['sid']))
+        emit('player_role',
+             GAMES[game_id].get_player_role(session['sid']),
+             room=SOCKET_MAP[session['sid']])
 
 
-@socketio.on('word_choice')
-def set_word(game_id, word):
+@socketio.on('set_word')
+def set_word(game_id: str, word: str):
     """Set the chosen word for the provided game ID.
 
     Args:
@@ -454,7 +507,7 @@ def set_word(game_id, word):
              f'Word set attempt failed. User is not mayor.')
         return
 
-    GAMES[game_id].set_word()
+    GAMES[game_id].set_word(word)
 
 
 if __name__ == '__main__':
