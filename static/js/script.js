@@ -1,18 +1,14 @@
 // TODO: add separate sockets for each of the game comms
 // TODO: Reload the page with the correct buttons appearing
 var socket = io.connect({ autoconnect: true });
-var local_game_state = {
-    'game_state': null,
-    'players': [],
-    'questions': [],
-    'time': 0,
-    'game_id': null,
-    'role': null,
-    'am_mayor': null,
-    'am_admin': null,
-    'tokens': null,
-};
-
+var local_game_state = {};
+var local_time_skew = 0;
+function get_game_state(game_id) {
+    console.log('Game state refresh requested');
+    socket.emit('get_game_state', game_id, (response) => {
+        local_game_state = response;
+    });
+}
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
 }
@@ -24,20 +20,12 @@ function undoAnswer(game_id) {
 }
 function send_start_req() {
     console.log('Attempting to start');
-    if (local_game_state.game_id !== '') {
-        console.log('Start timer for game: ' + local_game_state.game_id);
-        socket.emit('game_start_req', local_game_state.game_id);
-    }
+    console.log('Start timer for game: ' + local_game_state.game_id);
+    socket.emit('game_start_req', local_game_state.game_id);
 }
 function send_reset_req() {
-    if (local_game_state.game_id !== '') {
-        console.log('Start timer for game: ' + local_game_state.game_id);
-        socket.emit('game_reset_req', local_game_state.game_id);
-    }
-}
-function get_game_state(game_id) {
-    socket.emit('get_game_state', game_id);
-    console.log('Game state refresh requested');
+    console.log('Start timer for game: ' + local_game_state.game_id);
+    socket.emit('game_reset_req', local_game_state.game_id);
 }
 
 function ready(fn) {
@@ -48,7 +36,49 @@ function ready(fn) {
     }
 }
 
+function get_time_skew(server_timestamp) {
+    let time_skew = Date.now() - server_timestamp
+    return time_skew
+}
+
+function start_timer(timestamp) {
+
+}
+
+
+// function timer_update(state, players, $section) {
+//     var $clock, clock_text, millis_left, minutes_left, now, seconds, seconds_left, timeout;
+//     $clock = $section.find('.clock');
+//     now = netgames.to_server_timestamp(Date.now());
+//     millis_left = Math.max(0, state.deadline - now);
+//     seconds_left = Math.floor(millis_left / 1000);
+//     minutes_left = Math.floor(seconds_left / 60);
+//     seconds = ('0' + (seconds_left - minutes_left * 60)).slice(-2);
+//     clock_text = minutes_left + ":" + seconds;
+//     if (millis_left <= 10 * 1000) {
+//       $clock.text(seconds);
+//     } else {
+//       $clock.text(clock_text);
+//     }
+//     $('#cheatsheet-screen .clock').text(clock_text);
+//     $clock.toggleClass('large', millis_left <= 10 * 1000);
+//     timeout = millis_left > 0 ? millis_left % 1000 : 1000;
+//     return clock_timeout = setTimeout(function() {
+//       return netgames.refresh(state, players);
+//     }, timeout);
+//   }
+// },
+
+
 ready(function () {
+    'use strict';
+    var dialog = document.querySelector('dialog');
+    if (! dialog.showModal) {
+      dialogPolyfill.registerDialog(dialog);
+    }
+    // dialog.showModal();
+    // dialog.close();
+
     // Button variables
     var proper_noun_btn = document.getElementById('proper_noun');
     var nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
@@ -66,8 +96,10 @@ ready(function () {
         console.log('Socket disconnected.');
     });
     socket.on('game_state', function (g) {
+
         local_game_state = g;
-        // token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
+        console.table(local_game_state)
+        token_count.innerHTML = "Remaining tokens: " + local_game_state.tokens;
         game_state.innerHTML = 'Game state: ' + local_game_state.game_state;
         mayor_name.innerHTML = 'Mayor: ' + local_game_state.mayor;
 
@@ -81,16 +113,8 @@ ready(function () {
         //     proper_noun_btn.hidden = false;
         // }
     });
-    socket.on('game_start_rsp', function (game_id) {
-        if (local_game_state.game_id === game_id) {
-            game_start();
-        }
-    });
-    socket.on('game_reset_rsp', function () {
-        if (local_game_state.game_id === game_id) {
-            game_reset(game_id);
-        }
-    });
+    socket.on('game_start_rsp', game_start);
+    socket.on('game_reset_rsp', game_reset);
     // socket.on('mayor_error', function (data) {
     //     // if (local_game_state.am_mayor === true) {
     //     //     modal_text.innerHTML = data;
@@ -106,39 +130,32 @@ ready(function () {
     socket.on('new_question', function (rsp) {
         console.log('Checkpoint 3');
         if (local_game_state.game_id === rsp.game_id) {
-           socket.emit('get_question_req', rsp.game_id, rsp.question_id);            
-           console.log('Checkpoint 3.5');
+            socket.emit('get_question', rsp.game_id, rsp.question_id,
+                (response) => {
+                    if (response.status === 'OK') {
+                        question_div.innerHTML = response.question + question_div.innerHTML;
+                    }
+                });
+            console.log('Checkpoint 3.5');
         }
     });
-    socket.on('get_question_rsp'), function(rsp) {
-        console.log('Checkpoint 4');
-        if (local_game_state.game_id === rsp.game_id) {
-            question_div.innerHTML = rsp.question + question_div.innerHTML;
-        }
-    }
-    socket.on('force_refresh', function (rsp) {
-        if (local_game_state.game_id === rsp) {
-            console.log('Force refresh for ' + local_game_state.game_id);
-            get_game_state();
-        }
-    })
 
-    var timer;
-    game_timer = document.getElementById('game_timer');
-    reset_game_timer(local_game_state['time']);
-    function reset_game_timer(seconds) {
-        timer = new easytimer.Timer({
-            countdown: true,
-            startValues: { seconds: local_game_state['time'] }
-        });
-        game_timer.innerHTML = timer.getTimeValues().toString();
-        timer.addEventListener('secondsUpdated', function (e) {
-            game_timer.innerHTML = timer.getTimeValues().toString();
-        });
-        timer.addEventListener('targetAchieved', function (e) {
-            game_timer.innerHTML = 'KABOOM!!';
-        });
-    }
+    // // var timer;
+    // // game_timer = document.getElementById('game_timer');
+    // reset_game_timer(local_game_state.time);
+    // function reset_game_timer(seconds) {
+    //     timer = new easytimer.Timer({
+    //         countdown: true,
+    //         startValues: { seconds: seconds }
+    //     });
+    //     game_timer.innerHTML = timer.getTimeValues().toString();
+    //     timer.addEventListener('secondsUpdated', function (e) {
+    //         game_timer.innerHTML = timer.getTimeValues().toString();
+    //     });
+    //     timer.addEventListener('targetAchieved', function (e) {
+    //         game_timer.innerHTML = 'KABOOM!!';
+    //     });
+    // }
 
     var question = document.getElementById('question');
     question.addEventListener('keypress', function (event) {
@@ -181,7 +198,6 @@ ready(function () {
         timer.start();
     }
     function game_reset() {
-        // FIXME: Game reset does not remove existing questions from board.
         console.log('Attempting to reset game');
         reset_game_timer(local_game_state.time);
         game_start_btn.hidden = false;

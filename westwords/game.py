@@ -113,7 +113,9 @@ class Game(object):
             self.night_actions_required = [
                 p for p in self.player_sids if self.player_sids[p].targetting_role]
             self.game_state = GameState.NIGHT_PHASE_TARGETTING
-            return True
+            if not self.night_actions_required:
+                self._start_night_phase_reveal()
+                return True
         return False
 
     def _start_night_phase_reveal(self):
@@ -164,7 +166,7 @@ class Game(object):
     def get_players_needing_to_ack(self):
         """Returns a list of player SIDs needing to ack the reveal info."""
         if self.game_state != GameState.NIGHT_PHASE_REVEAL:
-            return None
+            return []
         return self.reveal_ack_required
 
     def set_player_target(self, player_sid, target_sid):
@@ -189,6 +191,9 @@ class Game(object):
                 return True
 
         return False
+
+    def get_players_needing_to_target(self):
+        return self.night_actions_required
 
     def _start_day_phase(self):
         """Start the question-asking phase of game.
@@ -231,8 +236,7 @@ class Game(object):
             word_guessed: Boolean for whether the word was successfully guessed.
 
         Returns:
-            A tuple of True and a list of required voter SIDs if successful; 
-            False and an empty list, otherwise.
+            True if voting state successfully; False otherwise.
         """
         self.word_guessed = word_guessed
         elapsed_time = (datetime.now() - self.start_time).seconds
@@ -240,12 +244,12 @@ class Game(object):
             logging.debug('End of game conditions not met.'
                           f'Word guessed: {word_guessed}'
                           f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
-            return (False, [])
+            return False
 
         if self.game_state != GameState.DAY_PHASE_QUESTIONS:
             logging.debug(
                 f'Current game state {self.game_state} is not DAY_PHASE_QUESTIONS.')
-            return (False, [])
+            return False
 
         if word_guessed:
             for player_sid in self.player_sids:
@@ -257,7 +261,7 @@ class Game(object):
             self.required_voters = list(self.player_sids)
 
         self.game_state = GameState.VOTING
-        return (True, self.get_required_voters())
+        return True
 
     def _finish_game(self):
         if self.game_state == GameState.VOTING:
@@ -267,13 +271,7 @@ class Game(object):
         return False
 
     def is_started(self):
-        return self.game_state in [
-            GameState.DAY_PHASE_QUESTIONS,
-            GameState.NIGHT_PHASE_DOPPELGANGER,
-            GameState.NIGHT_PHASE_REVEAL,
-            GameState.NIGHT_PHASE_TARGETTING,
-            GameState.NIGHT_PHASE_WORD_CHOICE,
-        ]
+        return self.game_state == GameState.DAY_PHASE_QUESTIONS
 
     def is_voting(self):
         return self.game_state == GameState.VOTING
@@ -284,8 +282,9 @@ class Game(object):
             if not self.word_choices:
                 all_words = []
                 for word_list in WORDLISTS:
-                    all_words.append(WORDLISTS[word_list].get_words(
-                        level=self.word_difficulty))
+                    words = WORDLISTS[word_list].get_words(
+                        level=self.word_difficulty)
+                    all_words += words
                 self.word_choices = choices(
                     all_words, k=self.word_choice_count)
             return self.word_choices
@@ -336,7 +335,7 @@ class Game(object):
         else:
             self._start_night_phase_targetting()
 
-    def set_doppelganger_role_target(self, player_sid: str, target_sid: str):
+    def set_doppelganger_target(self, player_sid: str, target_sid: str):
         """Attempts to set Doppelganger role target.
 
         Args:
@@ -344,7 +343,7 @@ class Game(object):
             target_sid: String player SID of target whose role to copy.
 
         Returns:
-            String representing new role if successful; None otherwise.
+            True if successfully set; False otherwise.
         """
         if (target_sid in self.player_sids and
                 isinstance(self.player_sids[player_sid], Doppelganger)):
@@ -357,8 +356,8 @@ class Game(object):
             if not self.night_actions_required:
                 # No more doppelganger or copy roles.
                 self._start_night_phase_targetting()
-            return str(self.player_sids[player_sid])
-        return None
+            return True
+        return False
 
     def _tally_results(self):
         self.game_state = GameState.FINISHED

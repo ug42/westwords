@@ -61,8 +61,9 @@ class testWestwordsFunctional(unittest.TestCase):
         # Do the doppelganger role
         self.assertEqual(self.game.game_state,
                          GameState.NIGHT_PHASE_DOPPELGANGER)
-        role = self.game.set_doppelganger_role_target('doppelganger', 'esper')
-        self.assertEqual(role, 'Esper')
+        self.assertTrue(
+            self.game.set_doppelganger_target('doppelganger', 'esper'))
+
 
         # Do the targetting roles
         self.assertEqual(self.game.game_state,
@@ -136,11 +137,10 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertTrue(success)
         self.assertTrue(end_of_game)
 
-        success, players = self.game.start_vote(word_guessed=True)
-        self.assertEqual(self.game.game_state, GameState. VOTING)
+        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.assertEqual(self.game.game_state, GameState.VOTING)
         self.assertEqual(self.game.get_required_voters(),
                          ['werewolf1', 'werewolf2'])
-        self.assertEqual(players, self.game.required_voters)
 
         self.assertTrue(self.game.vote('werewolf1', 'villager'))
         self.assertTrue(self.game.vote('werewolf2', 'mason2'))

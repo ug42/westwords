@@ -84,13 +84,14 @@ class testGameFunctions(unittest.TestCase):
         self.game.set_timer(1)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
         self.game.game_state = GameState.DAY_PHASE_QUESTIONS
-        self.assertEqual(self.game.start_vote(word_guessed=False),
-                         (True, ['foo', 'bar', 'baz', 'xxx']))
+        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.assertCountEqual(self.game.get_required_voters(),
+                              ['foo', 'bar', 'baz', 'xxx'])
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(100)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
         self.game.game_state = GameState.DAY_PHASE_QUESTIONS
-        self.assertEqual(self.game.start_vote(word_guessed=False), (False, []))
+        self.assertEqual(self.game.start_vote(word_guessed=False), False)
 
     def testGetResults(self):
         self.assertIsNone(self.game.get_results())
@@ -362,9 +363,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.game.player_sids['xxx'] = Werewolf()
 
     def testWerewolfWinWordNotGuessed(self):
-        success, players = self.game.start_vote(word_guessed=False)
-        self.assertTrue(success)
-        self.assertCountEqual(self.player_sids, players)
+        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.assertCountEqual(self.game.get_required_voters(), self.player_sids)
         self.assertTrue(self.game.vote('xxx', 'bar'))
         self.assertTrue(self.game.vote('foo', 'bar'))
         self.assertTrue(self.game.vote('baz', 'bar'))
@@ -381,9 +381,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(expected_votes, votes)
 
     def testVillageWinWordNotGuessed(self):
-        success, players = self.game.start_vote(word_guessed=False)
-        self.assertTrue(success)
-        self.assertCountEqual(self.player_sids, players)
+        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.assertCountEqual(self.game.get_required_voters(), self.player_sids)
         self.assertTrue(self.game.vote('xxx', 'bar'))
         self.assertTrue(self.game.vote('foo', 'xxx'))
         self.assertTrue(self.game.vote('baz', 'bar'))
@@ -400,9 +399,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(expected_votes, votes)
 
     def testWerewolfWinWordGuessed(self):
-        success, players = self.game.start_vote(word_guessed=True)
-        self.assertTrue(success)
-        self.assertCountEqual(players, ['xxx'])
+        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'baz'))
         winner, killed, votes = self.game.get_results()
         self.assertEqual(winner, Affiliation.WEREWOLF)
@@ -410,9 +408,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(votes, {'xxx': 'baz'})
 
     def testVillageWinWordGuessed(self):
-        success, players = self.game.start_vote(word_guessed=True)
-        self.assertTrue(success)
-        self.assertCountEqual(players, ['xxx'])
+        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'bar'))
         winner, killed, votes = self.game.get_results()
         self.assertEqual(winner, Affiliation.VILLAGE)
