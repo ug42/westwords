@@ -60,7 +60,7 @@ class Role(object):
         """Night phase targeting-specific role actions."""
         return False
 
-    def _add_known_role(self, player_sid, role):
+    def add_known_role(self, player_sid, role):
         if player_sid not in self.known_players:
             self.known_players[player_sid] = role
             return True
@@ -206,7 +206,7 @@ class Intern(Role):
         if isinstance(player_roles[mayor], Seer):
             self.sees_word = True
             self.known_word = word
-            self._add_known_role(mayor, str(player_roles[mayor]))
+            self.add_known_role(mayor, str(player_roles[mayor]))
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
 
@@ -319,7 +319,7 @@ class Esper(Role):
 
     def _role_night_action(self, player_sid, target_sid, player_roles):
         if target_sid in player_roles:
-            player_roles[target_sid]._add_known_role(player_sid, str(self))
+            player_roles[target_sid].add_known_role(player_sid, str(self))
 
             
 DEFAULT_ROLES_BY_PLAYER_COUNT = {

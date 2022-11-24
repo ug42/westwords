@@ -1,0 +1,10 @@
+<div class="mdl-dialog__content">
+    Select a word:
+</div>
+<div class="mdl-dialog__actions mdl-dialog__actions--full-width">
+    {% if known_word %} Word: <b>{{known_word}}</b><br> {% endif %}
+    {% for p in known_players %}
+    <br>Player: {{ p.name }}  role: {{ p.role }}
+    {% endfor %}
+    <button type="button" class="mdl-button close" onclick="ackReveal()">OK</button>
+</div>

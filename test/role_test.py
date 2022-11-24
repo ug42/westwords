@@ -49,7 +49,7 @@ class testWestwordsRoles(unittest.TestCase):
                 word="Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {}))
         self.assertTrue(
-            self.player_sids['villager']._add_known_role('esper', 'Esper'))
+            self.player_sids['villager'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['villager'].get_night_action_info(
@@ -58,7 +58,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'villager',
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'esper': 'Esper'}))
-        self.assertFalse(self.player_sids['villager']._add_known_role(
+        self.assertFalse(self.player_sids['villager'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['villager']._role_night_action(
             'villager', 'esper', self.player_sids))
@@ -93,7 +93,7 @@ class testWestwordsRoles(unittest.TestCase):
             ("Bardily's Best +fraging", {'doppelmason': 'Mason',
                                          'mason2': 'Mason'}))
         self.assertTrue(
-            self.player_sids['mason1']._add_known_role('esper', 'Esper'))
+            self.player_sids['mason1'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['mason1'].get_night_action_info(
@@ -104,7 +104,7 @@ class testWestwordsRoles(unittest.TestCase):
             ("Bardily's Best +fraging", {'esper': 'Esper',
                                          'doppelmason': 'Mason',
                                          'mason2': 'Mason'}))
-        self.assertFalse(self.player_sids['mason1']._add_known_role(
+        self.assertFalse(self.player_sids['mason1'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['mason1']._role_night_action(
             'mason1', 'esper', self.player_sids))
@@ -136,7 +136,7 @@ class testWestwordsRoles(unittest.TestCase):
             ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf',
                                          'werewolf2': 'Werewolf'}))
         self.assertTrue(
-            self.player_sids['werewolf1']._add_known_role('esper', 'Esper'))
+            self.player_sids['werewolf1'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['werewolf1'].get_night_action_info(
@@ -147,7 +147,7 @@ class testWestwordsRoles(unittest.TestCase):
             ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf',
                                          'esper': 'Esper',
                                          'werewolf2': 'Werewolf'}))
-        self.assertFalse(self.player_sids['werewolf1']._add_known_role(
+        self.assertFalse(self.player_sids['werewolf1'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['werewolf1']._role_night_action(
             'werewolf1', 'werewolf1', self.player_sids))
@@ -179,7 +179,7 @@ class testWestwordsRoles(unittest.TestCase):
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'doppelseer': 'Seer'}))
         self.assertTrue(
-            self.player_sids['seer']._add_known_role('esper', 'Esper'))
+            self.player_sids['seer'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['seer'].get_night_action_info(
@@ -189,7 +189,7 @@ class testWestwordsRoles(unittest.TestCase):
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'doppelseer': 'Seer',
                                          'esper': 'Esper'}))
-        self.assertFalse(self.player_sids['seer']._add_known_role(
+        self.assertFalse(self.player_sids['seer'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['seer']._role_night_action(
             'seer', 'esper', self.player_sids))
@@ -221,7 +221,7 @@ class testWestwordsRoles(unittest.TestCase):
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {}))
         self.assertTrue(
-            self.player_sids['fortuneteller']._add_known_role('esper', 'Esper'))
+            self.player_sids['fortuneteller'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['fortuneteller'].get_night_action_info(
@@ -230,7 +230,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'fortuneteller',
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'esper': 'Esper'}))
-        self.assertFalse(self.player_sids['fortuneteller']._add_known_role(
+        self.assertFalse(self.player_sids['fortuneteller'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['fortuneteller']._role_night_action(
             'fortuneteller', 'esper', self.player_sids))
@@ -261,7 +261,7 @@ class testWestwordsRoles(unittest.TestCase):
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {}))
         self.assertTrue(
-            self.player_sids['intern']._add_known_role('esper', 'Esper'))
+            self.player_sids['intern'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['intern'].get_night_action_info(
@@ -270,7 +270,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'intern',
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'esper': 'Esper'}))
-        self.assertFalse(self.player_sids['intern']._add_known_role(
+        self.assertFalse(self.player_sids['intern'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['intern']._role_night_action(
             'intern', 'esper', self.player_sids))
@@ -322,7 +322,7 @@ class testWestwordsRoles(unittest.TestCase):
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {}))
         self.assertTrue(
-            self.player_sids['esper']._add_known_role('doppelesper', 'Esper'))
+            self.player_sids['esper'].add_known_role('doppelesper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['esper'].get_night_action_info(
@@ -331,7 +331,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'esper',
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'doppelesper': 'Esper'}))
-        self.assertFalse(self.player_sids['esper']._add_known_role(
+        self.assertFalse(self.player_sids['esper'].add_known_role(
             'doppelesper', 'Esper'))
         self.assertFalse(self.player_sids['esper']._role_night_action(
             'esper', 'esper', self.player_sids))
@@ -368,7 +368,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'intern': '???',
                 'seer': '???'}))
         self.assertTrue(
-            self.player_sids['beholder']._add_known_role('esper', 'Esper'))
+            self.player_sids['beholder'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['beholder'].get_night_action_info(
@@ -384,7 +384,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'fortuneteller': '???',
                 'intern': '???',
                 'seer': '???'}))
-        self.assertFalse(self.player_sids['beholder']._add_known_role(
+        self.assertFalse(self.player_sids['beholder'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['beholder']._role_night_action(
             'beholder', 'esper', self.player_sids))
@@ -428,7 +428,7 @@ class testWestwordsRoles(unittest.TestCase):
                     'doppelwolf': 'Werewolf', 
             }))
         self.assertTrue(
-            self.player_sids['minion']._add_known_role('esper', 'Esper'))
+            self.player_sids['minion'].add_known_role('esper', 'Esper'))
         # Is the mayor
         self.assertEqual(
             self.player_sids['minion'].get_night_action_info(
@@ -442,7 +442,7 @@ class testWestwordsRoles(unittest.TestCase):
                     'werewolf2': 'Werewolf',
                     'doppelminion': 'Minion',
                     'doppelwolf': 'Werewolf', }))
-        self.assertFalse(self.player_sids['minion']._add_known_role(
+        self.assertFalse(self.player_sids['minion'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['minion']._role_night_action(
             'minion', 'esper', self.player_sids))

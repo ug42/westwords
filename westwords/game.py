@@ -141,9 +141,10 @@ class Game(object):
         if player_sid in self.player_sids:
             if acknowledge:
                 self.acknowledge_revealed_info(player_sid)
-            return self.player_sids[player_sid].known_players
+            return self.player_sids[player_sid].get_night_action_info(
+                player_sid, self.player_sids, self.mayor, self.word)
 
-        return {}
+        return (None, None)
 
     def acknowledge_revealed_info(self, player_sid):
         """Acknoledge that player has seen the revealed information.
@@ -351,6 +352,8 @@ class Game(object):
             self.player_sids[player_sid] = deepcopy(
                 self.player_sids[target_sid])
             self.player_sids[player_sid].doppelganger = True
+            self.player_sids[player_sid].add_known_role(
+                target_sid, str(self.player_sids[target_sid]))
             if player_sid in self.night_actions_required:
                 self.night_actions_required.remove(player_sid)
             if not self.night_actions_required:

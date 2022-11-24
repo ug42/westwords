@@ -7,34 +7,8 @@
 
 # Overall game flow, make sure each step has plumbing here.
 
-    # game_reset_req
-# self.game.game_status == GameState.SETUP
-    # nominate_for_mayor
-# self.game.nominate_for_mayor('player1')
-    # set_word_choice_count
-# self.game.set_word_choice_count(word_list_length)
-    # start_game
-# self.game.start_night_phase_word_choice()
-    # /get_words/<game_id>
-# words = self.game.get_words()
-    # set_word
-# self.game.set_word(word)
-    # <automatic> on set_word call and doppelganger in game
-# self.game.game_state == GameState.NIGHT_PHASE_DOPPELGANGER
-    # set_doppelganger_target
-# role = self.game.set_doppelganger_target('player1', 'player2')
-    # <automatic> after doppelganger action or if doppelganger not in game
-# self.game.game_state == GameState.NIGHT_PHASE_TARGETTING
-    # set_player_target
-# self.game.set_player_target('player1', 'player7') # esper only targetting
-# self.game.set_player_target('player2', 'player3') # and doppelesper
-    # <automatic>
-# self.game.game_state == GameState.NIGHT_PHASE_REVEAL
-    # Broadcasts game status after each possible state change
-# self.game.get_players_needing_to_ack()
-    # waiting state, timestamp and 
 # self.game.get_player_revealed_information('player1')
-    # acknowledge_revealed_info
+# acknowledge_revealed_info
 # self.game.acknowledge_revealed_info('player2')
 # self.game.get_player_revealed_information('player3', acknowledge=True)
 # self.game.get_player_revealed_information('player4', acknowledge=True)
@@ -43,35 +17,35 @@
 # self.game.get_player_revealed_information('player7')
 # self.game.acknowledge_revealed_info('player7')
 
-    # <automatic> after last player acks
+# <automatic> after last player acks
 # self.game.game_state == GameState.DAY_PHASE_QUESTIONS
-    # question
+# question
 # success, id = self.game.add_question('mason2', 'Am I the first question?')
-    # answer_question
+# answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
-    # question
+# question
 # success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
-    # answer_question
+# answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
-    # question
+# question
 # success, id = self.game.add_question('villager', 'Chimpanzee?')
-    # answer_question
+# answer_question
 # success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
-    # start_vote
+# start_vote
 # success, players_needing_to_vote = self.game.start_vote(word_guessed=True)
 # self.game.game_status == GameState.VOTING
-    # get_required_voters
+# get_required_voters
 # self.game.get_required_voters()
-    # vote (game_id, target)
+# vote (game_id, target)
 # self.game.vote('werewolf2', 'mason2')
-    # get_results
-# self.game.get_results() 
-    # (Affiliation.VILLAGE,
-    # ['villager', 'mason2'],
-    # {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
-    # <automatic>
+# get_results
+# self.game.get_results()
+# (Affiliation.VILLAGE,
+# ['villager', 'mason2'],
+# {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
+# <automatic>
 # self.game.game_status == GameState.FINISHED
-    # game_reset_req
+# game_reset_req
 # self.game.reset()
 # self.game.game_status == GameState.SETUP
 
@@ -84,7 +58,7 @@ from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
                    request, session)
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
 
 import westwords
 from westwords.enums import AnswerToken
@@ -144,7 +118,7 @@ def parse_game_state(game_id, session_sid):
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
     players_needing_to_target = GAMES[game_id].get_players_needing_to_target()
-    
+
     players = {}
     for player_sid in player_sids:
         player = PLAYERS[player_sid]
@@ -189,18 +163,6 @@ def get_question_info(question, id):
     }
 
 
-def game_status_after_update(func):
-    """Wraps an update game_id param function with a game_status refresh."""
-
-    def wrapper(*args, **kwargs):
-        
-        success = func(*args, **kwargs)
-        if success:
-            game_status(game_id)
-    
-    return wrapper
-
-
 @app.route('/')
 def index():
     if 'sid' not in session:
@@ -239,6 +201,7 @@ def join_game(game_id):
     else:
         return redirect(f'/create/{game_id}')
     return redirect(f'/game/{game_id}')
+
 
 @app.route('/game/<game_id>')
 def game_index(game_id):
@@ -293,7 +256,7 @@ def get_words(game_id):
 # TODO: Move this to use Flask rooms, if useful above current setup
 @app.route('/create', methods=['POST', 'GET'], strict_slashes=False)
 @app.route('/create/<game_id>', methods=['GET'], strict_slashes=False)
-def create_game(game_id: str=None):
+def create_game(game_id: str = None):
     if request.method == 'POST' and request.form['game_id']:
         app.logger.debug(f'POST method found: {request.form}')
         game_id = request.form['game_id']
@@ -305,6 +268,7 @@ def create_game(game_id: str=None):
         app.logger.debug(f'{game_id} not found; creating')
         GAMES[game_id] = westwords.Game(player_sids=[session['sid']])
     return redirect(f'/join/{game_id}')
+
 
 @app.route('/login')
 def login():
@@ -329,8 +293,12 @@ def connect(auth):
         PLAYERS[session['sid']] = westwords.Player(session['username'])
     SOCKET_MAP[session['sid']] = request.sid
     for room in PLAYERS[session['sid']].get_rooms():
-        join_room(room)
-        emit('user_info', f"{PLAYERS[session['sid']].name} joined.", room=room)
+        if room not in rooms():
+            app.logger.debug(f'{room} not in list of rooms: {rooms()}')
+            join_room(room)
+            emit('user_info',
+                 f"{PLAYERS[session['sid']].name} joined.", room=room)
+        app.logger.debug(f'Rooms for client: {rooms()}')
 
     app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
@@ -342,7 +310,8 @@ def disconnect():
         if PLAYERS[session['sid']].rooms:
             for room in PLAYERS[session['sid']].rooms:
                 leave_room(room)
-                emit('user_info', f"{PLAYERS[session['sid']]} left.", room=room)
+                emit('user_info',
+                     f"{PLAYERS[session['sid']].name} left.", room=room)
     except KeyError as e:
         app.logger.debug(
             f"Unable to remove socket mapping for {session['sid']}: {e}")
@@ -359,11 +328,8 @@ def add_question(game_id, question_text):
         app.logger.debug(f'Success of adding question: {success}')
         app.logger.debug(f'Id of added question: {id}')
         if success:
-            emit(
-                'new_question', {
-                'game_id': game_id, 'question_id': id},
-                room=game_id
-            )
+            emit('new_question', {'game_id': game_id,
+                 'question_id': id}, room=game_id)
             app.logger.info(f'Successfully added question to {game_id}')
             return True
 
@@ -372,7 +338,9 @@ def add_question(game_id, question_text):
 
 
 @socketio.on('get_question')
-def get_question(game_id, question_id):
+def get_question(game_id: str, question_id: int):
+    # game_id = data['game_id']
+    # question_id = data['question_id']
     if game_id in GAMES and int(question_id) < len(GAMES[game_id].questions):
         question = GAMES[game_id].questions[question_id]
         return {
@@ -384,9 +352,7 @@ def get_question(game_id, question_id):
     return {'status': 'FAILED', 'question': ''}
 
 
-
-@game_status_after_update
-@ socketio.on('answer_question')
+@socketio.on('answer_question')
 def answer_question(game_id, question_id, answer):
     """Answer the question for a given game, if the user is the mayor.
 
@@ -434,164 +400,158 @@ def answer_question(game_id, question_id, answer):
         socketio.emit('mayor_error',
                       f'Last token played, Undo or Move to vote.',
                       room=game_id)
-    return True
+    game_status(game_id)
 
 
 @socketio.on('get_game_state')
 def game_status(game_id: str):
-    app.logger.debug(f'Got game state request for {game_id}')
+    app.logger.debug(
+        f'Got game state request for {game_id} from {session["sid"]}')
     if game_id in GAMES:
-        return parse_game_state(game_id, session['sid'])
+        socketio.emit('game_state', parse_game_state(game_id, session['sid']))
 
 # Mayor functions
-@game_status_after_update
+
+
 @socketio.on('undo')
 def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
-        return GAMES[game_id].undo_answer()
-    return False
+        GAMES[game_id].undo_answer()
+        game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('start_vote')
 def start_vote(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
-        return GAMES[game_id].start_vote()
-    return False
+        GAMES[game_id].start_vote()
+        game_status(game_id)
 
 
 @socketio.on('nominate_for_mayor')
 def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         GAMES[game_id].nominate_for_mayor(session['sid'])
+        game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('set_word_choice_count')
 def set_word_choice_count(game_id: str, word_count: int):
     if game_id in GAMES and GAMES[game_id].admin == session['sid']:
-        return GAMES[game_id].set_word_choice_count(word_count)
+        GAMES[game_id].set_word_choice_count(word_count)
+        game_status(game_id)
 
     emit('admin_error', f'Unable to set word count to {word_count}.')
-    return False
 
 
 @socketio.on('get_words')
 def get_words(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         if GAMES[game_id].word:
-            return None
+            return {'status': 'FAILED'}
         words = GAMES[game_id].get_words()
         if words and GAMES[game_id].mayor == session['sid']:
-            return render_template(
-                'word_choice.html.j2',
-                words=words,
-                game_id=game_id,
-            )
+            return {
+                'status': 'OK',
+                'word_html': render_template(
+                    'word_choice.html.j2',
+                    words=words,
+                    game_id=game_id,
+                )}
     return 'Unable to provide word choices.'
 
 # Player targetting functions
-@game_status_after_update
+
+
 @socketio.on('set_doppelganger_target')
 def set_doppelganger_target(game_id: str, target_sid: str):
     if game_id in GAMES:
-        if not isinstance(GAMES[game_id].get_player_role(session['sid']), 
-                       westwords.Doppelganger):
-            app.logger.debug(
-                f"{session['sid']} is not allowed to perform Doppelganger actions.")
-            return False
-        if not GAMES[game_id].is_player_in_game(target_sid):
-            app.logger.debug(
-                f'Doppelganger target {target_sid} not in game.')
-            return False
-        if GAMES[game_id].set_doppelganger_target(target_sid):
-            return True
-            # game_status(game_id)
-    return False
+        if (isinstance(GAMES[game_id].get_player_role(session['sid']),
+                       westwords.Doppelganger) and
+                GAMES[game_id].is_player_in_game(target_sid)):
+            GAMES[game_id].set_doppelganger_target(target_sid)
+            game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('set_player_target')
 def set_player_target(game_id: str, target_sid: str):
     if game_id in GAMES:
         player_role = GAMES[game_id].get_player_role(session['sid'])
-        if (isinstance(player_role, westwords.Role) and
-            player_role.is_targetting_role()):
-            if GAMES[game_id].set_player_target(session['sid'], target_sid):
-                # game_status(game_id)
-                return True
-    app.logger.debug(f'Unable to set {target_sid} as target.')
-    return False
+        if (player_role and player_role.is_targetting_role()):
+            GAMES[game_id].set_player_target(session['sid'], target_sid)
+            game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('acknowledge_revealed_info')
 def acknowledge_revealed_info(game_id: str):
     if game_id in GAMES:
-        return GAMES[game_id].acknowledge_revealed_info(session['sid'])
+        app.logger.debug(f'ACK attempt received for {PLAYERS[session["sid"]].name}')
+        GAMES[game_id].acknowledge_revealed_info(session['sid'])
+        game_status(game_id)
 
 
 # TODO: implement all the scenarios around this
 # Timer functions
-@game_status_after_update
-@socketio.on('game_start_req')
+@socketio.on('game_start')
 def start_game(game_id: str):
     if game_id in GAMES:
-        if not GAMES[game_id].start_night_phase_word_choice():
-            emit('admin_error', f'Unable to start game. No game: {game_id}.')
-            return
-        emit('game_start_rsp', room=game_id)
+        GAMES[game_id].start_night_phase_word_choice()
+        game_status(game_id)
 
 
-@game_status_after_update
-@socketio.on('game_reset_req')
+@socketio.on('game_reset')
 def reset_game(game_id):
     # Implement game reset feature
-    app.logger.info(f'Resetting game: {game_id}')
     if game_id in GAMES and GAMES[game_id].admin == session['sid']:
         GAMES[game_id].reset()
-        emit('game_reset_rsp', room=game_id)
+        game_status(game_id)
+    else:
+        app.logger.debug('Unable to reset game. User not admin.')
 
 
-@game_status_after_update
 @socketio.on('get_required_voters')
 def get_required_voters(game_id: str):
     if game_id in GAMES:
-        return GAMES[game_id].get_required_voters()
-    return False
+        GAMES[game_id].get_required_voters()
+        game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('vote')
 def vote(game_id, target_id):
     app.logger.debug(
         f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
     if (game_id in GAMES and
-        session['sid'] in GAMES[game_id].get_required_voters()):
-        if GAMES[game_id].vote(session['sid'], target_id):
-            return True
-        app.logger.error(f'Unable to cast vote.')
+            session['sid'] in GAMES[game_id].get_required_voters()):
+        GAMES[game_id].vote(session['sid'], target_id)
+        game_status(game_id)
 
 
-@game_status_after_update
 @socketio.on('get_results')
 def get_results(game_id: str):
     if game_id in GAMES:
         emit('game_results', GAMES[game_id].get_results(), room=game_id)
 
 
-@game_status_after_update
-@socketio.on('get_role')
-def get_role(game_id):
-    # TODO: Move this to use a callback
-    if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
-        emit('player_role',
-             GAMES[game_id].get_player_role(session['sid']),
-             room=SOCKET_MAP[session['sid']])
+@socketio.on('get_player_revealed_information')
+def get_player_revealed_information(game_id: str):
+    if (game_id in GAMES and session['sid'] in
+        GAMES[game_id].get_players_needing_to_ack()):
+        known_word, players = GAMES[game_id].get_player_revealed_information(session['sid'])
+        known_players = []
+        for player in players:
+            known_players.append(
+                {'name': PLAYERS[player].name, 'role': players[player],})
+        app.logger.debug(f'Info: {known_word} players: {known_players}')
+        return {
+            'status': 'OK',
+            'reveal_html': render_template(
+                'player_reveal.html.j2',
+                known_players=known_players,
+                known_word=known_word,
+                ),
+        }
 
 
-@game_status_after_update
 @socketio.on('set_word')
 def set_word(game_id: str, word: str):
     """Set the chosen word for the provided game ID.
@@ -610,10 +570,10 @@ def set_word(game_id: str, word: str):
              f'Word set attempt failed. User is not mayor.')
         return
 
-    return GAMES[game_id].set_word(word)
-        # game_status(game_id)
-
+    GAMES[game_id].set_word(word)
+    game_status(game_id)
 
 
 if __name__ == '__main__':
     socketio.run(app)
+
