@@ -128,8 +128,8 @@ function game_setup_buttons() {
     proper_noun_btn.hidden = true;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = true;
-    let mayor_controls = document.getElementById('controls');
-    mayor_controls.hidden = true;
+    // let mayor_controls = document.getElementById('controls');
+    // mayor_controls.hidden = true;
 }
 
 function get_time_skew(server_timestamp) {
@@ -143,7 +143,7 @@ function start_timer(timestamp) {
 
 function refresh_game_state(g) {
     local_game_state = g;
-    // console.table(local_game_state)
+    console.table(local_game_state)
     console.log('Refreshing game state')
     let proper_noun_btn = document.getElementById('proper_noun');
     

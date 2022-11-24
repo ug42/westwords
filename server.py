@@ -550,6 +550,7 @@ def get_player_revealed_information(game_id: str):
                 known_word=known_word,
                 ),
         }
+    return {'success': False, 'role': None}
 
 
 @socketio.on('set_word')
