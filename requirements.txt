@@ -1,9 +1,9 @@
-Flask==2.0.3
+Flask==2.2.5
 Flask-Session==0.4.0
 Flask-SocketIO==5.3.1
 Jinja2==3.0.3
-MarkupSafe==2.0.1
-Werkzeug==2.0.3
+MarkupSafe==2.1.1
+Werkzeug==2.3.3
 attrs==17.4.0
 bidict==0.21.4
 cachelib==0.9.0

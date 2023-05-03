@@ -147,6 +147,7 @@ function refresh_game_state(g) {
     console.log('Refreshing game state')
     let proper_noun_btn = document.getElementById('proper_noun');
     
+    // TODO: Remove this or check to see if game_state is available
     let game_state = document.getElementById('game_state');
     let mayor_tokens = document.getElementById('mayor_tokens');
     let players = document.getElementById('players');
