@@ -203,6 +203,9 @@ class Game(object):
 
     def get_players_needing_to_target(self):
         return self.night_actions_required
+    
+    def get_players(self):
+        return self.player_sids
 
     def _start_day_phase(self):
         """Start the question-asking phase of game.

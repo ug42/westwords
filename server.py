@@ -296,6 +296,7 @@ def logout():
 def connect(auth):
     if 'sid' not in session:
         session['sid'] = str(uuid4())
+    # TODO: Fix username KeyError on initial connect
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
     SOCKET_MAP[session['sid']] = request.sid
@@ -420,11 +421,13 @@ def game_status(game_id: str):
     app.logger.debug(
         f'Got game state request for {game_id} from {session["sid"]}')
     if game_id in GAMES:
-        socketio.emit('game_state', parse_game_state(game_id, session['sid']))
+        for player in GAMES[game_id].get_players():
+            socketio.emit(
+                'game_state',
+                parse_game_state(game_id, session['sid']),
+                to=SOCKET_MAP[session['sid']],)
 
 # Mayor functions
-
-
 @socketio.on('undo')
 def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
