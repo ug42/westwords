@@ -74,7 +74,10 @@ socketio = SocketIO(app)
 # TODO: add spectate
 # TODO: game lock for players state
 # TODO: plumb game state reset functionality
-# TODO: Refreshing or getting local game state broadcasts that state for that user to everyone. Fix it so it user-specific
+# TODO: Refreshing or getting local game state broadcasts that state for that
+# user to everyone. Fix it so it user-specific
+# TODO: Add user-specific (roles/controls) and game-specific
+# (players/spectators/game_state/etc) game state broadcasts and updates
 
 
 SOCKET_MAP = {}
