@@ -634,18 +634,22 @@ class Game(object):
         Returns:
             A tuple of success boolean and the int id of the added question, if
             the question was added successfuly; (False, None) otherwise.
+
+        Raises:
+            GameError if question is not able to be asked due to game
+            conditions.
         """
         if not self.is_player_in_game(sid):
             raise GameError('Player is not listed in the game.')
         if sid == self.mayor:
             raise GameError('Player is the Mayor and unable to ask questions.')
-        # if (self.is_player_in_game(sid) and sid != self.mayor and
-        #         self.is_started()):
+        if not self.is_started():
+            raise GameError('Game is not yet started.')
+
         question = Question(sid, question_text)
         question_id = self._get_next_question_id()
         self.questions.append(question)
         return (True, question_id)
-        # return (False, None)
 
     def get_question(self, id):
         """Returns the Question object for the specified ID.

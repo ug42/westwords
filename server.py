@@ -497,7 +497,8 @@ def set_player_target(game_id: str, target_sid: str):
 @socketio.on('acknowledge_revealed_info')
 def acknowledge_revealed_info(game_id: str):
     if game_id in GAMES:
-        app.logger.debug(f'ACK attempt received for {PLAYERS[session["sid"]].name}')
+        app.logger.debug(
+            f'ACK attempt received for {PLAYERS[session["sid"]].name}')
         GAMES[game_id].acknowledge_revealed_info(session['sid'])
         game_status(game_id)
 
@@ -547,12 +548,13 @@ def get_results(game_id: str):
 @socketio.on('get_player_revealed_information')
 def get_player_revealed_information(game_id: str):
     if (game_id in GAMES and session['sid'] in
-        GAMES[game_id].get_players_needing_to_ack()):
-        known_word, players = GAMES[game_id].get_player_revealed_information(session['sid'])
+            GAMES[game_id].get_players_needing_to_ack()):
+        known_word, players = GAMES[game_id].get_player_revealed_information(
+            session['sid'])
         known_players = []
         for player in players:
             known_players.append(
-                {'name': PLAYERS[player].name, 'role': players[player],})
+                {'name': PLAYERS[player].name, 'role': players[player], })
         app.logger.debug(f'Info: {known_word} players: {known_players}')
         return {
             'status': 'OK',
@@ -560,7 +562,7 @@ def get_player_revealed_information(game_id: str):
                 'player_reveal.html.j2',
                 known_players=known_players,
                 known_word=known_word,
-                ),
+            ),
         }
     return {'success': False, 'role': None}
 
@@ -589,4 +591,3 @@ def set_word(game_id: str, word: str):
 
 if __name__ == '__main__':
     socketio.run(app)
-

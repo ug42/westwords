@@ -1,6 +1,6 @@
 # westwords module
 
-from .game import Game
+from .game import Game, GameError
 from .role import (Role, Doppelganger, Mason,
                    Werewolf, Villager, Seer, FortuneTeller, Intern, Esper,
                    Beholder, Minion, DEFAULT_ROLES_BY_PLAYER_COUNT)

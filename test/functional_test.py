@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import random
 import unittest
 from westwords import Game as GameClass
+from westwords import GameError as GameError
 from westwords import Question as QuestionClass
 from westwords import AnswerToken, GameState, Affiliation
 from westwords import (Doppelganger, Mason, Werewolf, Villager, Seer,
@@ -124,9 +125,9 @@ class testWestwordsFunctional(unittest.TestCase):
 
         # After ack of all roles, it should automatically start day phase.
         self.assertEqual(self.game.game_state, GameState.DAY_PHASE_QUESTIONS)
-        success, id = self.game.add_question('mason1', 'How can this be?')
-        self.assertFalse(success)
-        self.assertIsNone(id)
+        # Ensure Mayor is unable to ask questions.
+        with self.assertRaises(GameError):
+            self.game.add_question('mason1', 'How can this be?')
         # Assure we can't answer a question that doesn't yet exist
         success, end_of_game = self.game.answer_question(0, AnswerToken.NONE)
         self.assertFalse(success)

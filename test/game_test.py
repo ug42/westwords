@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from westwords import (Affiliation, AnswerToken, Beholder, Doppelganger, Esper,
                        FortuneTeller)
 from westwords import Game as GameClass
+from westwords import GameError as GameError
 from westwords import GameState, Intern, Mason, Minion
 from westwords import Question as QuestionClass
 from westwords import Seer, Villager, Werewolf
@@ -307,9 +308,8 @@ class testQuestionFunctions(unittest.TestCase):
         success, id = self.game.add_question('foo', 'Am I wrong?')
         self.assertTrue(success)
         self.assertIsNotNone(id)
-        success, id = self.game.add_question('not_a_player', 'No matter')
-        self.assertFalse(success)
-        self.assertIsNone(id)
+        with self.assertRaises(GameError):
+            self.game.add_question('not_a_player', 'No matter')
 
     def testGetQuestion(self):
         self.game.add_question('foo', 'Am I wrong?')
