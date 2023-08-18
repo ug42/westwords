@@ -57,7 +57,7 @@ from string import ascii_uppercase
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
-                   request, session)
+                   request, session, url_for)
 from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
 
 import westwords
@@ -169,7 +169,8 @@ def index():
         session['sid'] = str(uuid4())
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        return redirect('/login')
+        session['requesting_url'] = request.url
+        return redirect(url_for('login'))
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
 
@@ -184,10 +185,13 @@ def username():
     if request.method == 'POST' and request.form.get('username'):
         if re.search(r'mayor', request.form.get('username').casefold()):
             flash('Cute, smartass.')
-            return redirect('/')
+            if 'requesting_url' in session:
+                return redirect(session.pop('requesting_url'))
         session['username'] = request.form.get('username')
         if session['sid'] in PLAYERS:
             PLAYERS[session['sid']].name = session['username']
+    if 'requesting_url' in session:
+        return redirect(session.pop('requesting_url'))
     return redirect('/')
 
 
@@ -209,7 +213,8 @@ def game_index(game_id):
         session['sid'] = str(uuid4())
     if 'username' not in session:
         session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
-        return redirect('/login')
+        session['requesting_url'] = request.url
+        return redirect(url_for('login'))
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
     if game_id not in PLAYERS[session['sid']].rooms:
