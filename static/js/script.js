@@ -49,8 +49,11 @@ function format_players(players) {
     for (const player in players) {
         html += '<div>' + player
         html += parse_tokens(players.player)
-        if (player === local_game_state.mayor) {
+        if (player === local_game_state.player_is_mayor) {
             html += ' (Mayor)';
+        }
+        if (player === local_game_state.player_is_admin) {
+            html += ' [admin]';
         }
         html += '</div>';
     }
@@ -109,7 +112,7 @@ function game_started_buttons() {
     proper_noun_btn.hidden = false;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = false;
-    if (local_game_state.am_mayor) {
+    if (local_game_state.player_is_mayor) {
         let mayor_controls = document.getElementById('controls');
         mayor_controls.hidden = false;
     }
@@ -169,7 +172,7 @@ function refresh_game_state(g) {
     } else {
         game_started_buttons();
     }
-    if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE' && local_game_state.am_mayor) {
+    if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE' && local_game_state.player_is_mayor) {
         socket.emit('get_words', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
             if (response.status === 'OK') {
@@ -244,7 +247,7 @@ ready(function () {
 
         
     socket.on('mayor_error', function (data) {
-        if (local_game_state.am_mayor === true) {
+        if (local_game_state.player_is_mayor === true) {
             let dialog = document.querySelector('dialog');
             dialog.innerHTML = data;
             
@@ -252,7 +255,7 @@ ready(function () {
         }
     });
     socket.on('admin_error', function (data) {
-        if (local_game_state.am_mayor === true) {
+        if (local_game_state.player_is_admin === true) {
             let dialog = document.querySelector('dialog');
             dialog.innerHTML = data;
             dialog.showModal();

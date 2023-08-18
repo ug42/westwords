@@ -62,6 +62,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
 
 import westwords
 from westwords.enums import AnswerToken
+from westwords.game import GameError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
@@ -73,6 +74,7 @@ socketio = SocketIO(app)
 # TODO: add spectate
 # TODO: game lock for players state
 # TODO: plumb game state reset functionality
+# TODO: Refreshing or getting local game state broadcasts that state for that user to everyone. Fix it so it user-specific
 
 
 SOCKET_MAP = {}
@@ -91,7 +93,7 @@ def parse_game_state(game_id, session_sid):
 
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
-            str 'mayor' name, bool 'am_mayor', bool 'am_admin', a list of
+            str 'mayor' name, bool 'player_is_mayor', bool 'player_is_admin', a list of
             'questions' dicts of int 'id', str 'question', str 'player', str
             'answer', a list of str 'players' names, and a str 'role' for the
             player.
@@ -131,11 +133,11 @@ def parse_game_state(game_id, session_sid):
         'players_names_needing_ack': [
             PLAYERS[p].name for p in players_needing_to_ack],
         'player_names_needing_vote': [PLAYERS[p].name for p in required_voters],
-        'am_mayor': game_state['mayor'] == session_sid,
-        'am_admin': game_state['admin'] == session_sid,
-        'am_waiting_for_vote': session['sid'] in required_voters,
-        'am_waiting_for_target': session['sid'] in players_needing_to_target,
-        'am_waiting_for_ack': session['sid'] in players_needing_to_ack,
+        'player_is_mayor': game_state['mayor'] == session_sid,
+        'player_is_admin': game_state['admin'] == session_sid,
+        'player_is_waiting_for_vote': session['sid'] in required_voters,
+        'player_is_waiting_for_target': session['sid'] in players_needing_to_target,
+        'player_is_waiting_for_ack': session['sid'] in players_needing_to_ack,
         'players': players,
     })
 
@@ -234,8 +236,8 @@ def game_index(game_id):
         time=game_state['time'],
         mayor=game_state['mayor'],
         tokens=game_state['tokens'],
-        am_mayor=game_state['am_mayor'],
-        am_admin=game_state['am_admin'],
+        player_is_mayor=game_state['player_is_mayor'],
+        player_is_admin=game_state['player_is_admin'],
         role=game_state['role'],
         game_id=game_id,
         # Remove this when done poking at things. :P
@@ -328,8 +330,13 @@ def add_question(game_id, question_text):
     if game_id in GAMES:
         app.logger.debug(f'Found game: {game_id}')
         app.logger.debug(f'Listed user: {session["sid"]}')
-        success, id = GAMES[game_id].add_question(
-            session['sid'], question_text)
+        try:
+            success, id = GAMES[game_id].add_question(
+                session['sid'], question_text)
+        except GameError as e:
+            app.logger.debug(e)
+            app.logger.error(f'Unable to add question for game {game_id}')
+            return False
         app.logger.debug(f'Success of adding question: {success}')
         app.logger.debug(f'Id of added question: {id}')
         if success:

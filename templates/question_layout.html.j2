@@ -4,7 +4,7 @@
     {% if question_object.answer -%}
         {{ question_object.answer }}
     {%- else -%}
-        {% if am_mayor -%}
+        {% if player_is_mayor -%}
         <div style="display: inline">
             <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')">Yes</button>
             <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')">No</button>

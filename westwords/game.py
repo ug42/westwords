@@ -30,6 +30,14 @@ ROLES = {
     'werewolf': Werewolf(),
 }
 
+class GameError(Exception):
+
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
 
 class Game(object):
     """Game object for recording status of game.
@@ -627,13 +635,17 @@ class Game(object):
             A tuple of success boolean and the int id of the added question, if
             the question was added successfuly; (False, None) otherwise.
         """
-        if (self.is_player_in_game(sid) and sid != self.mayor and
-                self.is_started()):
-            question = Question(sid, question_text)
-            question_id = self._get_next_question_id()
-            self.questions.append(question)
-            return (True, question_id)
-        return (False, None)
+        if not self.is_player_in_game(sid):
+            raise GameError('Player is not listed in the game.')
+        if sid == self.mayor:
+            raise GameError('Player is the Mayor and unable to ask questions.')
+        # if (self.is_player_in_game(sid) and sid != self.mayor and
+        #         self.is_started()):
+        question = Question(sid, question_text)
+        question_id = self._get_next_question_id()
+        self.questions.append(question)
+        return (True, question_id)
+        # return (False, None)
 
     def get_question(self, id):
         """Returns the Question object for the specified ID.
