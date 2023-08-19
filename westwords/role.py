@@ -323,15 +323,15 @@ class Esper(Role):
 
             
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
-    '1':
-    [
-        Villager()
-    ],
-    '2':
-    [
-        Villager(),
-        Werewolf()
-    ],
+    # '1':
+    # [
+    #     Villager()
+    # ],
+    # '2':
+    # [
+    #     Villager(),
+    #     Werewolf()
+    # ],
     '3':
     [
         Villager(),

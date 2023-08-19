@@ -96,10 +96,10 @@ def parse_game_state(game_id, session_sid):
 
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
-            str 'mayor' name, bool 'player_is_mayor', bool 'player_is_admin', a list of
-            'questions' dicts of int 'id', str 'question', str 'player', str
-            'answer', a list of str 'players' names, and a str 'role' for the
-            player.
+            str 'mayor' name, str 'admin' name, bool 'player_is_mayor', bool
+            'player_is_admin', a list of 'questions' dicts of int 'id', str
+            'question', str 'player', str 'answer', a list of str 'players'
+            names, and a str 'role' for the player.
     """
     if game_id:
         (game_state, questions,
@@ -128,7 +128,9 @@ def parse_game_state(game_id, session_sid):
     for player_sid in player_sids:
         player = PLAYERS[player_sid]
         players[player.name] = {}
-        for token, count in player.tokens.items():
+        # TODO: Plumb in the token count from the game, not the player.tokens.items
+        for token, count in GAMES[game_id].get_player_token_count(
+                player_sid).items():
             players[player.name][token.value] = count
 
     game_state.update({
@@ -149,7 +151,10 @@ def parse_game_state(game_id, session_sid):
         game_state['mayor'] = PLAYERS[game_state['mayor']].name
     except KeyError:
         # No mayor is yet selected. and this is now a load-bearing string. :|
-        game_state['mayor'] = 'No Mayor yet elected'
+        # game_state['mayor'] = 'No Mayor yet elected'
+        game_state['mayor'] = None
+
+    game_state['admin'] = PLAYERS[GAMES[game_id].admin].name
 
     if session_sid in player_sids:
         game_state['role'] = str(player_sids[session_sid]).capitalize()
@@ -168,17 +173,31 @@ def get_question_info(question, id):
     }
 
 
-@app.route('/')
-def index():
+def username_taken(username, user_sid):
+    for player in PLAYERS:
+        if PLAYERS[player].name == username and player != user_sid:
+            return True
+    return False
+
+
+def check_session_config():
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     if 'username' not in session:
-        session['username'] = f'Not_a_wolf_{randint(1000,9999)}'
+        u = f'Not_a_wolf_{randint(1000,9999)}'
+        while username_taken(u, session['sid']):
+            u = f'Not_a_wolf_{randint(1000,9999)}'
+            app.logger.debug(f"{u} username taken, trying again")
+        session['username'] = u
         session['requesting_url'] = request.url
         return redirect(url_for('login'))
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
 
+
+@app.route('/')
+def index():
+    check_session_config()
     return render_template(
         'index.html.j2',
         games=list(GAMES),
@@ -187,7 +206,11 @@ def index():
 
 @app.route('/username', methods=['POST'])
 def username():
+    check_session_config()
     if request.method == 'POST' and request.form.get('username'):
+        if username_taken(request.form.get('username'), session['sid']):
+            flash(f'Username {request.form.get("username")} taken.')
+            return redirect(url_for('login'))
         if re.search(r'mayor', request.form.get('username').casefold()):
             flash('Cute, smartass.')
             if 'requesting_url' in session:
@@ -203,6 +226,7 @@ def username():
 @app.route('/join/<game_id>', strict_slashes=False)
 @app.route('/join?game_name=<game_id>', strict_slashes=False)
 def join_game(game_id):
+    check_session_config()
     app.logger.debug(f"{session['sid']} attempting to join {game_id}")
     if game_id in GAMES:
         GAMES[game_id].add_player(session['sid'])
@@ -214,6 +238,7 @@ def join_game(game_id):
 
 @app.route('/game/<game_id>')
 def game_index(game_id):
+    check_session_config()
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     if 'username' not in session:
@@ -250,6 +275,7 @@ def game_index(game_id):
 
 @app.route('/get_words/<game_id>')
 def get_words(game_id):
+    check_session_config()
     if game_id in GAMES:
         if GAMES[game_id].word:
             return None
@@ -267,6 +293,7 @@ def get_words(game_id):
 @app.route('/create', methods=['POST', 'GET'], strict_slashes=False)
 @app.route('/create/<game_id>', methods=['GET'], strict_slashes=False)
 def create_game(game_id: str = None):
+    check_session_config()
     if request.method == 'POST' and request.form['game_id']:
         app.logger.debug(f'POST method found: {request.form}')
         game_id = request.form['game_id']
@@ -277,16 +304,19 @@ def create_game(game_id: str = None):
     if game_id not in GAMES:
         app.logger.debug(f'{game_id} not found; creating')
         GAMES[game_id] = westwords.Game(player_sids=[session['sid']])
+
     return redirect(f'/join/{game_id}')
 
 
 @app.route('/login')
 def login():
+    check_session_config()
     return render_template('login.html')
 
 
 @app.route('/logout')
 def logout():
+    check_session_config()
     response = make_response(render_template('logout.html'))
     session.clear()
     response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
@@ -347,6 +377,7 @@ def add_question(game_id, question_text):
             emit('new_question', {'game_id': game_id,
                  'question_id': id}, room=game_id)
             app.logger.info(f'Successfully added question to {game_id}')
+            game_status(game_id)
             return True
 
     app.logger.error(f'Unable to add question for game {game_id}')
@@ -363,8 +394,12 @@ def get_question(game_id: str, question_id: int):
             'status': 'OK',
             'question': render_template(
                 'question_layout.html.j2',
-                question_object=get_question_info(question, question_id))
+                question_object=get_question_info(question, question_id),
+                player_is_mayor=GAMES[game_id].mayor == session['sid'],
+                game_id=game_id
+                )
         }
+    game_status(game_id)
     return {'status': 'FAILED', 'question': ''}
 
 
@@ -404,11 +439,12 @@ def answer_question(game_id, question_id, answer):
         return False
 
     # Question ID is basically just the index offset starting at 0
-    success, end_of_game = GAMES[game_id].answer_question(question_id,
+    error, end_of_game = GAMES[game_id].answer_question(question_id,
                                                           answer_token)
-    if not success:
+    if error:
+        # TODO: Move this to use a generic error raised with more info?
         socketio.emit('mayor_error',
-                      f'Out of {answer_token.value} tokens',
+                      error,
                       room=game_id)
         return False
 
@@ -427,10 +463,12 @@ def game_status(game_id: str):
         for player in GAMES[game_id].get_players():
             socketio.emit(
                 'game_state',
-                parse_game_state(game_id, session['sid']),
-                to=SOCKET_MAP[session['sid']],)
+                parse_game_state(game_id, player),
+                to=SOCKET_MAP[player])
 
 # Mayor functions
+
+
 @socketio.on('undo')
 def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')

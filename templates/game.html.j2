@@ -21,14 +21,14 @@
                 id="breadbox" onclick="askQuestion('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it bigger than a breadbox?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="nominate_for_mayor">Run for Mayor!</button></p>
-        {# {% if DEBUG %} #}
+        {% if DEBUG %}
         <b>DEBUGGING</b>
         <button onclick="get_game_state('{{ game_id }}')"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="get_game_state">Get game state</button>
         <div>Game state: <div style="display: inline;" id="game_state">{{game_state}}</div>
         </div>
-        {# {% endif %} #}
+        {% endif %}
         <div>
             Question: <input type="text" id="question">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
