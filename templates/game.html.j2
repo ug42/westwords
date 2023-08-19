@@ -48,7 +48,8 @@
     </div>
     <div id="questions_div">
         <!-- HTML provided from questions is already escaped. -->
-        {% for question_object in question_list -%}
+        {{ question_html }}
+        {# {% for question_object in question_list -%}
         <div>{{ question_object.player }}: {{ question_object.question }}
             <div id="q{{question_object.id}}a" style="display: inline">
                 {% if question_object.answer -%}
@@ -67,7 +68,7 @@
                 {%- endif %}
             </div>
         </div>
-        {%- endfor %}
+        {%- endfor %} #}
     </div>
     <div id="controls" hidden>
         {% if player_is_mayor %}
