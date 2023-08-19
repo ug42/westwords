@@ -1,5 +1,10 @@
 // TODO: add separate sockets for each of the game comms
 // TODO: Reload the page with the correct buttons appearing
+// TODO: Get the questions to show up with answers for other people after being answered
+// TODO: Fix it so the mayor error and admin error are closeable
+// TODO: Add the undo button for mayor
+// TODO: Add the game finish button after correct
+
 var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
 var local_time_skew = 0;
@@ -12,6 +17,7 @@ function close_dialog() {
     dialog.close()
 }
 function answer(game_id, id, answer) {
+    console.log('Attempting to answer question ' + id)
     socket.emit('answer_question', game_id, id, answer);
 }
 function sendWord(game_id, word) {
@@ -39,22 +45,27 @@ function send_reset_req() {
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_reset', local_game_state.game_id);
 }
-socket.on('game_state', function(state) {
-    local_game_state = state;
-    refresh_game_state(local_game_state);
+socket.on('game_state', function (state) {
+    // local_game_state = state;
+    console.log('Got a socket connection for game_state updates. Updating..')
+    console.log('Am I admin? ' + state.player_is_admin)
+    refresh_game_state(state);
+    // refresh_game_state(local_game_state);
 });
 
-function format_players(players) {
+function format_players(local_game_state) {
     let html = '';
-    for (const player in players) {
+    for (const player in local_game_state.players) {
         html += '<div>' + player
-        html += parse_tokens(players.player)
-        if (player === local_game_state.player_is_mayor) {
+        if (player === local_game_state.mayor) {
             html += ' (Mayor)';
         }
-        if (player === local_game_state.player_is_admin) {
+        if (player === local_game_state.admin) {
             html += ' [admin]';
         }
+        console.log('Parsing tokens for player: ' + player)
+        console.table(local_game_state.players)
+        html += parse_tokens(local_game_state.players[player])
         html += '</div>';
     }
     return html
@@ -69,7 +80,10 @@ function parse_tokens(tokens) {
         html += tokens.yesno;
         html += '">check_circle</div>';
     }
+    console.log('checkpoint 5')
+    console.log(tokens)
     if (typeof tokens.yes === 'number' && tokens.yes > 0) {
+        console.log('checkpoint 6')
         html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Yes" data-badge="';
         html += tokens.yes;
         html += '">check_circle</div>';
@@ -102,7 +116,7 @@ function parse_tokens(tokens) {
 }
 
 function game_started_buttons() {
-    console.log('Attempting to start game');
+    // console.log('Attempting to start game');
     // timer.start();
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = true;
@@ -145,21 +159,22 @@ function start_timer(timestamp) {
 }
 
 function refresh_game_state(g) {
+    console.log('Attempting to refresh game state')
     local_game_state = g;
-    console.table(local_game_state)
-    console.log('Refreshing game state')
     let proper_noun_btn = document.getElementById('proper_noun');
-    
+
     // TODO: Remove this or check to see if game_state is available
     let game_state = document.getElementById('game_state');
-    let mayor_tokens = document.getElementById('mayor_tokens');
-    let players = document.getElementById('players');
-    mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
     game_state.innerHTML = local_game_state.game_state;
-    players.innerHTML = format_players(local_game_state.players)
+
+    let mayor_tokens = document.getElementById('mayor_tokens');
+    mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
+
+    let players = document.getElementById('players');
+    players.innerHTML = format_players(local_game_state)
 
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
-    if (local_game_state.mayor !== 'No Mayor yet elected') {
+    if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
     } else {
         nominate_for_mayor_btn.hidden = false;
@@ -189,7 +204,7 @@ function refresh_game_state(g) {
                 dialog.showModal();
             }
         });
-    }   
+    }
 };
 
 // function timer_update(state, players, $section) {
@@ -241,16 +256,16 @@ ready(function () {
     // socket.on('game_state', function (g) {
     socket.on('game_start_rsp', game_start);
     socket.on('game_reset_rsp', game_reset);
-    socket.on('user_info', function(message) {
-        snackbarContainer.MaterialSnackbar.showSnackbar({message: message});
+    socket.on('user_info', function (message) {
+        snackbarContainer.MaterialSnackbar.showSnackbar({ message: message });
     });
 
-        
+
     socket.on('mayor_error', function (data) {
         if (local_game_state.player_is_mayor === true) {
             let dialog = document.querySelector('dialog');
             dialog.innerHTML = data;
-            
+
             dialog.showModal();
         }
     });

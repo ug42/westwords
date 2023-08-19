@@ -30,6 +30,7 @@ ROLES = {
     'werewolf': Werewolf(),
 }
 
+
 class GameError(Exception):
 
     def __init__(self, message):
@@ -203,9 +204,22 @@ class Game(object):
 
     def get_players_needing_to_target(self):
         return self.night_actions_required
-    
+
     def get_players(self):
         return self.player_sids
+
+    def get_player_token_count(self, player_sid):
+        if player_sid in self.player_token_count:
+            return self.player_token_count[player_sid]
+        return {
+            AnswerToken.YES: 0,
+            AnswerToken.NO: 0,
+            AnswerToken.MAYBE: 0,
+            AnswerToken.SO_CLOSE: 0,
+            AnswerToken.SO_FAR: 0,
+            AnswerToken.LARAMIE: 0,
+            AnswerToken.CORRECT: 0,
+        }
 
     def _start_day_phase(self):
         """Start the question-asking phase of game.
@@ -679,12 +693,18 @@ class Game(object):
             answer: An AnswerToken answer for the given question.
 
         Returns:
-            A tuple of booleans for successfully answering question and whether
+            A tuple of str error, if present, or None, and boolean for whether
             it is an end-of-game condition.
         """
         if (self.tokens[AnswerToken.CORRECT] <= 0 or
                 self.tokens[AnswerToken.YES] <= 0):
-            return False, True
+            return 'Last token played, Undo or Move to vote', True
+
+        print(self.questions[question_id].get_answer())
+        if self.questions[question_id].get_answer():
+            print('Unable to answer question since it returned on answer: %s' % 
+                  self.questions[question_id].get_answer())
+            return 'Question is already answered.', False
 
         if question_id < len(self.questions) and answer is not AnswerToken.NONE:
             success, end_of_game = self._remove_token(answer)
@@ -703,8 +723,8 @@ class Game(object):
                         AnswerToken.CORRECT: 0,
                     }
                 self.player_token_count[asking_player_sid][answer] += 1
-                return True, end_of_game
-        return False, False
+                return None, end_of_game
+        return 'Unknown exception encountered.', False
 
     def undo_answer(self):
         try:
