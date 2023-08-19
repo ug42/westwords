@@ -76,6 +76,7 @@ socketio = SocketIO(app)
 # TODO: Add user-specific (roles/controls) and game-specific
 # (players/spectators/game_state/etc) game state broadcasts and updates
 # TODO: Rate-limit the number of game state updates to 1/sec (ish)
+# TODO: Add ability of question asker to remove question if not answered
 
 
 SOCKET_MAP = {}
@@ -256,7 +257,7 @@ def game_index(game_id):
 
     return render_template(
         'game.html.j2',
-        question_list=game_state['questions'],
+        question_html=game_state['question_html'],
         players=game_state['players'],
         game_name=game_state['game_id'],
         game_state=game_state['game_state'],
