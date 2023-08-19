@@ -80,10 +80,7 @@ function parse_tokens(tokens) {
         html += tokens.yesno;
         html += '">check_circle</div>';
     }
-    console.log('checkpoint 5')
-    console.log(tokens)
     if (typeof tokens.yes === 'number' && tokens.yes > 0) {
-        console.log('checkpoint 6')
         html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Yes" data-badge="';
         html += tokens.yes;
         html += '">check_circle</div>';
@@ -135,8 +132,6 @@ function game_started_buttons() {
 function game_setup_buttons() {
     console.log('Attempting to reset game');
     // reset_game_timer(local_game_state.time);
-    let questions_div = document.getElementById('questions_div');
-    questions_div.innerHTML = '';
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
     let game_reset_btn = document.getElementById('game_reset');
@@ -172,6 +167,9 @@ function refresh_game_state(g) {
 
     let players = document.getElementById('players');
     players.innerHTML = format_players(local_game_state)
+
+    let questions_div = document.getElementById('questions_div');
+    questions_div.innerHTML = local_game_state.question_html;
 
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
@@ -274,20 +272,6 @@ ready(function () {
             let dialog = document.querySelector('dialog');
             dialog.innerHTML = data;
             dialog.showModal();
-        }
-    });
-    socket.on('new_question', function (rsp) {
-        console.log('Checkpoint 3');
-        if (local_game_state.game_id === rsp.game_id) {
-            socket.emit('get_question',
-                rsp.game_id, rsp.question_id,
-                (response) => {
-                    if (response.status === 'OK') {
-                        let questions_div = document.getElementById('questions_div');
-                        questions_div.innerHTML = response.question + questions_div.innerHTML;
-                    }
-                });
-            console.log('Checkpoint 3.5');
         }
     });
 

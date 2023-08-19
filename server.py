@@ -73,9 +73,6 @@ socketio = SocketIO(app)
 # TOP LEVEL TODOs
 # TODO: add spectate
 # TODO: game lock for players state
-# TODO: plumb game state reset functionality
-# TODO: Refreshing or getting local game state broadcasts that state for that
-# user to everyone. Fix it so it user-specific
 # TODO: Add user-specific (roles/controls) and game-specific
 # (players/spectators/game_state/etc) game state broadcasts and updates
 
@@ -98,8 +95,9 @@ def parse_game_state(game_id, session_sid):
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
             str 'mayor' name, str 'admin' name, bool 'player_is_mayor', bool
             'player_is_admin', a list of 'questions' dicts of int 'id', str
-            'question', str 'player', str 'answer', a list of str 'players'
-            names, and a str 'role' for the player.
+            'question', str 'player', str 'answer', a str 'question_html' of
+            formatted questions, a list of str 'players' names, and a str 'role'
+            for the player.
     """
     if game_id:
         (game_state, questions,
@@ -109,15 +107,17 @@ def parse_game_state(game_id, session_sid):
             timer=0, player_sids=[]).get_state(None)
 
     game_state['questions'] = []
+    game_state['question_html'] = ''
 
     for id, question in enumerate(questions):
-        get_question_info(question, id)
-        game_state['questions'].append({
-            'id': id,
-            'question': question.question_text,
-            'player': PLAYERS[question.player_sid].name,
-            'answer': question.get_answer(),
-        })
+        question_info = get_question_info(question, id)
+        game_state['questions'].append(question_info)
+        game_state['question_html'] = render_template(
+            'question_layout.html.j2',
+            question_object=question_info,
+            player_is_mayor=GAMES[game_id].mayor == session_sid,
+            game_id=game_id
+        ) + game_state['question_html']
     game_state['questions'].reverse()
 
     required_voters = GAMES[game_id].get_required_voters()
@@ -363,16 +363,13 @@ def disconnect():
 def add_question(game_id, question_text):
     if game_id in GAMES:
         try:
-            success, id = GAMES[game_id].add_question(
+            success, _ = GAMES[game_id].add_question(
                 session['sid'], question_text)
         except GameError as e:
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')
             return False
         if success:
-            emit('new_question', {'game_id': game_id,
-                 'question_id': id}, room=game_id)
-            app.logger.info(f'Successfully added question to {game_id}')
             game_status(game_id)
             return True
 
