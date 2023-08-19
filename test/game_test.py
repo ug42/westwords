@@ -275,11 +275,11 @@ class testPlayerControlFunctions(unittest.TestCase):
         self.assertEqual(self.game.admin, 'baz')
 
     def testGetPlayerRoleFailure(self):
-        self.game = GameClass(timer=300, player_sids=['foo', 'bar'])
+        self.game = GameClass(timer=300, player_sids=['foo', 'bar', 'baz'])
         self.assertIsNone(self.game.get_player_role('foo'))
 
     def testGetPlayerRoleSuccess(self):
-        self.game = GameClass(timer=300, player_sids=['foo', 'bar'])
+        self.game = GameClass(timer=300, player_sids=['foo', 'bar', 'baz'])
         self.game.start_night_phase_word_choice()
         self.assertTrue(self.game.get_player_role('bar'))
 
@@ -324,29 +324,29 @@ class testQuestionFunctions(unittest.TestCase):
 
     def testAnswerQuestion(self):
         self.game.add_question('foo', 'Am I wrong?')
-        success, end_of_game = self.game.answer_question(0, AnswerToken.NO)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(0, AnswerToken.NO)
+        self.assertIsNone(error)
         self.assertFalse(end_of_game)
         self.game.add_question('foo', 'Am I wrong?')
-        success, end_of_game = self.game.answer_question(2, AnswerToken.MAYBE)
-        self.assertFalse(success)
+        error, end_of_game = self.game.answer_question(2, AnswerToken.MAYBE)
+        self.assertEqual(error, 'Unknown question or other error encountered.')
         self.assertFalse(end_of_game)
-        success, end_of_game = self.game.answer_question(1, AnswerToken.CORRECT)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(1, AnswerToken.CORRECT)
+        self.assertIsNone(error)
         self.assertTrue(end_of_game)
         self.game.add_question('foo', 'Am I wrong?')
-        success, end_of_game = self.game.answer_question(2, AnswerToken.YES)
-        self.assertFalse(success)
+        error, end_of_game = self.game.answer_question(2, AnswerToken.YES)
+        self.assertEqual(error, 'Last token played, Undo or Move to vote')
         self.assertTrue(end_of_game)
 
     def testUndoAnswer(self):
         self.game.add_question('foo', 'Am I wrong?')
-        success, end_of_game = self.game.answer_question(0, AnswerToken.CORRECT)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(0, AnswerToken.CORRECT)
+        self.assertIsNone(error)
         self.assertTrue(end_of_game)
         self.game.undo_answer()
-        success, end_of_game = self.game.answer_question(0, AnswerToken.YES)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(0, AnswerToken.YES)
+        self.assertIsNone(error)
         self.assertFalse(end_of_game)
 
 

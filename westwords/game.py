@@ -700,31 +700,29 @@ class Game(object):
                 self.tokens[AnswerToken.YES] <= 0):
             return 'Last token played, Undo or Move to vote', True
 
-        print(self.questions[question_id].get_answer())
-        if self.questions[question_id].get_answer():
-            print('Unable to answer question since it returned on answer: %s' % 
-                  self.questions[question_id].get_answer())
-            return 'Question is already answered.', False
+        if question_id < len(self.questions):
+            if self.questions[question_id].get_answer():
+                return 'Question is already answered.', False
 
-        if question_id < len(self.questions) and answer is not AnswerToken.NONE:
-            success, end_of_game = self._remove_token(answer)
-            if success:
-                asking_player_sid = self.questions[question_id].player_sid
-                self.questions[question_id].answer_question(answer)
-                self.last_answered = question_id
-                if asking_player_sid not in self.player_token_count:
-                    self.player_token_count[asking_player_sid] = {
-                        AnswerToken.YES: 0,
-                        AnswerToken.NO: 0,
-                        AnswerToken.MAYBE: 0,
-                        AnswerToken.SO_CLOSE: 0,
-                        AnswerToken.SO_FAR: 0,
-                        AnswerToken.LARAMIE: 0,
-                        AnswerToken.CORRECT: 0,
-                    }
-                self.player_token_count[asking_player_sid][answer] += 1
-                return None, end_of_game
-        return 'Unknown exception encountered.', False
+            if answer is not AnswerToken.NONE:
+                success, end_of_game = self._remove_token(answer)
+                if success:
+                    asking_player_sid = self.questions[question_id].player_sid
+                    self.questions[question_id].answer_question(answer)
+                    self.last_answered = question_id
+                    if asking_player_sid not in self.player_token_count:
+                        self.player_token_count[asking_player_sid] = {
+                            AnswerToken.YES: 0,
+                            AnswerToken.NO: 0,
+                            AnswerToken.MAYBE: 0,
+                            AnswerToken.SO_CLOSE: 0,
+                            AnswerToken.SO_FAR: 0,
+                            AnswerToken.LARAMIE: 0,
+                            AnswerToken.CORRECT: 0,
+                        }
+                    self.player_token_count[asking_player_sid][answer] += 1
+                    return None, end_of_game
+        return 'Unknown question or other error encountered.', False
 
     def undo_answer(self):
         try:

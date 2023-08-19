@@ -129,30 +129,29 @@ class testWestwordsFunctional(unittest.TestCase):
         with self.assertRaises(GameError):
             self.game.add_question('mason1', 'How can this be?')
         # Assure we can't answer a question that doesn't yet exist
-        success, end_of_game = self.game.answer_question(0, AnswerToken.NONE)
-        self.assertFalse(success)
+        error, end_of_game = self.game.answer_question(0, AnswerToken.NONE)
+        self.assertEqual(error, 'Unknown question or other error encountered.')
         self.assertFalse(end_of_game)
 
         success, id = self.game.add_question(
             'mason2', 'Am I the first question?')
         self.assertTrue(success)
         self.assertEqual(id, 0)
-        success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(id, AnswerToken.YES)
+        self.assertIsNone(error)
         self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
         self.assertTrue(success)
         self.assertEqual(id, 1)
-        success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
-        self.assertTrue(success)
+        error, end_of_game = self.game.answer_question(id, AnswerToken.NO)
+        self.assertIsNone(error)
         self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('villager', 'Chimpanzee?')
         self.assertTrue(success)
         self.assertEqual(id, 2)
-        success, end_of_game = self.game.answer_question(
-            id, AnswerToken.CORRECT)
+        error, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
         self.assertTrue(success)
         self.assertTrue(end_of_game)
 

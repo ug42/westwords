@@ -362,8 +362,6 @@ def disconnect():
 @socketio.on('question')
 def add_question(game_id, question_text):
     if game_id in GAMES:
-        app.logger.debug(f'Found game: {game_id}')
-        app.logger.debug(f'Listed user: {session["sid"]}')
         try:
             success, id = GAMES[game_id].add_question(
                 session['sid'], question_text)
@@ -371,8 +369,6 @@ def add_question(game_id, question_text):
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')
             return False
-        app.logger.debug(f'Success of adding question: {success}')
-        app.logger.debug(f'Id of added question: {id}')
         if success:
             emit('new_question', {'game_id': game_id,
                  'question_id': id}, room=game_id)
@@ -399,7 +395,6 @@ def get_question(game_id: str, question_id: int):
                 game_id=game_id
                 )
         }
-    game_status(game_id)
     return {'status': 'FAILED', 'question': ''}
 
 
@@ -466,9 +461,8 @@ def game_status(game_id: str):
                 parse_game_state(game_id, player),
                 to=SOCKET_MAP[player])
 
+
 # Mayor functions
-
-
 @socketio.on('undo')
 def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
