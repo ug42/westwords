@@ -75,6 +75,7 @@ socketio = SocketIO(app)
 # TODO: game lock for players state
 # TODO: Add user-specific (roles/controls) and game-specific
 # (players/spectators/game_state/etc) game state broadcasts and updates
+# TODO: Rate-limit the number of game state updates to 1/sec (ish)
 
 
 SOCKET_MAP = {}
@@ -94,10 +95,8 @@ def parse_game_state(game_id, session_sid):
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
             str 'mayor' name, str 'admin' name, bool 'player_is_mayor', bool
-            'player_is_admin', a list of 'questions' dicts of int 'id', str
-            'question', str 'player', str 'answer', a str 'question_html' of
-            formatted questions, a list of str 'players' names, and a str 'role'
-            for the player.
+            'player_is_admin', a str 'question_html' of formatted questions, a
+            list of str 'players' names, and a str 'role' for the player.
     """
     if game_id:
         (game_state, questions,
@@ -106,19 +105,19 @@ def parse_game_state(game_id, session_sid):
         (game_state, questions, player_sids) = westwords.Game(
             timer=0, player_sids=[]).get_state(None)
 
-    game_state['questions'] = []
+    # game_state['questions'] = []
     game_state['question_html'] = ''
 
     for id, question in enumerate(questions):
         question_info = get_question_info(question, id)
-        game_state['questions'].append(question_info)
+        # game_state['questions'].append(question_info)
         game_state['question_html'] = render_template(
             'question_layout.html.j2',
             question_object=question_info,
             player_is_mayor=GAMES[game_id].mayor == session_sid,
             game_id=game_id
         ) + game_state['question_html']
-    game_state['questions'].reverse()
+    # game_state['questions'].reverse()
 
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()

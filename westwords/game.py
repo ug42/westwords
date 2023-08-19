@@ -705,23 +705,26 @@ class Game(object):
                 return 'Question is already answered.', False
 
             if answer is not AnswerToken.NONE:
+                
                 success, end_of_game = self._remove_token(answer)
-                if success:
-                    asking_player_sid = self.questions[question_id].player_sid
-                    self.questions[question_id].answer_question(answer)
-                    self.last_answered = question_id
-                    if asking_player_sid not in self.player_token_count:
-                        self.player_token_count[asking_player_sid] = {
-                            AnswerToken.YES: 0,
-                            AnswerToken.NO: 0,
-                            AnswerToken.MAYBE: 0,
-                            AnswerToken.SO_CLOSE: 0,
-                            AnswerToken.SO_FAR: 0,
-                            AnswerToken.LARAMIE: 0,
-                            AnswerToken.CORRECT: 0,
-                        }
-                    self.player_token_count[asking_player_sid][answer] += 1
-                    return None, end_of_game
+                if not success:
+                    return f"Out of {answer.name} tokens", end_of_game
+                                
+                asking_player_sid = self.questions[question_id].player_sid
+                self.questions[question_id].answer_question(answer)
+                self.last_answered = question_id
+                if asking_player_sid not in self.player_token_count:
+                    self.player_token_count[asking_player_sid] = {
+                        AnswerToken.YES: 0,
+                        AnswerToken.NO: 0,
+                        AnswerToken.MAYBE: 0,
+                        AnswerToken.SO_CLOSE: 0,
+                        AnswerToken.SO_FAR: 0,
+                        AnswerToken.LARAMIE: 0,
+                        AnswerToken.CORRECT: 0,
+                    }
+                self.player_token_count[asking_player_sid][answer] += 1
+                return None, end_of_game
         return 'Unknown question or other error encountered.', False
 
     def undo_answer(self):

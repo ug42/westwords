@@ -46,11 +46,8 @@ function send_reset_req() {
     socket.emit('game_reset', local_game_state.game_id);
 }
 socket.on('game_state', function (state) {
-    // local_game_state = state;
     console.log('Got a socket connection for game_state updates. Updating..')
-    console.log('Am I admin? ' + state.player_is_admin)
     refresh_game_state(state);
-    // refresh_game_state(local_game_state);
 });
 
 function format_players(local_game_state) {
@@ -251,7 +248,6 @@ ready(function () {
         console.log('Socket disconnected.');
         console.log(data);
     });
-    // socket.on('game_state', function (g) {
     socket.on('game_start_rsp', game_start);
     socket.on('game_reset_rsp', game_reset);
     socket.on('user_info', function (message) {
