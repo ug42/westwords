@@ -166,7 +166,7 @@ class Seer(Role):
         super().__init__(doppelganger=doppelganger)
         self.description = """
         Village-aligned but sees the word. If the Werewolves find and choose to
-        execute this player after the Village teams guesses the word, the
+        execute this player after the Village team guesses the word, the
         Werewolf team wins.
         """
         self.required = True

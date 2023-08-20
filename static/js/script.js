@@ -58,14 +58,12 @@ function format_players(local_game_state) {
     let html = '';
     for (const player in local_game_state.players) {
         html += '<div>' + player
+        if (player === local_game_state.admin) {
+            html = '<b>' + html + '</b>';
+        }
         if (player === local_game_state.mayor) {
             html += ' (Mayor)';
         }
-        if (player === local_game_state.admin) {
-            html += ' [admin]';
-        }
-        console.log('Parsing tokens for player: ' + player)
-        console.table(local_game_state.players)
         html += parse_tokens(local_game_state.players[player])
         html += '</div>';
     }
@@ -124,10 +122,6 @@ function game_started_buttons() {
     proper_noun_btn.hidden = false;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = false;
-    if (local_game_state.player_is_mayor) {
-        let mayor_controls = document.getElementById('controls');
-        mayor_controls.hidden = false;
-    }
 }
 
 function game_setup_buttons() {
@@ -141,8 +135,8 @@ function game_setup_buttons() {
     proper_noun_btn.hidden = true;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = true;
-    // let mayor_controls = document.getElementById('controls');
-    // mayor_controls.hidden = true;
+    let mayor_controls = document.getElementById('mayor_controls');
+    mayor_controls.hidden = true;
 }
 
 function get_time_skew(server_timestamp) {
@@ -157,7 +151,6 @@ function start_timer(timestamp) {
 function refresh_game_state(g) {
     console.log('Attempting to refresh game state')
     local_game_state = g;
-    let proper_noun_btn = document.getElementById('proper_noun');
 
     // TODO: Remove this or check to see if game_state is available
     let game_state = document.getElementById('game_state');
@@ -196,12 +189,24 @@ function refresh_game_state(g) {
             }
         });
     }
+    if (local_game_state.game_state === 'VOTING') {
+        socket.emit('get_voting_page', local_game_state.game_id, (response) => {
+            let dialog = document.querySelector('dialog');
+            if (response.status === 'OK') {
+                dialog.innerHTML = response.reveal_html;
+                dialog.showModal();
+            }
+        });
+    }
     if (local_game_state.player_is_mayor) {
         let finish_btn = document.getElementById('finish');
+        let mayor_controls = document.getElementById('mayor_controls');
         if (local_game_state.game_state === 'AWAITING_VOTE') {
+            mayor_controls.hidden = false;
             finish_btn.hidden = false;
         }
         if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
+            mayor_controls.hidden = false;
             finish_btn.hidden = true;
         }
         if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE') {

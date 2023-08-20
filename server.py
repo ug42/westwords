@@ -470,6 +470,7 @@ def undo(game_id: str):
 
 @socketio.on('start_vote')
 def start_vote(game_id: str):
+    app.logger.debug('Attempting to start vote. Surely this won\'t fail.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
         if not success:
@@ -602,10 +603,39 @@ def get_player_revealed_information(game_id: str):
                 'player_reveal.html.j2',
                 known_players=known_players,
                 known_word=known_word,
+                word_is_known=known_word is not None,
             ),
         }
     return {'success': False, 'role': None}
 
+@socketio.on('get_voting_page')
+def get_voting_information(game_id: str):
+    if (game_id in GAMES and session['sid']):
+        voting_players, word_guessed, candidates = GAMES[game_id].voting_info()
+        if not voting_players:
+            emit('mayor_error', f'No voting players found for game {game_id}')
+            return
+        
+        if word_guessed:
+            voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
+                           'Teller!')
+        else:
+            voting_text = ('Everyone! Find a Werewolf or Minion!')
+            
+        app.logger.debug(f'Attempting to generate voting list for session.')
+        # TODO: Make this so it displays all players voting and who we're
+        # waiting on. Should probably get all players so we can see who has and
+        # hasn't voted.
+        return {
+            'status': 'OK',
+            'voting_html': render_template(
+                'voting.html.j2',
+                voting_text=voting_text,
+                candidates=candidates,
+                voting_players=voting_players,                
+            ),
+        }
+    return {'success': False, 'role': None}
 
 @socketio.on('set_word')
 def set_word(game_id: str, word: str):

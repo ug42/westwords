@@ -1,0 +1,18 @@
+                {# 'voting.html.j2',
+                voting_text=voting_text,
+                candidates=candidates,
+                voting_players=voting_players,  #}
+{# TODO: set this up to display voting options with javascript functions to send the vote info #}
+<div class="mdl-dialog__content">
+    {{voting_text}}
+</div>
+<div class="mdl-dialog__actions mdl-dialog__actions--full-width">
+    {% if word_is_known %} Word: <b>{{known_word}}</b><br> {% endif %}
+    {% for p in known_players %}
+    <br>Player: {{ p.name }}  role: {{ p.role }}
+    {% endfor %}
+    <button type="button" class="mdl-button close" onclick="ackReveal()">OK</button>
+</div>
+<div class="mdl-dialog__content">
+  Players needing to vote: {% for v in voting_players %} {{v}}, {% endfor %}
+</div>

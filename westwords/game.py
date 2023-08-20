@@ -179,6 +179,21 @@ class Game(object):
             return []
         return self.reveal_ack_required
 
+    def voting_info(self):
+        """Returns voting options.
+
+        Returns:
+            A list of str player SIDs that are required to vote, a bool whether
+            word was guessed, and a list of possible targets."""
+        if self.game_state != GameState.VOTING:
+            if self.word_guessed:
+                candidates = [p for p in self.player_sids
+                              if str(self.player_sids[p]) != str(Werewolf)]
+            else:
+                candidates = self.player_sids
+            return self.required_voters, self.word_guessed, candidates
+        return None, None
+
     def set_player_target(self, player_sid, target_sid):
         """Set the target of player's night action.
 

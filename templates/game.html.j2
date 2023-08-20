@@ -49,14 +49,12 @@
     <div id="questions_div">
         {{ question_html }}
     </div>
-    <div id="controls">
-        {% if player_is_mayor %}
+    <div hidden id="mayor_controls">
         <b>Mayor controls</b>
-        <button click="undoAnswer({{ game_id }})"
+        <button onclick="undoAnswer('{{ game_id }}')"
             class="mdl-button" id="undo">Undo last answer</button>
-        <button click="startVote({{ game_id }})"
+        <button onclick="startVote('{{ game_id }}')"
             class="mdl-button" id="finish" hidden>Finish Game/Start Vote</button>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
