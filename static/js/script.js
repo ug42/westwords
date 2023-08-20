@@ -36,6 +36,10 @@ function askQuestion(game_id, question) {
 function undoAnswer(game_id) {
     socket.emit('undo', game_id);
 }
+function startVote(game_id) {
+    console.log('Attempting to start vote.')
+    socket.emit('start_vote', game_id)
+}
 function send_start_req() {
     console.log('Attempting to start');
     console.log('Start timer for game: ' + local_game_state.game_id);
@@ -182,15 +186,7 @@ function refresh_game_state(g) {
     } else {
         game_started_buttons();
     }
-    if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE' && local_game_state.player_is_mayor) {
-        socket.emit('get_words', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
-            if (response.status === 'OK') {
-                dialog.innerHTML = response.word_html;
-                dialog.showModal();
-            }
-        });
-    }
+
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
@@ -199,6 +195,24 @@ function refresh_game_state(g) {
                 dialog.showModal();
             }
         });
+    }
+    if (local_game_state.player_is_mayor) {
+        let finish_btn = document.getElementById('finish');
+        if (local_game_state.game_state === 'AWAITING_VOTE') {
+            finish_btn.hidden = false;
+        }
+        if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
+            finish_btn.hidden = true;
+        }
+        if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE') {
+            socket.emit('get_words', local_game_state.game_id, (response) => {
+                let dialog = document.querySelector('dialog');
+                if (response.status === 'OK') {
+                    dialog.innerHTML = response.word_html;
+                    dialog.showModal();
+                }
+            });
+        }
     }
 };
 

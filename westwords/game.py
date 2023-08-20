@@ -255,29 +255,26 @@ class Game(object):
         for player_sid in self.player_sids:
             self.player_sids[player_sid] = None
 
-    def start_vote(self, word_guessed: bool):
+    def start_vote(self):
         """Start the voting process.
-
-        Args: 
-            word_guessed: Boolean for whether the word was successfully guessed.
 
         Returns:
             True if voting state successfully; False otherwise.
         """
-        self.word_guessed = word_guessed
+        self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
         elapsed_time = (datetime.now() - self.start_time).seconds
-        if elapsed_time < self.timer and not word_guessed:
+        if elapsed_time < self.timer and not self.word_guessed:
             logging.debug('End of game conditions not met.'
-                          f'Word guessed: {word_guessed}'
+                          f'Word guessed: {self.word_guessed}'
                           f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
             return False
 
-        if self.game_state != GameState.DAY_PHASE_QUESTIONS:
+        if self.game_state != GameState.AWAITING_VOTE:
             logging.debug(
-                f'Current game state {self.game_state} is not DAY_PHASE_QUESTIONS.')
+                f'Current game state {self.game_state} is not AWAITING_VOTE.')
             return False
 
-        if word_guessed:
+        if self.word_guessed:
             for player_sid in self.player_sids:
                 if self.player_sids[player_sid].votes_on_guessed_word:
                     self.required_voters.append(player_sid)
@@ -297,7 +294,10 @@ class Game(object):
         return False
 
     def is_started(self):
-        return self.game_state == GameState.DAY_PHASE_QUESTIONS
+        return self.game_state in [
+            GameState.DAY_PHASE_QUESTIONS,
+            GameState.AWAITING_VOTE,
+        ]
 
     def is_voting(self):
         return self.game_state == GameState.VOTING
@@ -693,23 +693,22 @@ class Game(object):
             answer: An AnswerToken answer for the given question.
 
         Returns:
-            A tuple of str error, if present, or None, and boolean for whether
-            it is an end-of-game condition.
+            Str error, if present, or None otherwise.
         """
         if (self.tokens[AnswerToken.CORRECT] <= 0 or
                 self.tokens[AnswerToken.YES] <= 0):
-            return 'Last token played, Undo or Move to vote', True
+            return 'Last token played, Undo or Move to vote'
 
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
-                return 'Question is already answered.', False
+                return 'Question is already answered.'
 
             if answer is not AnswerToken.NONE:
-                
-                success, end_of_game = self._remove_token(answer)
+
+                success = self._remove_token(answer)
                 if not success:
-                    return f"Out of {answer.name} tokens", end_of_game
-                                
+                    return f"Out of {answer.name} tokens"
+
                 asking_player_sid = self.questions[question_id].player_sid
                 self.questions[question_id].answer_question(answer)
                 self.last_answered = question_id
@@ -724,8 +723,8 @@ class Game(object):
                         AnswerToken.CORRECT: 0,
                     }
                 self.player_token_count[asking_player_sid][answer] += 1
-                return None, end_of_game
-        return 'Unknown question or other error encountered.', False
+                return None
+        return 'Unknown question or other error encountered.'
 
     def undo_answer(self):
         try:
@@ -737,35 +736,39 @@ class Game(object):
                 self._add_token(token)
                 self.player_token_count[question.player_sid][token] -= 1
                 self.last_answered = None
-                return
+                self.game_state = GameState.DAY_PHASE_QUESTIONS
+                return True
         except (TypeError, KeyError) as e:
             logging.error(f'Encountered error: {e}')
         logging.debug(
             f'No answer to undo for question id: {self.last_answered}')
+        return False
 
     def _add_token(self, token: AnswerToken):
         self.tokens[token] += 1
 
     def _remove_token(self, token: AnswerToken):
-        """Decrement the token counter
+        """Decrement the token counter and evaluate/set end of game status.
 
         Args:
             token: An AnswerToken object for the token to decrement.
 
         Returns:
-            A tuple of bools indicating successfully removing a token, and
-            whether that marks the end of the game.
+            A tuple of bools indicating successfully removing a token.
         """
         if self.tokens[token] > 0:
             if token in [AnswerToken.NO, AnswerToken.YES]:
                 self.tokens[AnswerToken.NO] -= 1
                 self.tokens[AnswerToken.YES] -= 1
                 if self.tokens[token] < 1:
-                    return (True, True)
+                    self.game_state = GameState.AWAITING_VOTE
+                    return True
+
             else:
                 self.tokens[token] -= 1
                 if token == AnswerToken.CORRECT:
-                    return (True, True)
-            return (True, False)
+                    self.game_state = GameState.AWAITING_VOTE
+                    return True
+            return True
 
-        return (False, False)
+        return False

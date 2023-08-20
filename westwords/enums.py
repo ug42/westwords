@@ -9,6 +9,7 @@ class GameState(Enum):
     # Reveal all known roles and words or word portions
     NIGHT_PHASE_REVEAL = auto()
     DAY_PHASE_QUESTIONS = auto()
+    AWAITING_VOTE = auto()
     VOTING = auto()
     FINISHED = auto()
 

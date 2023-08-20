@@ -84,15 +84,15 @@ class testGameFunctions(unittest.TestCase):
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(1)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
-        self.game.game_state = GameState.DAY_PHASE_QUESTIONS
-        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.game.game_state = GameState.AWAITING_VOTE
+        self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(),
                               ['foo', 'bar', 'baz', 'xxx'])
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(100)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
-        self.game.game_state = GameState.DAY_PHASE_QUESTIONS
-        self.assertEqual(self.game.start_vote(word_guessed=False), False)
+        self.game.game_state = GameState.AWAITING_VOTE
+        self.assertEqual(self.game.start_vote(), False)
 
     def testGetResults(self):
         self.assertIsNone(self.game.get_results())
@@ -324,30 +324,28 @@ class testQuestionFunctions(unittest.TestCase):
 
     def testAnswerQuestion(self):
         self.game.add_question('foo', 'Am I wrong?')
-        error, end_of_game = self.game.answer_question(0, AnswerToken.NO)
+        error = self.game.answer_question(0, AnswerToken.NO)
         self.assertIsNone(error)
-        self.assertFalse(end_of_game)
         self.game.add_question('foo', 'Am I wrong?')
-        error, end_of_game = self.game.answer_question(2, AnswerToken.MAYBE)
+        error = self.game.answer_question(2, AnswerToken.MAYBE)
         self.assertEqual(error, 'Unknown question or other error encountered.')
-        self.assertFalse(end_of_game)
-        error, end_of_game = self.game.answer_question(1, AnswerToken.CORRECT)
+        error = self.game.answer_question(1, AnswerToken.CORRECT)
         self.assertIsNone(error)
-        self.assertTrue(end_of_game)
+        self.assertEqual(self.game.game_state, GameState.AWAITING_VOTE)
         self.game.add_question('foo', 'Am I wrong?')
-        error, end_of_game = self.game.answer_question(2, AnswerToken.YES)
+        error = self.game.answer_question(2, AnswerToken.YES)
         self.assertEqual(error, 'Last token played, Undo or Move to vote')
-        self.assertTrue(end_of_game)
+        self.assertEqual(self.game.game_state, GameState.AWAITING_VOTE)
 
     def testUndoAnswer(self):
         self.game.add_question('foo', 'Am I wrong?')
-        error, end_of_game = self.game.answer_question(0, AnswerToken.CORRECT)
+        error = self.game.answer_question(0, AnswerToken.CORRECT)
         self.assertIsNone(error)
-        self.assertTrue(end_of_game)
+        self.assertEqual(self.game.game_state, GameState.AWAITING_VOTE)
         self.game.undo_answer()
-        error, end_of_game = self.game.answer_question(0, AnswerToken.YES)
+        error = self.game.answer_question(0, AnswerToken.YES)
         self.assertIsNone(error)
-        self.assertFalse(end_of_game)
+        self.assertEqual(self.game.game_state, GameState.DAY_PHASE_QUESTIONS)
 
 
 class testWestwordsInteraction(unittest.TestCase):
@@ -356,14 +354,14 @@ class testWestwordsInteraction(unittest.TestCase):
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(1)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
-        self.game.game_state = GameState.DAY_PHASE_QUESTIONS
+        self.game.game_state = GameState.AWAITING_VOTE
         self.game.player_sids['foo'] = Villager()
         self.game.player_sids['bar'] = Villager()
         self.game.player_sids['baz'] = Seer()
         self.game.player_sids['xxx'] = Werewolf()
 
     def testWerewolfWinWordNotGuessed(self):
-        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), self.player_sids)
         self.assertTrue(self.game.vote('xxx', 'bar'))
         self.assertTrue(self.game.vote('foo', 'bar'))
@@ -381,7 +379,7 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(expected_votes, votes)
 
     def testVillageWinWordNotGuessed(self):
-        self.assertTrue(self.game.start_vote(word_guessed=False))
+        self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), self.player_sids)
         self.assertTrue(self.game.vote('xxx', 'bar'))
         self.assertTrue(self.game.vote('foo', 'xxx'))
@@ -399,7 +397,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(expected_votes, votes)
 
     def testWerewolfWinWordGuessed(self):
-        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.game._remove_token(AnswerToken.CORRECT)
+        self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'baz'))
         winner, killed, votes = self.game.get_results()
@@ -408,7 +407,8 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertEqual(votes, {'xxx': 'baz'})
 
     def testVillageWinWordGuessed(self):
-        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.game._remove_token(AnswerToken.CORRECT)
+        self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'bar'))
         winner, killed, votes = self.game.get_results()

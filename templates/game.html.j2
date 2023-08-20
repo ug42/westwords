@@ -47,35 +47,15 @@
         </p>
     </div>
     <div id="questions_div">
-        <!-- HTML provided from questions is already escaped. -->
         {{ question_html }}
-        {# {% for question_object in question_list -%}
-        <div>{{ question_object.player }}: {{ question_object.question }}
-            <div id="q{{question_object.id}}a" style="display: inline">
-                {% if question_object.answer -%}
-                {{ question_object.answer }}
-                {%- else -%}
-                {% if player_is_mayor -%}
-                <div style="display: inline">
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')">Yes</button>
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')">No</button>
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'maybe')">Maybe</button>
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_close')">So Close</button>
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_far')">Very far off</button>
-                    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'correct')">Correct!</button>
-                </div>
-                {%- endif %}
-                {%- endif %}
-            </div>
-        </div>
-        {%- endfor %} #}
     </div>
-    <div id="controls" hidden>
+    <div id="controls">
         {% if player_is_mayor %}
         <b>Mayor controls</b>
         <button click="undoAnswer({{ game_id }})"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="undo">Undo
-            last answer</button>
+            class="mdl-button" id="undo">Undo last answer</button>
+        <button click="startVote({{ game_id }})"
+            class="mdl-button" id="finish" hidden>Finish Game/Start Vote</button>
         {% endif %}
     </div>
 </div>

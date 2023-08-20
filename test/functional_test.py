@@ -129,33 +129,29 @@ class testWestwordsFunctional(unittest.TestCase):
         with self.assertRaises(GameError):
             self.game.add_question('mason1', 'How can this be?')
         # Assure we can't answer a question that doesn't yet exist
-        error, end_of_game = self.game.answer_question(0, AnswerToken.NONE)
+        error = self.game.answer_question(0, AnswerToken.NONE)
         self.assertEqual(error, 'Unknown question or other error encountered.')
-        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question(
             'mason2', 'Am I the first question?')
         self.assertTrue(success)
         self.assertEqual(id, 0)
-        error, end_of_game = self.game.answer_question(id, AnswerToken.YES)
+        error = self.game.answer_question(id, AnswerToken.YES)
         self.assertIsNone(error)
-        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
         self.assertTrue(success)
         self.assertEqual(id, 1)
-        error, end_of_game = self.game.answer_question(id, AnswerToken.NO)
+        error = self.game.answer_question(id, AnswerToken.NO)
         self.assertIsNone(error)
-        self.assertFalse(end_of_game)
 
         success, id = self.game.add_question('villager', 'Chimpanzee?')
         self.assertTrue(success)
         self.assertEqual(id, 2)
-        error, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
+        error = self.game.answer_question(id, AnswerToken.CORRECT)
         self.assertTrue(success)
-        self.assertTrue(end_of_game)
 
-        self.assertTrue(self.game.start_vote(word_guessed=True))
+        self.assertTrue(self.game.start_vote())
         self.assertEqual(self.game.game_state, GameState.VOTING)
         self.assertEqual(self.game.get_required_voters(),
                          ['werewolf1', 'werewolf2'])

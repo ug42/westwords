@@ -50,10 +50,11 @@
 # self.game.game_status == GameState.SETUP
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 from random import choice, randint
 from string import ascii_uppercase
+from time import sleep
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
@@ -77,6 +78,10 @@ socketio = SocketIO(app)
 # (players/spectators/game_state/etc) game state broadcasts and updates
 # TODO: Rate-limit the number of game state updates to 1/sec (ish)
 # TODO: Add ability of question asker to remove question if not answered
+# TODO: Add ability to kick players
+# TODO: Add ability to make others admin
+# TODO: Add admin rights succession
+# TODO: Add voting for
 
 
 SOCKET_MAP = {}
@@ -84,6 +89,10 @@ SOCKET_MAP = {}
 PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {}
+# I have no idea what I'm doing.
+MAX_GAME_STATE_REFRESH_RATE = timedelta(seconds=3)
+LAST_UPDATE_TIME = datetime.now()
+GAME_STATE_UPDATE_QUEUED = False
 
 
 def parse_game_state(game_id, session_sid):
@@ -106,19 +115,16 @@ def parse_game_state(game_id, session_sid):
         (game_state, questions, player_sids) = westwords.Game(
             timer=0, player_sids=[]).get_state(None)
 
-    # game_state['questions'] = []
     game_state['question_html'] = ''
 
     for id, question in enumerate(questions):
         question_info = get_question_info(question, id)
-        # game_state['questions'].append(question_info)
         game_state['question_html'] = render_template(
             'question_layout.html.j2',
             question_object=question_info,
             player_is_mayor=GAMES[game_id].mayor == session_sid,
             game_id=game_id
         ) + game_state['question_html']
-    # game_state['questions'].reverse()
 
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
@@ -150,8 +156,6 @@ def parse_game_state(game_id, session_sid):
         # Replace the mayor SID with name
         game_state['mayor'] = PLAYERS[game_state['mayor']].name
     except KeyError:
-        # No mayor is yet selected. and this is now a load-bearing string. :|
-        # game_state['mayor'] = 'No Mayor yet elected'
         game_state['mayor'] = None
 
     game_state['admin'] = PLAYERS[GAMES[game_id].admin].name
@@ -175,7 +179,8 @@ def get_question_info(question, id):
 
 def username_taken(username, user_sid):
     for player in PLAYERS:
-        if PLAYERS[player].name == username and player != user_sid:
+        if (PLAYERS[player].name.upper() == username.upper() and
+            player != user_sid):
             return True
     return False
 
@@ -379,8 +384,6 @@ def add_question(game_id, question_text):
 
 @socketio.on('get_question')
 def get_question(game_id: str, question_id: int):
-    # game_id = data['game_id']
-    # question_id = data['question_id']
     if game_id in GAMES and int(question_id) < len(GAMES[game_id].questions):
         question = GAMES[game_id].questions[question_id]
         return {
@@ -390,7 +393,7 @@ def get_question(game_id: str, question_id: int):
                 question_object=get_question_info(question, question_id),
                 player_is_mayor=GAMES[game_id].mayor == session['sid'],
                 game_id=game_id
-                )
+            )
         }
     return {'status': 'FAILED', 'question': ''}
 
@@ -431,19 +434,15 @@ def answer_question(game_id, question_id, answer):
         return False
 
     # Question ID is basically just the index offset starting at 0
-    error, end_of_game = GAMES[game_id].answer_question(question_id,
-                                                          answer_token)
+    error = GAMES[game_id].answer_question(question_id,
+                                           answer_token)
     if error:
         # TODO: Move this to use a generic error raised with more info?
         socketio.emit('mayor_error',
                       error,
                       room=game_id)
-        return False
+        return False        
 
-    if end_of_game:
-        socketio.emit('mayor_error',
-                      f'Last token played, Undo or Move to vote.',
-                      room=game_id)
     game_status(game_id)
 
 
@@ -451,6 +450,7 @@ def answer_question(game_id, question_id, answer):
 def game_status(game_id: str):
     app.logger.debug(
         f'Got game state request for {game_id} from {session["sid"]}')
+
     if game_id in GAMES:
         for player in GAMES[game_id].get_players():
             socketio.emit(
@@ -471,7 +471,12 @@ def undo(game_id: str):
 @socketio.on('start_vote')
 def start_vote(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
-        GAMES[game_id].start_vote()
+        success = GAMES[game_id].start_vote()
+        if not success:
+            emit('mayor_error',
+                f'Unable to finish game and start vote.')
+            return
+
         game_status(game_id)
 
 
