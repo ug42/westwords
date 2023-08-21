@@ -1,31 +1,11 @@
-                {# 'voting.html.j2',
-                voting_text=voting_text,
-                candidates=candidates,
-                voting_players=voting_players,  #}
-{# TODO: set this up to display voting options with javascript functions to send the vote info #}
 <div class="mdl-dialog__content">
     {{voting_text}}
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
     {% for c in candidates %}
-    <br>Player: {{ p.name }}  role: {{ p.role }}
+    <button type="button" class="mdl-button close" onclick="votePlayer('{{game_id}}', '{{c}}')">{{c}}</button>
     {% endfor %}
-    <button type="button" class="mdl-button close" onclick="ackReveal()">OK</button>
 </div>
 <div class="mdl-dialog__content">
   Players needing to vote: {% for v in voting_players %} {{v}}, {% endfor %}
-</div>
-
-
-
-<div class="mdl-dialog__actions mdl-dialog__actions--full-width">
-    {% for w in words %}
-    <button type="button" class="mdl-button close" onclick="sendWord('{{game_id}}', '{{w}}')">{{w}}</button>
-    {% endfor %}
-    <script>
-        var dialog = document.querySelector('dialog');
-        dialog.querySelector('.close').addEventListener('click', function () {
-            dialog.close();
-        });
-    </script>
 </div>

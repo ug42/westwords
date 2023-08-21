@@ -91,6 +91,12 @@ PLAYERS = {}
 # TODO: move this off to a backing store.
 GAMES = {}
 # I have no idea what I'm doing.
+# Ok, I have some idea what I'm doing, but I'm pretty sure it's dumb.
+# Ok, I mean it's well-intentioned. Like I don't want to keep spamming 50KB
+# socket info every 1/8th of a second because someone just keeps hitting a
+# button.
+# It's just that I don't quite know if this is the best way to actually
+# accomplish that. Y'know... rate-limiting the amount of game state updates.
 MAX_GAME_STATE_REFRESH_RATE = timedelta(seconds=3)
 LAST_UPDATE_TIME = datetime.now()
 GAME_STATE_UPDATE_QUEUED = False
@@ -113,6 +119,7 @@ def parse_game_state(game_id: str, session_sid: str):
         GAMES[None] = westwords.Game(timer=0, player_sids=[])
     (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
 
+
     game_state['question_html'] = ''
 
     for id, question in enumerate(questions):
@@ -132,7 +139,6 @@ def parse_game_state(game_id: str, session_sid: str):
     for player_sid in player_sids:
         player = PLAYERS[player_sid]
         players[player.name] = {}
-        # TODO: Plumb in the token count from the game, not the player.tokens.items
         for token, count in GAMES[game_id].get_player_token_count(
                 player_sid).items():
             players[player.name][token.value] = count
@@ -480,9 +486,6 @@ def answer_question(game_id: str, question_id: int, answer: str):
 
 @socketio.on('get_game_state')
 def game_status(game_id: str):
-    app.logger.debug(
-        f'Got game state request for {game_id} from {session["sid"]}')
-
     if game_id in GAMES:
         for player in GAMES[game_id].get_players():
             socketio.emit(
