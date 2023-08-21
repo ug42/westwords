@@ -552,6 +552,10 @@ class Game(object):
         Returns:
             True if successful; False otherwise.
         """
+        if self.game_state != GameState.SETUP:
+            logging.debug(
+                f'Player unable to join. Game in progress.')
+            return False
         if sid not in self.player_sids:
             self.player_sids[sid] = None
             if not self.admin:

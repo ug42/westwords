@@ -7,12 +7,25 @@
     {{voting_text}}
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
-    {% if word_is_known %} Word: <b>{{known_word}}</b><br> {% endif %}
-    {% for p in known_players %}
+    {% for c in candidates %}
     <br>Player: {{ p.name }}  role: {{ p.role }}
     {% endfor %}
     <button type="button" class="mdl-button close" onclick="ackReveal()">OK</button>
 </div>
 <div class="mdl-dialog__content">
   Players needing to vote: {% for v in voting_players %} {{v}}, {% endfor %}
+</div>
+
+
+
+<div class="mdl-dialog__actions mdl-dialog__actions--full-width">
+    {% for w in words %}
+    <button type="button" class="mdl-button close" onclick="sendWord('{{game_id}}', '{{w}}')">{{w}}</button>
+    {% endfor %}
+    <script>
+        var dialog = document.querySelector('dialog');
+        dialog.querySelector('.close').addEventListener('click', function () {
+            dialog.close();
+        });
+    </script>
 </div>

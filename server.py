@@ -81,7 +81,8 @@ socketio = SocketIO(app)
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
 # TODO: Add admin rights succession
-# TODO: Add voting for
+# TODO: Add voting options and functions
+# TODO: Add doppelganger choice dialog
 
 
 SOCKET_MAP = {}
@@ -95,7 +96,7 @@ LAST_UPDATE_TIME = datetime.now()
 GAME_STATE_UPDATE_QUEUED = False
 
 
-def parse_game_state(game_id, session_sid):
+def parse_game_state(game_id: str, session_sid: str):
     """Parses the initial game state dict + tuple into a dict with player info.
 
     Args:
@@ -108,12 +109,9 @@ def parse_game_state(game_id, session_sid):
             'player_is_admin', a str 'question_html' of formatted questions, a
             list of str 'players' names, and a str 'role' for the player.
     """
-    if game_id:
-        (game_state, questions,
-         player_sids) = GAMES[game_id].get_state(game_id)
-    else:
-        (game_state, questions, player_sids) = westwords.Game(
-            timer=0, player_sids=[]).get_state(None)
+    if not game_id:
+        GAMES[None] = westwords.Game(timer=0, player_sids=[])
+    (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
 
     game_state['question_html'] = ''
 
@@ -158,7 +156,10 @@ def parse_game_state(game_id, session_sid):
     except KeyError:
         game_state['mayor'] = None
 
-    game_state['admin'] = PLAYERS[GAMES[game_id].admin].name
+    try:
+        game_state['admin'] = PLAYERS[GAMES[game_id].admin].name
+    except KeyError:
+        game_state['admin'] = None
 
     if session_sid in player_sids:
         game_state['role'] = str(player_sids[session_sid]).capitalize()
@@ -168,7 +169,7 @@ def parse_game_state(game_id, session_sid):
     return game_state
 
 
-def get_question_info(question, id):
+def get_question_info(question: str, id: int):
     return {
         'id': id,
         'question': question.question_text,
@@ -177,7 +178,7 @@ def get_question_info(question, id):
     }
 
 
-def username_taken(username, user_sid):
+def username_taken(username: str, user_sid: str):
     for player in PLAYERS:
         if (PLAYERS[player].name.upper() == username.upper() and
             player != user_sid):
@@ -230,19 +231,50 @@ def username():
 
 @app.route('/join/<game_id>', strict_slashes=False)
 @app.route('/join?game_name=<game_id>', strict_slashes=False)
-def join_game(game_id):
+def join_game(game_id: str):
     check_session_config()
-    app.logger.debug(f"{session['sid']} attempting to join {game_id}")
+    app.logger.debug(f"{PLAYERS[session['sid']].name} attempting to join {game_id}")
     if game_id in GAMES:
+        app.logger.debug(f"game_id found: {game_id}")
         GAMES[game_id].add_player(session['sid'])
         PLAYERS[session['sid']].join_room(game_id)
     else:
         return redirect(f'/create/{game_id}')
     return redirect(f'/game/{game_id}')
 
+@app.route('/leave/<game_id>', strict_slashes=False)
+@app.route('/leave', strict_slashes=False)
+def leave_game(game_id: str=None):
+    check_session_config()
+    if game_id and game_id in GAMES:
+        GAMES[game_id].remove_player(session['sid'])
+        if len(GAMES[game_id].get_players()) == 0:
+            del GAMES[game_id]
+    else:
+        for room in PLAYERS[session['sid']].get_rooms():
+            if room in GAMES:
+                GAMES[game_id].remove_player(session['sid'])
+                if len(GAMES[game_id].get_players()) == 0:
+                    del GAMES[game_id]
+            PLAYERS[session['sid']].leave_room(room)
+    return redirect('/')
+    
 
-@app.route('/game/<game_id>')
-def game_index(game_id):
+@app.route('/spectate/<game_id>')
+def spectate_game(game_id: str):
+    check_session_config()
+    if game_id and game_id in GAMES:
+        # this should keep the player in the room for broadcast state, but not
+        # game mechanics.
+        GAMES[game_id].remove_player(session['sid'])
+        if len(GAMES[game_id].get_players()) == 0:
+            del GAMES[game_id]
+        return redirect(f'/game/{game_id}')
+    return redirect('/')
+
+
+@app.route('/game/<game_id>', strict_slashes=False)
+def game_index(game_id: str, spectate: str=None):
     check_session_config()
     if 'sid' not in session:
         session['sid'] = str(uuid4())
@@ -279,7 +311,7 @@ def game_index(game_id):
 
 
 @app.route('/get_words/<game_id>')
-def get_words(game_id):
+def get_words(game_id: str):
     check_session_config()
     if game_id in GAMES:
         if GAMES[game_id].word:
@@ -331,7 +363,7 @@ def logout():
 
 # Socket control functions
 @socketio.on('connect')
-def connect(auth):
+def connect(auth: str):
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     # TODO: Fix username KeyError on initial connect
@@ -365,7 +397,7 @@ def disconnect():
 
 
 @socketio.on('question')
-def add_question(game_id, question_text):
+def add_question(game_id: str, question_text: str):
     if game_id in GAMES:
         try:
             success, _ = GAMES[game_id].add_question(
@@ -399,7 +431,7 @@ def get_question(game_id: str, question_id: int):
 
 
 @socketio.on('answer_question')
-def answer_question(game_id, question_id, answer):
+def answer_question(game_id: str, question_id: int, answer: str):
     """Answer the question for a given game, if the user is the mayor.
 
     Args:
@@ -457,6 +489,7 @@ def game_status(game_id: str):
                 'game_state',
                 parse_game_state(game_id, player),
                 to=SOCKET_MAP[player])
+        # TODO: Add a spectator in the room state of this.
 
 
 # Mayor functions
@@ -601,6 +634,7 @@ def get_player_revealed_information(game_id: str):
             'status': 'OK',
             'reveal_html': render_template(
                 'player_reveal.html.j2',
+                player_role=GAMES[game_id].get_player_role(session['sid']),
                 known_players=known_players,
                 known_word=known_word,
                 word_is_known=known_word is not None,

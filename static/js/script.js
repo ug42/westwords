@@ -2,8 +2,8 @@
 // TODO: Reload the page with the correct buttons appearing
 // TODO: Get the questions to show up with answers for other people after being answered
 // TODO: Fix it so the mayor error and admin error are closeable
-// TODO: Add the undo button for mayor
-// TODO: Add the game finish button after correct
+// TODO: Update on-screen role info on game state change
+// TODO: Spectators see no player data
 
 var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
@@ -137,6 +137,8 @@ function game_setup_buttons() {
     breadbox_btn.hidden = true;
     let mayor_controls = document.getElementById('mayor_controls');
     mayor_controls.hidden = true;
+    let admin_controls = document.getElementById('admin_controls');
+    admin_controls.hidden = true;
 }
 
 function get_time_skew(server_timestamp) {
@@ -197,6 +199,10 @@ function refresh_game_state(g) {
                 dialog.showModal();
             }
         });
+    }
+    if (local_game_state.player_is_admin) {
+        let admin_controls = document.getElementById('admin_controls');
+        admin_controls.hidden = false;
     }
     if (local_game_state.player_is_mayor) {
         let finish_btn = document.getElementById('finish');

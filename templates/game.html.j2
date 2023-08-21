@@ -9,12 +9,15 @@
     <div id="controls">
         <div id="game_timer"></div>
         <!-- These two controls should be gated -->
+        <div id="admin_controls" hidden>
+        <b>Admin controls</b>
         <button onclick="send_start_req()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
         <button onclick="send_reset_req()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="game_reset">Reset game</button></p>
+        </div>
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="proper_noun" onclick="askQuestion('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper noun?</button></p>
