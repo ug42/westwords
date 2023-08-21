@@ -13,8 +13,8 @@ from .role import (Beholder, Doppelganger, Esper, FortuneTeller, Intern, Mason,
                    DEFAULT_ROLES_BY_PLAYER_COUNT)
 from .wordlists import WORDLISTS
 
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 ROLES = {
@@ -222,6 +222,9 @@ class Game(object):
 
     def get_players(self):
         return self.player_sids
+    
+    def get_spectators(self):
+        return self.spectators
 
     def get_player_token_count(self, player_sid):
         if player_sid in self.player_token_count:
@@ -554,15 +557,31 @@ class Game(object):
         """
         if self.game_state != GameState.SETUP:
             logging.debug(
-                f'Player unable to join. Game in progress.')
+                f'Player unable to join. Game in progress. Spectating.')
+            self.add_spectator(sid)
             return False
         if sid not in self.player_sids:
             self.player_sids[sid] = None
+            if sid in self.spectators:
+                self.spectators.remove(sid)
             if not self.admin:
                 self.admin = self._get_next_admin()
             return True
         else:
             logging.debug(f'ADD: User {sid} already in game')
+            return False
+        
+    def add_spectator(self, sid):
+        """Add spectator to game.
+
+        Returns:
+            True if successful; False otherwise.
+        """
+        if sid not in self.spectators:
+            self.spectators.append(sid)
+            return True
+        else:
+            logging.debug(f'User {sid} already spectating game.')
             return False
 
     def remove_player(self, sid):
@@ -572,6 +591,12 @@ class Game(object):
                 self.admin = self._get_next_admin()
         else:
             logging.debug(f'DELETE: User {sid} not in game')
+
+    def remove_spectator(self, sid):
+        if sid in self.spectators:
+            del self.spectators[sid]
+        else:
+            logging.debug(f'DELETE: User {sid} not spectating game')
 
     def is_player_in_game(self, sid):
         logging.debug(f'Attempting to verify player {sid}')

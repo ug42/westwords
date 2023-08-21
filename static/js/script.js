@@ -67,6 +67,9 @@ function format_players(local_game_state) {
         html += parse_tokens(local_game_state.players[player])
         html += '</div>';
     }
+    for (const spectator in local_game_state.spectators) {
+        html += '<div>' + spectator + ' (Spectator) </div>';
+    }
     return html
 }
 function parse_tokens(tokens) {
@@ -122,6 +125,10 @@ function game_started_buttons() {
     proper_noun_btn.hidden = false;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = false;
+    let join_game_btn = document.getElementById('join_game');
+    join_game_btn.hidden = true;
+    let spectate_btn = document.getElementById('spectate');
+    spectate_btn.hidden = true;
 }
 
 function game_setup_buttons() {
@@ -139,6 +146,18 @@ function game_setup_buttons() {
     mayor_controls.hidden = true;
     let admin_controls = document.getElementById('admin_controls');
     admin_controls.hidden = true;
+    let join_game_btn = document.getElementById('join_game');
+    let spectate_btn = document.getElementById('spectate');
+    if (local_game_state.spectating === true) {   
+        // If we're already spectating, hide the spectating button, show the
+        // join button
+        join_game_btn.hidden = false;
+        spectate_btn.hidden = true;
+    } else {
+        // Otherwise, reverse and show the spectate button.
+        join_game_btn.hidden = true;
+        spectate_btn.hidden = false;
+    }
 }
 
 function get_time_skew(server_timestamp) {
@@ -258,13 +277,13 @@ function ready(fn) {
     }
 }
 ready(function () {
-    // var dialog = document.querySelector('dialog');
-    // if (! dialog.showModal) {
-    //   dialogPolyfill.registerDialog(dialog);
-    // }
+    var dialog = document.querySelector('dialog');
+    if (! dialog.showModal) {
+      dialogPolyfill.registerDialog(dialog);
+    }
     var snackbarContainer = document.querySelector('#demo-toast-example');
-    // dialog.showModal();
-    // dialog.close();
+    dialog.showModal();
+    dialog.close();
 
     socket.on('connect', function () {
         console.log('You are like connected and stuff.');

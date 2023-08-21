@@ -72,7 +72,6 @@ app.config['USE_PERMANENT_SESSION'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
-# TODO: add spectate
 # TODO: game lock for players state
 # TODO: Add user-specific (roles/controls) and game-specific
 # (players/spectators/game_state/etc) game state broadcasts and updates
@@ -80,7 +79,6 @@ socketio = SocketIO(app)
 # TODO: Add ability of question asker to remove question if not answered
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
-# TODO: Add admin rights succession
 # TODO: Add voting options and functions
 # TODO: Add doppelganger choice dialog
 
@@ -113,12 +111,12 @@ def parse_game_state(game_id: str, session_sid: str):
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
             str 'mayor' name, str 'admin' name, bool 'player_is_mayor', bool
             'player_is_admin', a str 'question_html' of formatted questions, a
-            list of str 'players' names, and a str 'role' for the player.
+            list of str 'players' names, and a str 'role' for the player, a list of str .
     """
+    # TODO: Move this whole thing to a damned GameStatus class cuz wow.
     if not game_id:
         GAMES[None] = westwords.Game(timer=0, player_sids=[])
     (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
-
 
     game_state['question_html'] = ''
 
@@ -134,6 +132,7 @@ def parse_game_state(game_id: str, session_sid: str):
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
     players_needing_to_target = GAMES[game_id].get_players_needing_to_target()
+    spectators = GAMES[game_id].get_spectators()
 
     players = {}
     for player_sid in player_sids:
@@ -153,7 +152,9 @@ def parse_game_state(game_id: str, session_sid: str):
         'player_is_waiting_for_vote': session['sid'] in required_voters,
         'player_is_waiting_for_target': session['sid'] in players_needing_to_target,
         'player_is_waiting_for_ack': session['sid'] in players_needing_to_ack,
+        'spectating': session_sid in spectators,
         'players': players,
+        'spectators': [PLAYERS[p].name for p in spectators],
     })
 
     try:
@@ -187,7 +188,7 @@ def get_question_info(question: str, id: int):
 def username_taken(username: str, user_sid: str):
     for player in PLAYERS:
         if (PLAYERS[player].name.upper() == username.upper() and
-            player != user_sid):
+                player != user_sid):
             return True
     return False
 
@@ -239,7 +240,8 @@ def username():
 @app.route('/join?game_name=<game_id>', strict_slashes=False)
 def join_game(game_id: str):
     check_session_config()
-    app.logger.debug(f"{PLAYERS[session['sid']].name} attempting to join {game_id}")
+    app.logger.debug(
+        f"{PLAYERS[session['sid']].name} attempting to join {game_id}")
     if game_id in GAMES:
         app.logger.debug(f"game_id found: {game_id}")
         GAMES[game_id].add_player(session['sid'])
@@ -248,23 +250,27 @@ def join_game(game_id: str):
         return redirect(f'/create/{game_id}')
     return redirect(f'/game/{game_id}')
 
+
 @app.route('/leave/<game_id>', strict_slashes=False)
 @app.route('/leave', strict_slashes=False)
-def leave_game(game_id: str=None):
+def leave_game(game_id: str = None):
     check_session_config()
-    if game_id and game_id in GAMES:
-        GAMES[game_id].remove_player(session['sid'])
-        if len(GAMES[game_id].get_players()) == 0:
-            del GAMES[game_id]
+    if game_id:
+        if game_id in GAMES:
+            GAMES[game_id].remove_player(session['sid'])
+            GAMES[game_id].remove_spectator(session['sid'])
+            if len(GAMES[game_id].get_players()) == 0:
+                del GAMES[game_id]
     else:
         for room in PLAYERS[session['sid']].get_rooms():
             if room in GAMES:
                 GAMES[game_id].remove_player(session['sid'])
+                GAMES[game_id].remove_spectator(session['sid'])
                 if len(GAMES[game_id].get_players()) == 0:
                     del GAMES[game_id]
             PLAYERS[session['sid']].leave_room(room)
     return redirect('/')
-    
+
 
 @app.route('/spectate/<game_id>')
 def spectate_game(game_id: str):
@@ -275,12 +281,14 @@ def spectate_game(game_id: str):
         GAMES[game_id].remove_player(session['sid'])
         if len(GAMES[game_id].get_players()) == 0:
             del GAMES[game_id]
+            return redirect('/')
+        GAMES[game_id].add_spectator(session['sid'])
         return redirect(f'/game/{game_id}')
     return redirect('/')
 
 
 @app.route('/game/<game_id>', strict_slashes=False)
-def game_index(game_id: str, spectate: str=None):
+def game_index(game_id: str, spectate: str = None):
     check_session_config()
     if 'sid' not in session:
         session['sid'] = str(uuid4())
@@ -479,7 +487,7 @@ def answer_question(game_id: str, question_id: int, answer: str):
         socketio.emit('mayor_error',
                       error,
                       room=game_id)
-        return False        
+        return False
 
     game_status(game_id)
 
@@ -492,7 +500,11 @@ def game_status(game_id: str):
                 'game_state',
                 parse_game_state(game_id, player),
                 to=SOCKET_MAP[player])
-        # TODO: Add a spectator in the room state of this.
+        for spectator in GAMES[game_id].get_spectators():
+            socketio.emit(
+                'game_state',
+                parse_game_state(game_id, spectator),
+                to=SOCKET_MAP[spectator])
 
 
 # Mayor functions
@@ -511,7 +523,7 @@ def start_vote(game_id: str):
         success = GAMES[game_id].start_vote()
         if not success:
             emit('mayor_error',
-                f'Unable to finish game and start vote.')
+                 f'Unable to finish game and start vote.')
             return
 
         game_status(game_id)
@@ -645,6 +657,7 @@ def get_player_revealed_information(game_id: str):
         }
     return {'success': False, 'role': None}
 
+
 @socketio.on('get_voting_page')
 def get_voting_information(game_id: str):
     if (game_id in GAMES and session['sid']):
@@ -652,13 +665,13 @@ def get_voting_information(game_id: str):
         if not voting_players:
             emit('mayor_error', f'No voting players found for game {game_id}')
             return
-        
+
         if word_guessed:
             voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
                            'Teller!')
         else:
             voting_text = ('Everyone! Find a Werewolf or Minion!')
-            
+
         app.logger.debug(f'Attempting to generate voting list for session.')
         # TODO: Make this so it displays all players voting and who we're
         # waiting on. Should probably get all players so we can see who has and
@@ -669,10 +682,11 @@ def get_voting_information(game_id: str):
                 'voting.html.j2',
                 voting_text=voting_text,
                 candidates=candidates,
-                voting_players=voting_players,                
+                voting_players=voting_players,
             ),
         }
     return {'success': False, 'role': None}
+
 
 @socketio.on('set_word')
 def set_word(game_id: str, word: str):
