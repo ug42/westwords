@@ -4,36 +4,19 @@
 # and gunicorn are unable to handle sticky sessions. Boo. Scaling jobs will need
 # to account for a reverse proxy and keeping each server with a single worker
 # thread.
-# 
+#
 # Ok, so I mean if I move the data for the rooms and Game and Player objects off
 # to a backing store, I think that would effectively solve for the worker thread
 # problem.
 
-# start_vote
-# success, players_needing_to_vote = self.game.start_vote(word_guessed=True)
-# self.game.game_status == GameState.VOTING
-# get_required_voters
-# self.game.get_required_voters()
-# vote (game_id, target)
-# self.game.vote('werewolf2', 'mason2')
-# get_results
-# self.game.get_results()
-# (Affiliation.VILLAGE,
-# ['villager', 'mason2'],
-# {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
-# <automatic>
 # self.game.game_status == GameState.FINISHED
-# game_reset_req
-# self.game.reset()
-# self.game.game_status == GameState.SETUP
 
 
+from collections import UserDict
 from datetime import datetime, timedelta
 import re
-from random import choice, randint
-from string import ascii_uppercase
+from random import randint
 from time import sleep
-from typing import Dict
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
@@ -62,15 +45,29 @@ socketio = SocketIO(app)
 # TODO: Add doppelganger choice dialog
 # TODO: Add auto-destroy of game after some period of no updates.
 # TODO: Remove self from voting candidates
-# TODO: Fix vote socket emit; it registers in game, but does nothing to change
-# state. Still registers as needing to vote.
+# TODO: Remove vote buttons from non-voters
+# TODO: Refresh game page automatically after voting completes and game is
+# finished. Show results.
 
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
-PLAYERS = {}
+
+
+class PlayerDict(UserDict):
+    def __getitem__(self, key: any) -> westwords.Player:
+        return super().__getitem__(key)
+
+
+class GamesDict(UserDict):
+    def __getitem__(self, key: any) -> westwords.Game:
+        return super().__getitem__(key)
+
+
 # TODO: move this off to a backing store.
-GAMES = dict(str, westwords.Game)
+PLAYERS = PlayerDict()
+GAMES = GamesDict()
+
 # I have no idea what I'm doing.
 # Ok, I have some idea what I'm doing, but I'm pretty sure it's dumb.
 # Ok, I mean it's well-intentioned. Like I don't want to keep spamming 50KB
@@ -159,7 +156,7 @@ def parse_game_state(game_id: str, session_sid: str):
     return game_state
 
 
-def get_question_info(question: str, id: int):
+def get_question_info(question: westwords.Question, id: int):
     return {
         'id': id,
         'question': question.question_text,
@@ -194,10 +191,7 @@ def check_session_config():
 @app.route('/')
 def index():
     check_session_config()
-    return render_template(
-        'index.html.j2',
-        games=list(GAMES),
-    )
+    return render_template('index.html.j2')
 
 
 @app.route('/username', methods=['POST'])
@@ -229,6 +223,8 @@ def join_game(game_id: str):
         app.logger.debug(f"game_id found: {game_id}")
         GAMES[game_id].add_player(session['sid'])
         PLAYERS[session['sid']].join_room(game_id)
+        socketio.emit('user_info', f"{PLAYERS[session['sid']].name} joined.",
+                      room=game_id)
     else:
         return redirect(f'/create/{game_id}')
     return redirect(f'/game/{game_id}')
@@ -374,6 +370,7 @@ def connect(auth: str):
         if room not in rooms():
             app.logger.debug(f'{room} not in list of rooms: {rooms()}')
             join_room(room)
+            # Remove me.
             emit('user_info',
                  f"{PLAYERS[session['sid']].name} joined.", room=room)
         app.logger.debug(f'Rooms for client: {rooms()}')
@@ -385,11 +382,11 @@ def connect(auth: str):
 def disconnect():
     try:
         SOCKET_MAP[session['sid']] = None
-        if PLAYERS[session['sid']].rooms:
-            for room in PLAYERS[session['sid']].rooms:
-                leave_room(room)
-                emit('user_info',
-                     f"{PLAYERS[session['sid']].name} left.", room=room)
+        # if PLAYERS[session['sid']].rooms:
+        #     for room in PLAYERS[session['sid']].rooms:
+        #         leave_room(room)
+        #         emit('user_info',
+        #              f"{PLAYERS[session['sid']].name} left.", room=room)
     except KeyError as e:
         app.logger.debug(
             f"Unable to remove socket mapping for {session['sid']}: {e}")
@@ -482,15 +479,13 @@ def answer_question(game_id: str, question_id: int, answer: str):
 def game_status(game_id: str):
     if game_id in GAMES:
         for player in GAMES[game_id].get_players():
-            socketio.emit(
-                'game_state',
-                parse_game_state(game_id, player),
-                to=SOCKET_MAP[player])
+            emit('game_state',
+                 parse_game_state(game_id, player),
+                 to=SOCKET_MAP[player])
         for spectator in GAMES[game_id].get_spectators():
-            socketio.emit(
-                'game_state',
-                parse_game_state(game_id, spectator),
-                to=SOCKET_MAP[spectator])
+            emit('game_state',
+                 parse_game_state(game_id, spectator),
+                 to=SOCKET_MAP[spectator])
 
 
 # Mayor functions
@@ -509,7 +504,8 @@ def start_vote(game_id: str):
         success = GAMES[game_id].start_vote()
         if not success:
             emit('mayor_error',
-                 f'Unable to finish game and start vote.')
+                 f'Unable to finish game and start vote.',
+                 room=game_id)
             return
 
         game_status(game_id)
@@ -519,7 +515,6 @@ def start_vote(game_id: str):
 def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         GAMES[game_id].nominate_for_mayor(session['sid'])
-        game_status(game_id)
 
 
 @socketio.on('set_word_choice_count')
@@ -528,7 +523,9 @@ def set_word_choice_count(game_id: str, word_count: int):
         GAMES[game_id].set_word_choice_count(word_count)
         game_status(game_id)
 
-    emit('admin_error', f'Unable to set word count to {word_count}.')
+    emit('admin_error',
+         f'Unable to set word count to {word_count}.',
+         room=game_id)
 
 
 @socketio.on('get_words')
@@ -583,8 +580,11 @@ def acknowledge_revealed_info(game_id: str):
 @socketio.on('game_start')
 def start_game(game_id: str):
     if game_id in GAMES:
-        GAMES[game_id].start_night_phase_word_choice()
-        game_status(game_id)
+        try:
+            GAMES[game_id].start_night_phase_word_choice()
+            game_status(game_id)
+        except GameError as e:
+            emit('user_info', f"Game start failed. {e}")
 
 
 @socketio.on('game_reset')
@@ -606,18 +606,40 @@ def get_required_voters(game_id: str):
 
 @socketio.on('vote')
 def vote(game_id, target_id):
-    app.logger.debug(
-        f"{PLAYERS[session['sid']].name} vote for {PLAYERS[target_id].name}")
-    if (game_id in GAMES and
-            session['sid'] in GAMES[game_id].get_required_voters()):
-        GAMES[game_id].vote(session['sid'], target_id)
-        game_status(game_id)
+    if target_id in PLAYERS:
+        app.logger.debug(
+            f"{PLAYERS[session['sid']].name} vote for "
+            f"{PLAYERS[target_id].name}, game id: {game_id}")
+        if game_id in GAMES:
+            app.logger.debug(f'Attempting to vote for {target_id}')
+            GAMES[game_id].vote(session['sid'], target_id)
+            game_status(game_id)
+    else:
+        app.logger.debug(f'Unknown player SID {target_id}')
 
 
 @socketio.on('get_results')
 def get_results(game_id: str):
     if game_id in GAMES:
-        emit('game_results', GAMES[game_id].get_results(), room=game_id)
+        winner, killed, votes = GAMES[game_id].get_results()
+        role = GAMES[game_id].get_player_role(session['sid'])
+        player_won = role.get_affiliation() == winner
+        voter_names = []
+        for voter_sid in votes:
+            voter_names.append({'voter': PLAYERS[voter_sid].name,
+                                'target': PLAYERS[votes[voter_sid]].name})
+        return {
+            'status': 'OK',
+            'results_html': render_template(
+                'results.html.j2',
+                winner=winner.value, # This should be the capitalized string
+                player_won=player_won,
+                role=role,
+                killed=killed,
+                voter_names=voter_names,
+            ),
+        }
+    return {'status': 'BAD', 'results_html': None}
 
 
 @socketio.on('get_player_revealed_information')
@@ -635,13 +657,13 @@ def get_player_revealed_information(game_id: str):
             'status': 'OK',
             'reveal_html': render_template(
                 'player_reveal.html.j2',
-                player_role=GAMES[game_id].get_player_role(session['sid']),
+                player_role=str(GAMES[game_id].get_player_role(session['sid'])),
                 known_players=known_players,
                 known_word=known_word,
                 word_is_known=known_word is not None,
             ),
         }
-    return {'success': False, 'role': None}
+    return {'status': 'BAD', 'reveal_html': None}
 
 
 @socketio.on('get_voting_page')
@@ -666,6 +688,12 @@ def get_voting_information(game_id: str):
         else:
             voting_text = ('Everyone! Find a Werewolf or Minion!')
 
+        try:
+            word = GAMES[game_id].get_word()
+        except GameError as e:
+            socketio.emit('user_info', e, room=game_id)
+            return {'success': False, 'role': None}
+
         app.logger.debug(f'Attempting to generate voting list for session.')
         # TODO: Make this so it displays all players voting and who we're
         # waiting on. Should probably get all players so we can see who has and
@@ -674,6 +702,8 @@ def get_voting_information(game_id: str):
             'status': 'OK',
             'voting_html': render_template(
                 'voting.html.j2',
+                word=word,
+                game_id=game_id,
                 voting_text=voting_text,
                 candidates=candidates,
                 voters=voters,

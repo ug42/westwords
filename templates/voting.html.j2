@@ -1,9 +1,12 @@
 <div class="mdl-dialog__content">
+    The word was: {{word}}
+</div>
+<div class="mdl-dialog__content">
     {{voting_text}}
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
     {% for c in candidates %}
-    <button type="button" class="mdl-button close" onclick="votePlayer('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
+    <button type="button" class="mdl-button close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
     {% endfor %}
 </div>
 <div class="mdl-dialog__content">

@@ -20,36 +20,36 @@ function answer(game_id, id, answer) {
     console.log('Attempting to answer question ' + id)
     socket.emit('answer_question', game_id, id, answer);
 }
-function sendWord(game_id, word) {
+function send_word(game_id, word) {
     socket.emit('set_word', game_id, word);
     let dialog = document.querySelector('dialog');
     dialog.close()
 }
-function ackReveal() {
+function ack_reveal() {
     console.log('Attempting to ack the info');
     close_dialog();
     socket.emit('acknowledge_revealed_info', local_game_state.game_id);
 }
-function askQuestion(game_id, question) {
+function ask_question(game_id, question) {
     socket.emit('question', game_id, question);
 }
-function undoAnswer(game_id) {
+function undo_answer(game_id) {
     socket.emit('undo', game_id);
 }
-function startVote(game_id) {
+function start_vote(game_id) {
     console.log('Attempting to start vote.')
     socket.emit('start_vote', game_id)
 }
-function sendStartReq() {
+function send_start_req() {
     console.log('Attempting to start');
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_start', local_game_state.game_id);
 }
-function sendResetReq() {
+function send_reset_eq() {
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_reset', local_game_state.game_id);
 }
-function votePlayer(game_id, candidate) {
+function vote_player(game_id, candidate) {
     console.log('trying to vote for ' + candidate);
     socket.emit('vote', game_id, candidate)
 }
@@ -71,7 +71,6 @@ function format_players(local_game_state) {
         html += parse_tokens(local_game_state.players[player])
         html += '</div>';
     }
-    // TODO: SPectator name showing up as '0'
     for (let i = 0; i < local_game_state.spectators.length; i++) {
         html += '<div>' + local_game_state.spectators[i] 
         html += ' (Spectator) </div>';
@@ -188,7 +187,9 @@ function refresh_game_state(g) {
 
     // TODO: Remove this or check to see if game_state is available
     let game_state = document.getElementById('game_state');
-    game_state.innerHTML = local_game_state.game_state;
+    if (game_state !== null) {
+        game_state.innerHTML = local_game_state.game_state;
+    }
 
     let mayor_tokens = document.getElementById('mayor_tokens');
     mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);

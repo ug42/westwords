@@ -11,18 +11,18 @@
         <!-- These two controls should be gated -->
         <div id="admin_controls" hidden>
         <b>Admin controls</b>
-        <button onclick="sendStartReq()"
+        <button onclick="send_start_req()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
-        <button onclick="sendResetReq()"
+        <button onclick="send_reset_eq()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="game_reset">Reset game</button></p>
         </div>
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="proper_noun" onclick="askQuestion('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper noun?</button></p>
+                id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper noun?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="breadbox" onclick="askQuestion('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it bigger than a breadbox?</button></p>
+                id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it bigger than a breadbox?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="nominate_for_mayor">Run for Mayor!</button></p>
         <p><button onclick="window.location.href='/join/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
@@ -61,9 +61,9 @@
     </div>
     <div hidden id="mayor_controls">
         <b>Mayor controls</b>
-        <button onclick="undoAnswer('{{ game_id }}')"
+        <button onclick="undo_answer('{{ game_id }}')"
             class="mdl-button" id="undo">Undo last answer</button>
-        <button onclick="startVote('{{ game_id }}')"
+        <button onclick="start_vote('{{ game_id }}')"
             class="mdl-button" id="finish" hidden>Finish Game/Start Vote</button>
     </div>
 </div>

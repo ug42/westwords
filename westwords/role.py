@@ -44,6 +44,9 @@ class Role(object):
     def __str__(self):
         return type(self).__name__
 
+    def get_affiliation(self) -> Affiliation:
+        return self.affiliation
+
     def get_max_instances(self):
         return self.max_instances
 

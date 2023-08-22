@@ -3,7 +3,7 @@
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
     {% for w in words %}
-    <button type="button" class="mdl-button close" onclick="sendWord('{{game_id}}', '{{w}}')">{{w}}</button>
+    <button type="button" class="mdl-button close" onclick="send_word('{{game_id}}', '{{w}}')">{{w}}</button>
     {% endfor %}
     <script>
         var dialog = document.querySelector('dialog');

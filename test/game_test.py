@@ -13,8 +13,8 @@ from westwords import Seer, Villager, Werewolf
 class testGameControlFunctions(unittest.TestCase):
 
     def setUp(self):
-        self.game = GameClass(timer=300)
         self.player_sids = ['foo', 'bar', 'baz', 'xxx']
+        self.game = GameClass(timer=300, player_sids=self.player_sids)
 
     def testReset(self):
         self.game = GameClass(player_sids=['foo', 'bar', 'baz', 'xxx'])
@@ -34,7 +34,7 @@ class testGameControlFunctions(unittest.TestCase):
     def testReprObject(self):
         self.assertEqual(
             repr(self.game),
-            "Game(timer=300,player_sids=[])")
+            "Game(timer=300,player_sids=['foo', 'bar', 'baz', 'xxx'])")
 
     def testFinishGameFail(self):
         self.assertFalse(self.game._finish_game())
@@ -284,18 +284,25 @@ class testPlayerControlFunctions(unittest.TestCase):
         self.assertTrue(self.game.get_player_role('bar'))
 
 
-# class testRoleSelectionFunctions(unittest.TestCase):
+class testRoleSelectionFunctions(unittest.TestCase):
 
-#     def setUp(self):
-#         self.game = GameClass(timer=300,
-#                               player_sids=['foo', 'bar', 'baz', 'xxx'])
+    def setUp(self):
+        self.game = GameClass(timer=300,
+                              player_sids=['foo', 'bar', 'baz', 'xxx'])
 
-#     def testAddRole(self):
-#         roles = self.game.get_selected_roles()
-#         self.game.get_possible_roles()
+    def testAddRole(self):
+        self.assertListEqual(self.game.get_selected_roles(), [])
+        roles = self.game.get_possible_roles()
+        self.assertEqual(len(roles), 13)
+        # TODO: Add more in-depth tests to ensures Roles are being returned with
+        # the right numbers.
+        for role in roles:
+            self.assertGreaterEqual(len(self.game.get_players()),
+                                    role.get_required_players())
 
-#         self.game.add_role(role)
-#         self.game.remove_role(role)
+        for role in roles:
+            self.game.add_role(role)
+            self.game.remove_role(role)
 
 class testQuestionFunctions(unittest.TestCase):
 

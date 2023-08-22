@@ -1,11 +1,14 @@
 # Game and player-related classes
 import logging
+from collections import UserDict
 from copy import deepcopy
 from datetime import datetime, timedelta
 from random import choice, choices, shuffle
+from typing import Any
 
 from westwords.enums import AnswerToken
 from westwords.question import Question, QuestionError
+from westwords.role import Role
 
 from .enums import Affiliation, AnswerToken, GameState
 from .role import (Beholder, Doppelganger, Esper, FortuneTeller, Intern, Mason,
@@ -17,7 +20,12 @@ from .wordlists import WORDLISTS
 logging.basicConfig(level=logging.INFO)
 
 
-ROLES = {
+class RoleDict(UserDict):
+    def __getitem__(self, key: Any) -> Role:
+        return super().__getitem__(key)
+
+
+ROLES = RoleDict({
     'intern': Intern(),
     'beholder': Beholder(),
     'doppelganger': Doppelganger(),
@@ -28,7 +36,7 @@ ROLES = {
     'esper': Esper(),
     'villager': Villager(),
     'werewolf': Werewolf(),
-}
+})
 
 
 class GameError(Exception):
@@ -91,13 +99,12 @@ class Game(object):
                 self.selected_roles = deepcopy(DEFAULT_ROLES_BY_PLAYER_COUNT[
                     str(len(self.player_sids))])
         except KeyError:
-            logging.debug(
-                f'Config not defined for {len(self.player_sids)} players')
-            return False,
+            raise GameError('No role configuration available for '
+                            f'{len(self.player_sids)} players')
         if len(self.selected_roles) != len(self.player_sids):
-            logging.debug('Unable to start game. Role/Player count mismatch: '
-                          f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
-            return False
+            raise GameError(
+                'Unable to start game. Role/Player count mismatch: '
+                f'{sum(self.selected_roles)} vs {len(self.player_sids)}')
 
         # Set the player roles by shuffling the selected roles and assigning
         roles = deepcopy(self.selected_roles)
@@ -222,7 +229,7 @@ class Game(object):
 
     def get_players(self):
         return self.player_sids
-    
+
     def get_spectators(self):
         return [s for s in self.spectators if s not in self.player_sids]
 
@@ -368,6 +375,11 @@ class Game(object):
             return True
         return False
 
+    def get_word(self) -> str:
+        if self.game_state in [GameState.SETUP,
+                               GameState.NIGHT_PHASE_WORD_CHOICE]:
+            raise GameError('No word chosen yet.')
+
     def _start_night_phase_doppelganger(self):
         doppelganger_players = [
             p for p in self.player_sids if isinstance(self.player_sids[p],
@@ -450,7 +462,7 @@ class Game(object):
                     self.winner = Affiliation.VILLAGE
             return True
 
-    def get_results(self):
+    def get_results(self) -> (Affiliation, list[str], dict[str, str]):
         """Get results of a game after all voting has completed.
 
         Returns:
@@ -462,7 +474,7 @@ class Game(object):
             return None
         return (self.winner, self.killed_players, self.votes)
 
-    def set_timer(self, time_in_seconds):
+    def set_timer(self, time_in_seconds) -> None:
         """Set the timer amount in seconds.
 
         Args:
@@ -472,12 +484,12 @@ class Game(object):
             logging.debug(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
-    def get_required_voters(self):
+    def get_required_voters(self) -> list[str]:
         if self.game_state != GameState.VOTING:
             return []
         return self.required_voters
 
-    def vote(self, voter_sid, target_sid):
+    def vote(self, voter_sid: str, target_sid: str) -> bool:
         """Votes for player identified by session ID.
 
         Args:
@@ -503,13 +515,13 @@ class Game(object):
             self._finish_game()
         return True
 
-    def get_tokens(self):
+    def get_tokens(self) -> dict[str, int]:
         result = {i.value: self.tokens[i] for i in self.tokens if i not in [
             AnswerToken.NO, AnswerToken.YES]}
         result['yesno'] = self.tokens[AnswerToken.YES]
         return result
 
-    def get_state(self, game_id):
+    def get_state(self, game_id: str) -> dict[str, Any]:
         """Returns a dict of the current game state.
 
         Args:
@@ -531,8 +543,8 @@ class Game(object):
         return (game_status, self.questions, self.player_sids)
 
     # Player and Role functions
-    def get_player_role(self, sid):
-        """Returns a string format version of the player's role."""
+    def get_player_role(self, sid: str) -> Role:
+        """Returns a Role object for the player."""
         if sid in self.player_sids and self.player_sids[sid]:
             return self.player_sids[sid]
         return None
@@ -544,12 +556,12 @@ class Game(object):
             pass
         return None
 
-    def nominate_for_mayor(self, sid):
+    def nominate_for_mayor(self, sid: str):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
             logging.debug(f'Adding {sid} to mayor nominees')
 
-    def add_player(self, sid):
+    def add_player(self, sid: str):
         """Add player to game.
 
         Returns:
@@ -570,8 +582,8 @@ class Game(object):
         else:
             logging.debug(f'ADD: User {sid} already in game')
             return False
-        
-    def add_spectator(self, sid):
+
+    def add_spectator(self, sid: str) -> bool:
         """Add spectator to game.
 
         Returns:
@@ -584,7 +596,7 @@ class Game(object):
             logging.debug(f'User {sid} already spectating game.')
             return False
 
-    def remove_player(self, sid):
+    def remove_player(self, sid: str) -> None:
         if sid in self.player_sids:
             del self.player_sids[sid]
             if self.admin not in self.player_sids:
@@ -592,17 +604,17 @@ class Game(object):
         else:
             logging.debug(f'DELETE: User {sid} not in game')
 
-    def remove_spectator(self, sid):
+    def remove_spectator(self, sid: str) -> None:
         if sid in self.spectators:
             self.spectators.remove(sid)
         else:
             logging.debug(f'DELETE: User {sid} not spectating game')
 
-    def is_player_in_game(self, sid):
+    def is_player_in_game(self, sid: str) -> bool:
         logging.debug(f'Attempting to verify player {sid}')
         return sid in self.player_sids
 
-    def _current_role_instances(self, role):
+    def _current_role_instances(self, role: str) -> int:
         """Returns the number of instances of provided role in selected roles.
 
         Args:
@@ -614,7 +626,7 @@ class Game(object):
         return len([
             r for r in self.selected_roles if str(r) == role.capitalize()])
 
-    def add_role(self, role):
+    def add_role(self, role: Role):
         """Add the selected role to game.
 
         Args:
@@ -680,8 +692,9 @@ class Game(object):
         """
         roles = []
         for role in ROLES:
-            for _ in range(role.get_max_instances()):
-                roles.append(role)
+            if ROLES[role].get_required_players() <= len(self.player_sids):
+                for _ in range(ROLES[role].get_max_instances()):
+                    roles.append(deepcopy(ROLES[role]))
         return roles
 
     # Question functions

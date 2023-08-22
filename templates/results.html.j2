@@ -1,0 +1,18 @@
+<div class="mdl-dialog__content">
+    {% if player_won is sameas true %}
+        You won!
+        Your role: {role}
+    {% elif player_won is sameas false%}
+        You lost.
+        Your role: {role}
+    {% else %}
+        {winner} team won!
+    {% endif %}
+</div>
+<div>
+    Votes:
+    {% for v in voters %} {{v.voter}} voted for {{v.target}} {% endfor %}
+    Killed players:
+    {% for p in killed %} {{p}} {% endfor %}
+    <button type="button" class="mdl-button close" onclick="close_dialog()">OK</button>
+</div>
