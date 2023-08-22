@@ -10,61 +10,67 @@
         <div id="game_timer"></div>
         <!-- These two controls should be gated -->
         <div id="admin_controls" hidden>
-        <b>Admin controls</b>
-        <button onclick="send_start_req()"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
-            id="game_start">Start game</button>
-        <button onclick="send_reset_req()"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="game_reset">Reset game</button></p>
+            <b>Admin controls</b>
+            <button onclick="send_start_req()"
+                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+                id="game_start">Start game</button>
+            <button onclick="send_reset_req()"
+                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                id="game_reset">Reset game</button></p>
         </div>
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper noun?</button></p>
+                id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
+                noun?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it bigger than a breadbox?</button></p>
+                id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it
+                bigger than a breadbox?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="nominate_for_mayor">Run for Mayor!</button></p>
-        <p><button onclick="window.location.href='/join/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="join_game">Join Game</button></p>
-        <p><button onclick="window.location.href='/spectate/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="spectate">Spectate</button></p>
-        <p><button onclick="window.location.href='/leave/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="join_game">Leave Game</button></p>
+        <p><button onclick="window.location.href='/join/{{ game_id }}'"
+                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                id="join_game" hidden>Join Game</button>
+            <button onclick="window.location.href='/spectate/{{ game_id }}'"
+                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                id="spectate" hidden>Spectate</button>
+            <button onclick="window.location.href='/leave/{{ game_id }}'"
+                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                id="leave_game">Quit Game</button>
+        </p>
         {% if DEBUG %}
         <b>DEBUGGING</b>
         <button onclick="get_game_state('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="get_game_state">Get game state</button>
+            class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="get_game_state">Get game
+            state</button>
         <div>Game state: <div style="display: inline;" id="game_state">{{game_state}}</div>
         </div>
         {% endif %}
-        <div>
+        <div id="question_input" hidden>
             Question: <input type="text" id="question">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="question_submit">Submit question</button>
         </div>
         <p>
-        <div style="display: inline;">Mayor tokens:
+        <div id="mayor_display" style="display: inline;" hidden>Mayor tokens:
             <div id="mayor_tokens" style="display:inline;"></div>
+            <div hidden id="mayor_controls">
+                <b>Mayor controls</b>
+                <button onclick="undo_answer('{{ game_id }}')" class="mdl-button" id="undo">Undo last answer</button>
+                <button onclick="start_vote('{{ game_id }}')" class="mdl-button" id="finish" hidden>Finish Game/Start
+                    Vote</button>
+            </div>
         </div>
         </p>
 
         <p>
             <b>Players:</b>
-            <div id="players"></div>
-            <div id="spectators"></div>
+        <div id="players"></div>
+        <div id="spectators"></div>
         </p>
     </div>
     <div id="questions_div">
         {{ question_html }}
     </div>
-    <div hidden id="mayor_controls">
-        <b>Mayor controls</b>
-        <button onclick="undo_answer('{{ game_id }}')"
-            class="mdl-button" id="undo">Undo last answer</button>
-        <button onclick="start_vote('{{ game_id }}')"
-            class="mdl-button" id="finish" hidden>Finish Game/Start Vote</button>
-    </div>
+
 </div>
 {% endblock %}

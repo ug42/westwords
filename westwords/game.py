@@ -69,8 +69,10 @@ class Game(object):
         self.word_difficulty = 'medium'
         self.token_defaults = {
             # YES and NO share the same token count
-            AnswerToken.YES: 36,
-            AnswerToken.NO: 36,
+            # AnswerToken.YES: 36,
+            # AnswerToken.NO: 36,
+            AnswerToken.YES: 1,
+            AnswerToken.NO: 1,
             AnswerToken.MAYBE: 10,
             AnswerToken.SO_CLOSE: 1,
             AnswerToken.SO_FAR: 1,
@@ -190,15 +192,18 @@ class Game(object):
         """Returns voting options.
 
         Returns:
-            A list of str player SIDs that are required to vote, a bool whether
-            word was guessed, and a list of possible targets."""
+            A list of str player SIDs that are required to vote, a dict of str
+            player SIDs that have voted and the str target player SID for whom
+            they voted, a bool whether word was guessed, and a list of possible
+            targets."""
         if self.game_state == GameState.VOTING:
             if self.word_guessed:
                 candidates = [p for p in self.player_sids
                               if str(self.player_sids[p]) != str(Werewolf)]
             else:
                 candidates = self.player_sids
-            return self.required_voters, self.word_guessed, candidates
+            return (self.required_voters, self.votes, self.word_guessed,
+                    candidates)
         return None, None, None
 
     def set_player_target(self, player_sid, target_sid):
@@ -381,6 +386,7 @@ class Game(object):
         if self.game_state in [GameState.SETUP,
                                GameState.NIGHT_PHASE_WORD_CHOICE]:
             raise GameError('No word chosen yet.')
+        return self.word
 
     def _start_night_phase_doppelganger(self):
         doppelganger_players = [
@@ -510,7 +516,6 @@ class Game(object):
                 f'Unable to vote for player {target_sid}; Not found in game.')
         if target_sid == voter_sid:
             raise GameError('You can\'t vote for yourself. :P')
-        
 
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):

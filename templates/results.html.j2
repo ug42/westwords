@@ -1,20 +1,17 @@
 <div class="mdl-dialog__content">
+    <br><b>{{winner}} team won!</b>
     {% if player_won is sameas true %}
-        <b>You won!</b>
-        <br>Your role: {{role}}
+        This means you won as a {{role}}!
     {% elif player_won is sameas false%}
-        <b>You lost.</b>
-        <br>Your role: {{role}}
-    {% else %}
-        {winner} team won!
+        This means you lost as a {{role}}.
     {% endif %}
 </div>
 <div class="mdl-dialog__content">
     Votes<br>
-    {% for v in voter_names %}<p><b>{{v.voter}}</b> voted for <b>{{v.target}}</b></p>{% endfor %}
+    {% for v in vote_information %}<p>{{v.voter}} ({{v.voter_role}}) -> {{v.target}} ({{v.target_role}})</p>{% endfor %}
     <p>
     </p>
     Killed players:
-    {% for k in killed_names %}<ul>{{k}}</ul>{% endfor %}
+    {% for k in killed_names %}<ul><b>{{k}}</b></ul>{% endfor %}
     <p><button type="button" class="mdl-button close" onclick="close_dialog()">OK</button></p>
 </div>

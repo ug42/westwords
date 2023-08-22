@@ -135,6 +135,8 @@ function game_started_buttons() {
     breadbox_btn.hidden = false;
     let join_game_btn = document.getElementById('join_game');
     join_game_btn.hidden = true;
+    let mayor_display = document.getElementById('mayor_display');
+    mayor_display.hidden = false;
     let spectate_btn = document.getElementById('spectate');
     spectate_btn.hidden = true;
 }
@@ -150,6 +152,8 @@ function game_setup_buttons() {
     proper_noun_btn.hidden = true;
     let breadbox_btn = document.getElementById('breadbox');
     breadbox_btn.hidden = true;
+    let mayor_display = document.getElementById('mayor_display');
+    mayor_display.hidden = true;
     let mayor_controls = document.getElementById('mayor_controls');
     mayor_controls.hidden = true;
     let admin_controls = document.getElementById('admin_controls');
@@ -200,11 +204,11 @@ function refresh_game_state(g) {
     mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
 
     let players = document.getElementById('players');
-    players.innerHTML = format_players(local_game_state)
+    players.innerHTML = format_players(local_game_state);
 
     let questions_div = document.getElementById('questions_div');
     questions_div.innerHTML = local_game_state.question_html;
-
+    
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
@@ -227,6 +231,12 @@ function refresh_game_state(g) {
         title_bar_role.innerHTML = 'Waiting...';
     }
 
+    if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
+        if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
+            let question_input = document.getElementById('question_input');
+            question_input.hidden = false;
+        }
+    }
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');

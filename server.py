@@ -45,8 +45,10 @@ socketio = SocketIO(app)
 # TODO: Remove vote buttons from non-voters
 # TODO: Remove question controls from spectator in JS
 # TODO: Add ability for people to join mid-game.
-# TODO: Make Role in layout update with game state
-
+# TODO: Make game state updates based on a response rather than transmitting
+# (This will break if you have multiple windows open with the socket reconnecting)
+# i.e., broadcast to room that an update is available, and have them request it,
+# possibly with a delta change to the state so we can minimize the overall traffic.
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -488,7 +490,7 @@ def game_status(game_id: str):
                               to=SOCKET_MAP[spectator])
             else:
                 app.logger.debug(
-                    f'Unable to broadcast to {PLAYERS[spectator].name}')
+                    f'Unable to broadcast to spectator: {spectator}')
 
 
 # Mayor functions
@@ -619,10 +621,12 @@ def vote(game_id, target_id):
                 GAMES[game_id].vote(session['sid'], target_id)
             except GameError as e:
                 if session['sid'] in SOCKET_MAP:
-                    socketio.emit('user_info', e, to=SOCKET_MAP[session['sid']])
+                    socketio.emit('user_info',
+                                  f'Vote failed: {e}',
+                                  to=SOCKET_MAP[session['sid']])
                 else:
                     app.logger.error(
-                        f'Error delivery to {PLAYERS[session['sid']].name} failed.')
+                        f"Error delivery to {PLAYERS[session['sid']].name} failed.")
 
             game_status(game_id)
     else:
@@ -635,10 +639,14 @@ def get_results(game_id: str):
         winner, killed_sids, votes = GAMES[game_id].get_results()
         role = GAMES[game_id].get_player_role(session['sid'])
         player_won = role.get_affiliation() == winner
-        voter_names = []
+        vote_information = []
         for voter_sid in votes:
-            voter_names.append({'voter': PLAYERS[voter_sid].name,
-                                'target': PLAYERS[votes[voter_sid]].name})
+            vote_information.append({
+                'voter': PLAYERS[voter_sid].name,
+                'voter_role': str(GAMES[game_id].get_player_role(voter_sid)),
+                'target': PLAYERS[votes[voter_sid]].name,
+                'target_role': str(GAMES[game_id].get_player_role(votes[voter_sid])),
+            })
         killed_names = []
         for killed_sid in killed_sids:
             killed_names.append(PLAYERS[killed_sid].name)
@@ -650,7 +658,7 @@ def get_results(game_id: str):
                 player_won=player_won,
                 role=role,
                 killed_names=killed_names,
-                voter_names=voter_names,
+                vote_information=vote_information,
             ),
         }
     return {'status': 'BAD', 'results_html': None}
@@ -685,20 +693,25 @@ def get_player_revealed_information(game_id: str):
 @socketio.on('get_voting_page')
 def get_voting_information(game_id: str):
     if (game_id in GAMES and session['sid']):
-        voter_sids, word_guessed, candidate_sids = GAMES[game_id].voting_info()
+        voter_sids, votes, word_guessed, candidate_sids = GAMES[game_id].voting_info()
         if not voter_sids:
             socketio.emit('mayor_error',
                           f'No voting players found for game {game_id}')
             return
         voters = []
         for voter_sid in voter_sids:
-            voters.append(PLAYERS[voter_sid].name)
+            if voter_sid not in votes:
+                voters.append(PLAYERS[voter_sid].name)
         candidates = []
         for candidate_sid in candidate_sids:
-            candidates.append(
-                {'sid': candidate_sid,
-                 'name': PLAYERS[candidate_sid].name})
+            if candidate_sid != session['sid']:
+                candidates.append(
+                    {'sid': candidate_sid,
+                    'name': PLAYERS[candidate_sid].name})
 
+        vote = None
+        if session['sid'] in votes:
+            vote = votes[session['sid']]
         if word_guessed:
             voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
                            'Teller!')
@@ -708,7 +721,8 @@ def get_voting_information(game_id: str):
         try:
             word = GAMES[game_id].get_word()
         except GameError as e:
-            socketio.emit('user_info', e, room=game_id)
+            socketio.emit(
+                'user_info', f'Failed to get word: {e}', room=game_id)
             return {'success': False, 'role': None}
 
         app.logger.debug(f'Attempting to generate voting list for session.')
@@ -724,6 +738,7 @@ def get_voting_information(game_id: str):
                 voting_text=voting_text,
                 candidates=candidates,
                 voters=voters,
+                vote=vote,
             ),
         }
     return {'success': False, 'role': None}

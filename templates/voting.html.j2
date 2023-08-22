@@ -6,9 +6,9 @@
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
     {% for c in candidates %}
-    <button type="button" class="mdl-button close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
+    <button type="button" class="mdl-button {% if vote == c.sid %}mdl-js-button mdl-button--raised mdl-button--accent {% endif %}close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
     {% endfor %}
 </div>
 <div class="mdl-dialog__content">
-  Players needing to vote: {% for v in voters %} {{v}}, {% endfor %}
+  Waiting for <br>{% for v in voters %} {{v}}, {% endfor %}
 </div>
