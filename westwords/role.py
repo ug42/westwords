@@ -27,6 +27,7 @@ class Role(object):
         self.affiliation = Affiliation.VILLAGE
         self.description = "Generic night action, no vote ability."
         self.doppelganger = doppelganger
+        self.image_name = None
         self.known_players = {}
         self.known_word = None
         self.max_instances = 1
@@ -81,8 +82,12 @@ class Role(object):
     def get_night_action_description(self):
         if self.targetting_role:
             return self.night_action_description
-        else:
-            return None
+        return None
+        
+    def get_image_name(self) -> str:
+        if self.image_name:
+            return self.image_name
+        return None
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         """Calculate any night info and return it for the player role.
@@ -130,6 +135,7 @@ class Werewolf(Role):
         Tries to lead guesses away from the word. Sees word and other
         werewolves, but not minion.
         """
+        self.image_name = 'werewolf.jpg'
         self.max_instances = 4
         self.required = True
         self.required_players = 0
@@ -157,6 +163,7 @@ class Villager(Role):
         Ordinary villager. Asks questions, tries to guess word. Wins with
         Village team.
         """
+        self.image_name = 'villager.jpg'
         self.required_players = 3
         self.max_instances = 8
 
@@ -172,6 +179,7 @@ class Seer(Role):
         execute this player after the Village team guesses the word, the
         Werewolf team wins.
         """
+        # self.image = 'doppelganger.jpg'
         self.required = True
         self.required_players = 0
         self.team_loses_if_killed = True

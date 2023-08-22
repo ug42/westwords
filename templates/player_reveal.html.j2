@@ -2,10 +2,10 @@
     Here's what you know.
 </div>
 <div>
-    Your role: {{role}}<br>
+    Your role: {{player_role}}<br>
     {% if known_word is not none %} Word: <b>{{known_word}}</b><br> {% endif %}
     {% for p in known_players %}
-    <br>Player: {{ p.name }}  role: {{ p.role }}
+    <br>Player: {{ p.name }} <b>role: {{ p.role }}</b>
     {% endfor %}
     <button type="button" class="mdl-button close" onclick="ack_reveal()">OK</button>
 </div>

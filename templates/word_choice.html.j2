@@ -5,10 +5,4 @@
     {% for w in words %}
     <button type="button" class="mdl-button close" onclick="send_word('{{game_id}}', '{{w}}')">{{w}}</button>
     {% endfor %}
-    <script>
-        var dialog = document.querySelector('dialog');
-        dialog.querySelector('.close').addEventListener('click', function () {
-            dialog.close();
-        });
-    </script>
 </div>

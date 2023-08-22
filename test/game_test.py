@@ -104,7 +104,8 @@ class testGameFunctions(unittest.TestCase):
                          ('Werewolf', 'villager', {'werewolf': 'villager'}))
 
     def testVote(self):
-        self.assertFalse(self.game.vote('foo', 'bar'))
+        with self.assertRaises(GameError):
+            self.game.vote('foo', 'bar')
         self.game.game_state = GameState.VOTING
         self.game.required_voters = ['foo', 'bar']
         self.game.player_sids = {'foo': None, 'bar': None}

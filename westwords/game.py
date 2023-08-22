@@ -287,8 +287,10 @@ class Game(object):
             True if voting state successfully; False otherwise.
         """
         self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
+        self.out_of_tokens = self.get_tokens()['yesno'] <= 0
         elapsed_time = (datetime.now() - self.start_time).seconds
-        if elapsed_time < self.timer and not self.word_guessed:
+        if (elapsed_time < self.timer
+                and not (self.out_of_tokens or self.word_guessed)):
             logging.debug('End of game conditions not met.'
                           f'Word guessed: {self.word_guessed}'
                           f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
@@ -500,15 +502,15 @@ class Game(object):
             True if vote was successfully cast; False otherwise.
         """
         if not self.is_voting():
-            logging.error(f'Game not in voting state.')
-            return False
+            raise GameError(f'Game not in voting state.')
         if voter_sid not in self.required_voters:
-            logging.error(f'Player {voter_sid} is ineligible to vote.')
-            return False
+            raise GameError(f'Player {voter_sid} is ineligible to vote.')
         if target_sid not in self.player_sids:
-            logging.error(
+            raise GameError(
                 f'Unable to vote for player {target_sid}; Not found in game.')
-            return False
+        if target_sid == voter_sid:
+            raise GameError('You can\'t vote for yourself. :P')
+        
 
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):

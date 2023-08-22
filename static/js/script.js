@@ -35,17 +35,19 @@ function ask_question(game_id, question) {
 }
 function undo_answer(game_id) {
     socket.emit('undo', game_id);
+    close_dialog()
 }
 function start_vote(game_id) {
     console.log('Attempting to start vote.')
     socket.emit('start_vote', game_id)
+    close_dialog()
 }
 function send_start_req() {
     console.log('Attempting to start');
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_start', local_game_state.game_id);
 }
-function send_reset_eq() {
+function send_reset_req() {
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_reset', local_game_state.game_id);
 }
@@ -55,6 +57,7 @@ function vote_player(game_id, candidate) {
 }
 socket.on('game_state', function (state) {
     console.log('Got a socket connection for game_state updates. Updating..')
+    console.table(state)
     refresh_game_state(state);
 });
 
@@ -120,7 +123,7 @@ function parse_tokens(tokens) {
 }
 
 function game_started_buttons() {
-    // console.log('Attempting to start game');
+    console.log('Attempting to start game');
     // timer.start();
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = true;
@@ -137,6 +140,7 @@ function game_started_buttons() {
 }
 
 function game_setup_buttons() {
+    console.log('Attempting to setup game');
     // reset_game_timer(local_game_state.time);
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
@@ -184,6 +188,7 @@ function start_timer(timestamp) {
 function refresh_game_state(g) {
     console.log('Attempting to refresh game state')
     local_game_state = g;
+    close_dialog()
 
     // TODO: Remove this or check to see if game_state is available
     let game_state = document.getElementById('game_state');
@@ -215,6 +220,13 @@ function refresh_game_state(g) {
         game_started_buttons();
     }
 
+    let title_bar_role = document.getElementById('title-bar-role');
+    if (local_game_state.role !== 'None') {
+        title_bar_role.innerHTML = 'Role: ' + local_game_state.role;
+    } else {
+        title_bar_role.innerHTML = 'Waiting...';
+    }
+
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
@@ -227,9 +239,18 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'VOTING') {
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
-            console.table(response)
             if (response.status === 'OK') {
                 dialog.innerHTML = response.voting_html;
+                dialog.showModal();
+            }
+        });
+    }
+    if (local_game_state.game_state === 'FINISHED') {
+        socket.emit('get_results', local_game_state.game_id, (response) => {
+            let dialog = document.querySelector('dialog');
+            console.table(response)
+            if (response.status === 'OK') {
+                dialog.innerHTML = response.results_html;
                 dialog.showModal();
             }
         });
@@ -242,6 +263,19 @@ function refresh_game_state(g) {
         let finish_btn = document.getElementById('finish');
         let mayor_controls = document.getElementById('mayor_controls');
         if (local_game_state.game_state === 'AWAITING_VOTE') {
+            let dialog = document.querySelector('dialog');
+            let html = '<div class="mdl-dialog__content">'
+            html += '<p>Last token played, Undo or Move to vote</p>'
+            html += '<p><button onclick="undo_answer(\''
+            html += local_game_state.game_id
+            html += '\')" class="mdl-button">Undo last answer</button></p>'
+            html += '<p><button onclick="start_vote(\''
+            html += local_game_state.game_id
+            html += '\')" class="mdl-button">Start Vote</button></p>'
+            html += '<p><button type="button" class="mdl-button close" '
+            html += 'onclick="close_dialog()">Close</button></p></div>'
+            dialog.innerHTML = html
+            dialog.showModal();
             mayor_controls.hidden = false;
             finish_btn.hidden = false;
         }

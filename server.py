@@ -9,18 +9,16 @@
 # to a backing store, I think that would effectively solve for the worker thread
 # problem.
 
-# self.game.game_status == GameState.FINISHED
-
-
 from collections import UserDict
 from datetime import datetime, timedelta
+import os
 import re
 from random import randint
 from time import sleep
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
-                   request, session, url_for)
+                   request, send_from_directory, session, url_for)
 from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
 
 import westwords
@@ -41,13 +39,13 @@ socketio = SocketIO(app)
 # TODO: Add ability of question asker to remove question if not answered
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
-# TODO: Add voting options and functions
 # TODO: Add doppelganger choice dialog
 # TODO: Add auto-destroy of game after some period of no updates.
 # TODO: Remove self from voting candidates
 # TODO: Remove vote buttons from non-voters
-# TODO: Refresh game page automatically after voting completes and game is
-# finished. Show results.
+# TODO: Remove question controls from spectator in JS
+# TODO: Add ability for people to join mid-game.
+# TODO: Make Role in layout update with game state
 
 
 SOCKET_MAP = {}
@@ -194,6 +192,12 @@ def index():
     return render_template('index.html.j2')
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
 @app.route('/username', methods=['POST'])
 def username():
     check_session_config()
@@ -241,6 +245,7 @@ def leave_game(game_id: str = None):
             if (len(GAMES[game_id].get_players()) == 0 and
                     len(GAMES[game_id].get_spectators()) == 0):
                 del GAMES[game_id]
+            # leave_room(game_id)
     else:
         for room in PLAYERS[session['sid']].get_rooms():
             if room in GAMES:
@@ -249,6 +254,7 @@ def leave_game(game_id: str = None):
                 if len(GAMES[game_id].get_players()) == 0:
                     del GAMES[game_id]
             PLAYERS[session['sid']].leave_room(room)
+            leave_room(room)
     game_status(game_id)
     return redirect('/')
 
@@ -368,29 +374,16 @@ def connect(auth: str):
     SOCKET_MAP[session['sid']] = request.sid
     for room in PLAYERS[session['sid']].get_rooms():
         if room not in rooms():
-            app.logger.debug(f'{room} not in list of rooms: {rooms()}')
             join_room(room)
-            # Remove me.
-            emit('user_info',
-                 f"{PLAYERS[session['sid']].name} joined.", room=room)
-        app.logger.debug(f'Rooms for client: {rooms()}')
-
-    app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
 
 @socketio.on('disconnect')
 def disconnect():
     try:
-        SOCKET_MAP[session['sid']] = None
-        # if PLAYERS[session['sid']].rooms:
-        #     for room in PLAYERS[session['sid']].rooms:
-        #         leave_room(room)
-        #         emit('user_info',
-        #              f"{PLAYERS[session['sid']].name} left.", room=room)
+        del SOCKET_MAP[session['sid']]
     except KeyError as e:
         app.logger.debug(
             f"Unable to remove socket mapping for {session['sid']}: {e}")
-    app.logger.debug(f'Current socket map: {SOCKET_MAP}')
 
 
 @socketio.on('question')
@@ -478,14 +471,24 @@ def answer_question(game_id: str, question_id: int, answer: str):
 @socketio.on('get_game_state')
 def game_status(game_id: str):
     if game_id in GAMES:
+
         for player in GAMES[game_id].get_players():
-            emit('game_state',
-                 parse_game_state(game_id, player),
-                 to=SOCKET_MAP[player])
+            if player in SOCKET_MAP:
+                socketio.emit('game_state',
+                              parse_game_state(game_id, player),
+                              to=SOCKET_MAP[player],)
+            else:
+                app.logger.debug(
+                    f'Unable to broadcast to {PLAYERS[spectator].name}')
+
         for spectator in GAMES[game_id].get_spectators():
-            emit('game_state',
-                 parse_game_state(game_id, spectator),
-                 to=SOCKET_MAP[spectator])
+            if spectator in SOCKET_MAP:
+                socketio.emit('game_state',
+                              parse_game_state(game_id, spectator),
+                              to=SOCKET_MAP[spectator])
+            else:
+                app.logger.debug(
+                    f'Unable to broadcast to {PLAYERS[spectator].name}')
 
 
 # Mayor functions
@@ -503,9 +506,9 @@ def start_vote(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
         if not success:
-            emit('mayor_error',
-                 f'Unable to finish game and start vote.',
-                 room=game_id)
+            socketio.emit('mayor_error',
+                          f'Unable to finish game and start vote.',
+                          room=game_id)
             return
 
         game_status(game_id)
@@ -523,9 +526,9 @@ def set_word_choice_count(game_id: str, word_count: int):
         GAMES[game_id].set_word_choice_count(word_count)
         game_status(game_id)
 
-    emit('admin_error',
-         f'Unable to set word count to {word_count}.',
-         room=game_id)
+    socketio.emit('admin_error',
+                  f'Unable to set word count to {word_count}.',
+                  room=game_id)
 
 
 @socketio.on('get_words')
@@ -584,7 +587,7 @@ def start_game(game_id: str):
             GAMES[game_id].start_night_phase_word_choice()
             game_status(game_id)
         except GameError as e:
-            emit('user_info', f"Game start failed. {e}")
+            socketio.emit('user_info', f"Game start failed. {e}")
 
 
 @socketio.on('game_reset')
@@ -612,7 +615,15 @@ def vote(game_id, target_id):
             f"{PLAYERS[target_id].name}, game id: {game_id}")
         if game_id in GAMES:
             app.logger.debug(f'Attempting to vote for {target_id}')
-            GAMES[game_id].vote(session['sid'], target_id)
+            try:
+                GAMES[game_id].vote(session['sid'], target_id)
+            except GameError as e:
+                if session['sid'] in SOCKET_MAP:
+                    socketio.emit('user_info', e, to=SOCKET_MAP[session['sid']])
+                else:
+                    app.logger.error(
+                        f'Error delivery to {PLAYERS[session['sid']].name} failed.')
+
             game_status(game_id)
     else:
         app.logger.debug(f'Unknown player SID {target_id}')
@@ -621,21 +632,24 @@ def vote(game_id, target_id):
 @socketio.on('get_results')
 def get_results(game_id: str):
     if game_id in GAMES:
-        winner, killed, votes = GAMES[game_id].get_results()
+        winner, killed_sids, votes = GAMES[game_id].get_results()
         role = GAMES[game_id].get_player_role(session['sid'])
         player_won = role.get_affiliation() == winner
         voter_names = []
         for voter_sid in votes:
             voter_names.append({'voter': PLAYERS[voter_sid].name,
                                 'target': PLAYERS[votes[voter_sid]].name})
+        killed_names = []
+        for killed_sid in killed_sids:
+            killed_names.append(PLAYERS[killed_sid].name)
         return {
             'status': 'OK',
             'results_html': render_template(
                 'results.html.j2',
-                winner=winner.value, # This should be the capitalized string
+                winner=winner.value,  # This should be the capitalized string
                 player_won=player_won,
                 role=role,
-                killed=killed,
+                killed_names=killed_names,
                 voter_names=voter_names,
             ),
         }
@@ -653,11 +667,13 @@ def get_player_revealed_information(game_id: str):
             known_players.append(
                 {'name': PLAYERS[player].name, 'role': players[player], })
         app.logger.debug(f'Info: {known_word} players: {known_players}')
+        role = GAMES[game_id].get_player_role(session['sid'])
         return {
             'status': 'OK',
             'reveal_html': render_template(
                 'player_reveal.html.j2',
-                player_role=str(GAMES[game_id].get_player_role(session['sid'])),
+                player_role=str(role),
+                role_img=role.get_image_name(),
                 known_players=known_players,
                 known_word=known_word,
                 word_is_known=known_word is not None,
@@ -671,7 +687,8 @@ def get_voting_information(game_id: str):
     if (game_id in GAMES and session['sid']):
         voter_sids, word_guessed, candidate_sids = GAMES[game_id].voting_info()
         if not voter_sids:
-            emit('mayor_error', f'No voting players found for game {game_id}')
+            socketio.emit('mayor_error',
+                          f'No voting players found for game {game_id}')
             return
         voters = []
         for voter_sid in voter_sids:
@@ -722,12 +739,12 @@ def set_word(game_id: str, word: str):
             game.
     """
     if game_id not in GAMES:
-        emit('mayor_error', f'Unable to set word for game {game_id}.')
+        socketio.emit('mayor_error', f'Unable to set word for game {game_id}.')
         return
 
     if session['sid'] != GAMES[game_id].mayor:
-        emit('mayor_error',
-             f'Word set attempt failed. User is not mayor.')
+        socketio.emit('mayor_error',
+                      f'Word set attempt failed. User is not mayor.')
         return
 
     GAMES[game_id].set_word(word)
