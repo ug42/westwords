@@ -11,10 +11,10 @@
         <!-- These two controls should be gated -->
         <div id="admin_controls" hidden>
         <b>Admin controls</b>
-        <button onclick="send_start_req()"
+        <button onclick="sendStartReq()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
-        <button onclick="send_reset_req()"
+        <button onclick="sendResetReq()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="game_reset">Reset game</button></p>
         </div>
@@ -29,6 +29,8 @@
                 id="join_game">Join Game</button></p>
         <p><button onclick="window.location.href='/spectate/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="spectate">Spectate</button></p>
+        <p><button onclick="window.location.href='/leave/{{ game_id }}'" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                id="join_game">Leave Game</button></p>
         {% if DEBUG %}
         <b>DEBUGGING</b>
         <button onclick="get_game_state('{{ game_id }}')"

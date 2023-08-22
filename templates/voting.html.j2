@@ -3,9 +3,9 @@
 </div>
 <div class="mdl-dialog__actions mdl-dialog__actions--full-width">
     {% for c in candidates %}
-    <button type="button" class="mdl-button close" onclick="votePlayer('{{game_id}}', '{{c}}')">{{c}}</button>
+    <button type="button" class="mdl-button close" onclick="votePlayer('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
     {% endfor %}
 </div>
 <div class="mdl-dialog__content">
-  Players needing to vote: {% for v in voting_players %} {{v}}, {% endfor %}
+  Players needing to vote: {% for v in voters %} {{v}}, {% endfor %}
 </div>

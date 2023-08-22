@@ -4,33 +4,11 @@
 # and gunicorn are unable to handle sticky sessions. Boo. Scaling jobs will need
 # to account for a reverse proxy and keeping each server with a single worker
 # thread.
+# 
+# Ok, so I mean if I move the data for the rooms and Game and Player objects off
+# to a backing store, I think that would effectively solve for the worker thread
+# problem.
 
-# Overall game flow, make sure each step has plumbing here.
-
-# self.game.get_player_revealed_information('player1')
-# acknowledge_revealed_info
-# self.game.acknowledge_revealed_info('player2')
-# self.game.get_player_revealed_information('player3', acknowledge=True)
-# self.game.get_player_revealed_information('player4', acknowledge=True)
-# self.game.get_player_revealed_information('player5', acknowledge=True)
-# self.game.get_player_revealed_information('player6', acknowledge=True)
-# self.game.get_player_revealed_information('player7')
-# self.game.acknowledge_revealed_info('player7')
-
-# <automatic> after last player acks
-# self.game.game_state == GameState.DAY_PHASE_QUESTIONS
-# question
-# success, id = self.game.add_question('mason2', 'Am I the first question?')
-# answer_question
-# success, end_of_game = self.game.answer_question(id, AnswerToken.YES)
-# question
-# success, id = self.game.add_question('werewolf2', 'Is it a squirrel?')
-# answer_question
-# success, end_of_game = self.game.answer_question(id, AnswerToken.NO)
-# question
-# success, id = self.game.add_question('villager', 'Chimpanzee?')
-# answer_question
-# success, end_of_game = self.game.answer_question(id, AnswerToken.CORRECT)
 # start_vote
 # success, players_needing_to_vote = self.game.start_vote(word_guessed=True)
 # self.game.game_status == GameState.VOTING
@@ -55,6 +33,7 @@ import re
 from random import choice, randint
 from string import ascii_uppercase
 from time import sleep
+from typing import Dict
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
@@ -81,13 +60,17 @@ socketio = SocketIO(app)
 # TODO: Add ability to make others admin
 # TODO: Add voting options and functions
 # TODO: Add doppelganger choice dialog
+# TODO: Add auto-destroy of game after some period of no updates.
+# TODO: Remove self from voting candidates
+# TODO: Fix vote socket emit; it registers in game, but does nothing to change
+# state. Still registers as needing to vote.
 
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
 PLAYERS = {}
 # TODO: move this off to a backing store.
-GAMES = {}
+GAMES = dict(str, westwords.Game)
 # I have no idea what I'm doing.
 # Ok, I have some idea what I'm doing, but I'm pretty sure it's dumb.
 # Ok, I mean it's well-intentioned. Like I don't want to keep spamming 50KB
@@ -259,7 +242,8 @@ def leave_game(game_id: str = None):
         if game_id in GAMES:
             GAMES[game_id].remove_player(session['sid'])
             GAMES[game_id].remove_spectator(session['sid'])
-            if len(GAMES[game_id].get_players()) == 0:
+            if (len(GAMES[game_id].get_players()) == 0 and
+                    len(GAMES[game_id].get_spectators()) == 0):
                 del GAMES[game_id]
     else:
         for room in PLAYERS[session['sid']].get_rooms():
@@ -269,6 +253,7 @@ def leave_game(game_id: str = None):
                 if len(GAMES[game_id].get_players()) == 0:
                     del GAMES[game_id]
             PLAYERS[session['sid']].leave_room(room)
+    game_status(game_id)
     return redirect('/')
 
 
@@ -279,17 +264,17 @@ def spectate_game(game_id: str):
         # this should keep the player in the room for broadcast state, but not
         # game mechanics.
         GAMES[game_id].remove_player(session['sid'])
-        if len(GAMES[game_id].get_players()) == 0:
-            del GAMES[game_id]
-            return redirect('/')
         GAMES[game_id].add_spectator(session['sid'])
         return redirect(f'/game/{game_id}')
+    flash(f'Unable to find game: {game_id}')
     return redirect('/')
 
 
 @app.route('/game/<game_id>', strict_slashes=False)
 def game_index(game_id: str, spectate: str = None):
     check_session_config()
+    if game_id not in GAMES:
+        return redirect(f'/create/{game_id}')
     if 'sid' not in session:
         session['sid'] = str(uuid4())
     if 'username' not in session:
@@ -298,7 +283,8 @@ def game_index(game_id: str, spectate: str = None):
         return redirect(url_for('login'))
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
-    if game_id not in PLAYERS[session['sid']].rooms:
+    if session['sid'] not in (list(GAMES[game_id].get_players().keys()) +
+                              list(GAMES[game_id].get_spectators())):
         return redirect(f'/join/{game_id}')
 
     if game_id in GAMES:
@@ -661,10 +647,18 @@ def get_player_revealed_information(game_id: str):
 @socketio.on('get_voting_page')
 def get_voting_information(game_id: str):
     if (game_id in GAMES and session['sid']):
-        voting_players, word_guessed, candidates = GAMES[game_id].voting_info()
-        if not voting_players:
+        voter_sids, word_guessed, candidate_sids = GAMES[game_id].voting_info()
+        if not voter_sids:
             emit('mayor_error', f'No voting players found for game {game_id}')
             return
+        voters = []
+        for voter_sid in voter_sids:
+            voters.append(PLAYERS[voter_sid].name)
+        candidates = []
+        for candidate_sid in candidate_sids:
+            candidates.append(
+                {'sid': candidate_sid,
+                 'name': PLAYERS[candidate_sid].name})
 
         if word_guessed:
             voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
@@ -682,7 +676,7 @@ def get_voting_information(game_id: str):
                 'voting.html.j2',
                 voting_text=voting_text,
                 candidates=candidates,
-                voting_players=voting_players,
+                voters=voters,
             ),
         }
     return {'success': False, 'role': None}

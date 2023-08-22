@@ -185,14 +185,14 @@ class Game(object):
         Returns:
             A list of str player SIDs that are required to vote, a bool whether
             word was guessed, and a list of possible targets."""
-        if self.game_state != GameState.VOTING:
+        if self.game_state == GameState.VOTING:
             if self.word_guessed:
                 candidates = [p for p in self.player_sids
                               if str(self.player_sids[p]) != str(Werewolf)]
             else:
                 candidates = self.player_sids
             return self.required_voters, self.word_guessed, candidates
-        return None, None
+        return None, None, None
 
     def set_player_target(self, player_sid, target_sid):
         """Set the target of player's night action.
@@ -224,7 +224,7 @@ class Game(object):
         return self.player_sids
     
     def get_spectators(self):
-        return self.spectators
+        return [s for s in self.spectators if s not in self.player_sids]
 
     def get_player_token_count(self, player_sid):
         if player_sid in self.player_token_count:
@@ -594,7 +594,7 @@ class Game(object):
 
     def remove_spectator(self, sid):
         if sid in self.spectators:
-            del self.spectators[sid]
+            self.spectators.remove(sid)
         else:
             logging.debug(f'DELETE: User {sid} not spectating game')
 

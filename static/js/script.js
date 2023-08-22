@@ -40,14 +40,18 @@ function startVote(game_id) {
     console.log('Attempting to start vote.')
     socket.emit('start_vote', game_id)
 }
-function send_start_req() {
+function sendStartReq() {
     console.log('Attempting to start');
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_start', local_game_state.game_id);
 }
-function send_reset_req() {
+function sendResetReq() {
     console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_reset', local_game_state.game_id);
+}
+function votePlayer(game_id, candidate) {
+    console.log('trying to vote for ' + candidate);
+    socket.emit('vote', game_id, candidate)
 }
 socket.on('game_state', function (state) {
     console.log('Got a socket connection for game_state updates. Updating..')
@@ -67,8 +71,10 @@ function format_players(local_game_state) {
         html += parse_tokens(local_game_state.players[player])
         html += '</div>';
     }
-    for (const spectator in local_game_state.spectators) {
-        html += '<div>' + spectator + ' (Spectator) </div>';
+    // TODO: SPectator name showing up as '0'
+    for (let i = 0; i < local_game_state.spectators.length; i++) {
+        html += '<div>' + local_game_state.spectators[i] 
+        html += ' (Spectator) </div>';
     }
     return html
 }
@@ -132,7 +138,6 @@ function game_started_buttons() {
 }
 
 function game_setup_buttons() {
-    console.log('Attempting to reset game');
     // reset_game_timer(local_game_state.time);
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
@@ -168,6 +173,14 @@ function get_time_skew(server_timestamp) {
 function start_timer(timestamp) {
 
 }
+
+(function () {
+	window.onpageshow = function(event) {
+		if (event.persisted) {
+			window.location.reload();
+		}
+	};
+})();
 
 function refresh_game_state(g) {
     console.log('Attempting to refresh game state')
@@ -213,8 +226,9 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'VOTING') {
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
+            console.table(response)
             if (response.status === 'OK') {
-                dialog.innerHTML = response.reveal_html;
+                dialog.innerHTML = response.voting_html;
                 dialog.showModal();
             }
         });
@@ -292,8 +306,6 @@ ready(function () {
         console.log('Socket disconnected.');
         console.log(data);
     });
-    socket.on('game_start_rsp', game_start);
-    socket.on('game_reset_rsp', game_reset);
     socket.on('user_info', function (message) {
         snackbarContainer.MaterialSnackbar.showSnackbar({ message: message });
     });
@@ -349,12 +361,5 @@ ready(function () {
             question.value = "";
         }
     });
-
-    if (document.getElementById('undo') !== null) {
-        let undo_btn = document.getElementById('undo');
-        undo_btn.addEventListener('click', function () {
-            socket.emit('undo', local_game_state.game_id)
-        })
-    }
 
 });
