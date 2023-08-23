@@ -9,7 +9,6 @@ var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
 var local_time_skew = 0;
 function get_game_state(game_id) {
-    console.log('Game state refresh requested');
     socket.emit('get_game_state', game_id);
 }
 function close_dialog() {
@@ -17,7 +16,6 @@ function close_dialog() {
     dialog.close()
 }
 function answer(game_id, id, answer) {
-    console.log('Attempting to answer question ' + id)
     socket.emit('answer_question', game_id, id, answer);
 }
 function send_word(game_id, word) {
@@ -26,7 +24,6 @@ function send_word(game_id, word) {
     dialog.close()
 }
 function ack_reveal() {
-    console.log('Attempting to ack the info');
     close_dialog();
     socket.emit('acknowledge_revealed_info', local_game_state.game_id);
 }
@@ -38,26 +35,20 @@ function undo_answer(game_id) {
     close_dialog()
 }
 function start_vote(game_id) {
-    console.log('Attempting to start vote.')
     socket.emit('start_vote', game_id)
     close_dialog()
 }
 function send_start_req() {
-    console.log('Attempting to start');
-    console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_start', local_game_state.game_id);
 }
 function send_reset_req() {
-    console.log('Start timer for game: ' + local_game_state.game_id);
     socket.emit('game_reset', local_game_state.game_id);
 }
 function vote_player(game_id, candidate) {
-    console.log('trying to vote for ' + candidate);
     socket.emit('vote', game_id, candidate)
 }
 socket.on('game_state', function (state) {
     console.log('Got a socket connection for game_state updates. Updating..')
-    console.table(state)
     refresh_game_state(state);
 });
 
@@ -123,7 +114,6 @@ function parse_tokens(tokens) {
 }
 
 function game_started_buttons() {
-    console.log('Attempting to start game');
     // timer.start();
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = true;
@@ -142,7 +132,6 @@ function game_started_buttons() {
 }
 
 function game_setup_buttons() {
-    console.log('Attempting to setup game');
     // reset_game_timer(local_game_state.time);
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
@@ -258,7 +247,6 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'FINISHED') {
         socket.emit('get_results', local_game_state.game_id, (response) => {
             let dialog = document.querySelector('dialog');
-            console.table(response)
             if (response.status === 'OK') {
                 dialog.innerHTML = response.results_html;
                 dialog.showModal();
@@ -349,7 +337,6 @@ ready(function () {
     });
     socket.on('disconnect', function (data) {
         console.log('Socket disconnected.');
-        console.log(data);
     });
     socket.on('user_info', function (message) {
         snackbarContainer.MaterialSnackbar.showSnackbar({ message: message });
@@ -392,7 +379,6 @@ ready(function () {
     var question = document.getElementById('question');
     question.addEventListener('keypress', function (event) {
         if (event.key === "Enter") {
-            console.log('emitting question: ' + question.value);
             if (question.value != "") {
                 socket.emit('question', local_game_state.game_id, question.value);
                 question.value = "";
@@ -400,7 +386,6 @@ ready(function () {
         }
     });
     document.getElementById('question_submit').addEventListener('click', function () {
-        console.log('emitting question: ' + question.value);
         if (question.value != "") {
             socket.emit('question', local_game_state.game_id, question.value);
             question.value = "";
