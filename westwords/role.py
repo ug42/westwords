@@ -119,6 +119,7 @@ class Doppelganger(Role):
         self.night_action_description = """
         Choose a player to mimic. You will become a copy of their role.
         """
+        self.image_name = 'doppelganger.png'
         self.affiliation = Affiliation.UNKNOWN
         self.required_players = 6
         # Doppelganger is special cased to not target during normal phase.
@@ -135,7 +136,7 @@ class Werewolf(Role):
         Tries to lead guesses away from the word. Sees word and other
         werewolves, but not minion.
         """
-        self.image_name = 'werewolf.jpg'
+        self.image_name = 'werewolf.png'
         self.max_instances = 4
         self.required = True
         self.required_players = 0
@@ -163,7 +164,7 @@ class Villager(Role):
         Ordinary villager. Asks questions, tries to guess word. Wins with
         Village team.
         """
-        self.image_name = 'villager.jpg'
+        self.image_name = 'villager.png'
         self.required_players = 3
         self.max_instances = 8
 
@@ -179,7 +180,7 @@ class Seer(Role):
         execute this player after the Village team guesses the word, the
         Werewolf team wins.
         """
-        # self.image = 'doppelganger.jpg'
+        self.image_name = 'seer.png'
         self.required = True
         self.required_players = 0
         self.team_loses_if_killed = True
@@ -205,6 +206,7 @@ class Intern(Role):
         the Seer. Werewolves executing the Intern is only a win condition if
         the Mayor is a Seer.
         """
+        self.image_name = 'intern.png'
         self.sees_word = False
         self.required_players = 5
         # This will be set to true if Mayor is the Seer.
@@ -228,6 +230,7 @@ class FortuneTeller(Role):
         Village team player. Sees the first letter of each word. Werewolf team
         wins if they find the Fortune Teller or the Seer.
         """
+        self.image_name = 'fortune_teller.jpg'
         self.sees_word = False
         self.required_players = 5
         self.team_loses_if_killed = True
@@ -252,6 +255,7 @@ class Minion(Role):
 
         Does not vote with Werewolves to find the Seer/Fortune Teller.
         """
+        self.image_name = 'minion.png'
         self.required_players = 7
         self.team_loses_if_killed = True
         self.votes_on_guessed_word = False
@@ -276,6 +280,7 @@ class Beholder(Role):
         Teller roles. Does not lose on being targetted by Werewolves. Otherwise
         known as the villager who know too much.
         """
+        self.image_name = 'beholder.png'
         self.required_players = 5
 
     def __str__(self):
@@ -295,6 +300,7 @@ class Mason(Role):
         self.description = """
         Villager who happens to know which players are the other Masons.
         """
+        self.image_name = 'mason.png'
         self.required_players = 8
         self.max_instances = 2
 
@@ -318,6 +324,7 @@ class Esper(Role):
         Villager who lets their neighbor know they're not a Werewolf by 
         sending good vibes to another person.
         """
+        self.image_name = 'esper.png'
         self.required_players = 5
         self.targetting_role = True
         self.night_action_description = """

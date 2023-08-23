@@ -49,6 +49,7 @@ socketio = SocketIO(app)
 # (This will break if you have multiple windows open with the socket reconnecting)
 # i.e., broadcast to room that an update is available, and have them request it,
 # possibly with a delta change to the state so we can minimize the overall traffic.
+# TODO: Add game timer and updates
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -481,7 +482,7 @@ def game_status(game_id: str):
                               to=SOCKET_MAP[player],)
             else:
                 app.logger.debug(
-                    f'Unable to broadcast to {PLAYERS[spectator].name}')
+                    f'Unable to broadcast to {PLAYERS[player].name}')
 
         for spectator in GAMES[game_id].get_spectators():
             if spectator in SOCKET_MAP:
@@ -489,8 +490,8 @@ def game_status(game_id: str):
                               parse_game_state(game_id, spectator),
                               to=SOCKET_MAP[spectator])
             else:
-                app.logger.debug(
-                    f'Unable to broadcast to spectator: {spectator}')
+                app.logger.debug('Unable to broadcast to spectator: '
+                                 f'{PLAYERS[spectator].name}')
 
 
 # Mayor functions
@@ -681,7 +682,7 @@ def get_player_revealed_information(game_id: str):
             'reveal_html': render_template(
                 'player_reveal.html.j2',
                 player_role=str(role),
-                role_img=role.get_image_name(),
+                image=role.get_image_name(),
                 known_players=known_players,
                 known_word=known_word,
                 word_is_known=known_word is not None,
