@@ -133,10 +133,6 @@ function game_started_buttons() {
     game_start_btn.hidden = true;
     let game_reset_btn = document.getElementById('game_reset');
     game_reset_btn.hidden = false;
-    let proper_noun_btn = document.getElementById('proper_noun');
-    proper_noun_btn.hidden = false;
-    let breadbox_btn = document.getElementById('breadbox');
-    breadbox_btn.hidden = false;
     let join_game_btn = document.getElementById('join_game');
     join_game_btn.hidden = true;
     let mayor_display = document.getElementById('mayor_display');
@@ -234,10 +230,17 @@ function refresh_game_state(g) {
         title_bar_role.innerHTML = 'Waiting...';
     }
 
+    let question_input = document.getElementById('question_input');
+    let proper_noun_btn = document.getElementById('proper_noun');
+    let breadbox_btn = document.getElementById('breadbox');
+    question_input.hidden = true;
+    proper_noun_btn.hidden = true;
+    breadbox_btn.hidden = true;
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
-            let question_input = document.getElementById('question_input');
             question_input.hidden = false;
+            proper_noun_btn.hidden = false;
+            breadbox_btn.hidden = false;
         }
     }
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
