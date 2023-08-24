@@ -3,6 +3,7 @@ import logging
 from collections import UserDict
 from copy import deepcopy
 from datetime import datetime, timedelta
+import time
 from random import choice, choices, shuffle
 from typing import Any
 
@@ -61,6 +62,7 @@ class Game(object):
     def __init__(self, timer=300, player_sids=[]):
         # TODO: Add concept of a game admin and management of users in that space
         self.timer = timer
+        self.update_timestamp = int(time.time() * 1000)
         self.player_sids = {}
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
@@ -836,3 +838,9 @@ class Game(object):
             return True
 
         return False
+
+    def set_update_timestamp(self, timestamp: int) -> None:
+        self.update_timestamp = timestamp
+
+    def get_update_timestamp(self) -> int:
+        return self.update_timestamp

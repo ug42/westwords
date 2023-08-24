@@ -10,11 +10,11 @@
 # problem.
 
 from collections import UserDict
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 import re
 from random import randint
-from time import sleep
+import time
 from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
@@ -45,16 +45,10 @@ socketio = SocketIO(app)
 # TODO: Remove vote buttons from non-voters
 # TODO: Remove question controls from spectator in JS
 # TODO: Add ability for people to join mid-game.
-# TODO: Make game state updates based on a response rather than transmitting
-# (This will break if you have multiple windows open with the socket reconnecting)
-# i.e., broadcast to room that an update is available, and have them request it,
-# possibly with a delta change to the state so we can minimize the overall traffic.
 # TODO: Add game timer and updates
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
-
-
 class PlayerDict(UserDict):
     def __getitem__(self, key: any) -> westwords.Player:
         return super().__getitem__(key)
@@ -68,18 +62,6 @@ class GamesDict(UserDict):
 # TODO: move this off to a backing store.
 PLAYERS = PlayerDict()
 GAMES = GamesDict()
-
-# I have no idea what I'm doing.
-# Ok, I have some idea what I'm doing, but I'm pretty sure it's dumb.
-# Ok, I mean it's well-intentioned. Like I don't want to keep spamming 50KB
-# socket info every 1/8th of a second because someone just keeps hitting a
-# button.
-# It's just that I don't quite know if this is the best way to actually
-# accomplish that. Y'know... rate-limiting the amount of game state updates.
-MAX_GAME_STATE_REFRESH_RATE = timedelta(seconds=3)
-LAST_UPDATE_TIME = datetime.now()
-GAME_STATE_UPDATE_QUEUED = False
-
 
 def parse_game_state(game_id: str, session_sid: str):
     """Parses the initial game state dict + tuple into a dict with player info.
@@ -98,6 +80,8 @@ def parse_game_state(game_id: str, session_sid: str):
     if not game_id:
         GAMES[None] = westwords.Game(timer=0, player_sids=[])
     (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
+
+    game_state['update_timestamp'] = GAMES[game_id].get_update_timestamp()
 
     game_state['question_html'] = ''
 
@@ -124,7 +108,6 @@ def parse_game_state(game_id: str, session_sid: str):
             players[player.name][token.value] = count
 
     game_state.update({
-        'server_timestamp_millis': int(datetime.now().timestamp() * 1000),
         'players_names_needing_ack': [
             PLAYERS[p].name for p in players_needing_to_ack],
         'player_names_needing_vote': [PLAYERS[p].name for p in required_voters],
@@ -155,6 +138,21 @@ def parse_game_state(game_id: str, session_sid: str):
         game_state['role'] = 'Spectator'
 
     return game_state
+
+
+def update_all_games_for_player(player_sid: str) -> None:
+    if player_sid in PLAYERS:
+        for game_id in PLAYERS[player_sid].get_rooms():
+            mark_new_update(game_id)
+
+
+def mark_new_update(game_id: str) -> None:
+    if game_id in GAMES:
+        new_timestamp = int(time.time() * 1000)
+        GAMES[game_id].set_update_timestamp(new_timestamp)
+        socketio.emit('game_state_update',
+                      {'game_id': game_id, 'timestamp': new_timestamp},
+                      room=game_id)
 
 
 def get_question_info(question: westwords.Question, id: int):
@@ -212,9 +210,11 @@ def username():
             flash('Cute, smartass.')
             if 'requesting_url' in session:
                 return redirect(session.pop('requesting_url'))
+
         session['username'] = request.form.get('username')
-        if session['sid'] in PLAYERS:
-            PLAYERS[session['sid']].name = session['username']
+        PLAYERS[session['sid']].name = session['username']
+        update_all_games_for_player(session['sid'])
+
     if 'requesting_url' in session:
         return redirect(session.pop('requesting_url'))
     return redirect('/')
@@ -230,6 +230,7 @@ def join_game(game_id: str):
         app.logger.debug(f"game_id found: {game_id}")
         GAMES[game_id].add_player(session['sid'])
         PLAYERS[session['sid']].join_room(game_id)
+        mark_new_update(game_id)
         socketio.emit('user_info', f"{PLAYERS[session['sid']].name} joined.",
                       room=game_id)
     else:
@@ -248,7 +249,6 @@ def leave_game(game_id: str = None):
             if (len(GAMES[game_id].get_players()) == 0 and
                     len(GAMES[game_id].get_spectators()) == 0):
                 del GAMES[game_id]
-            # leave_room(game_id)
     else:
         for room in PLAYERS[session['sid']].get_rooms():
             if room in GAMES:
@@ -258,7 +258,7 @@ def leave_game(game_id: str = None):
                     del GAMES[game_id]
             PLAYERS[session['sid']].leave_room(room)
             leave_room(room)
-    game_status(game_id)
+    mark_new_update(game_id)
     return redirect('/')
 
 
@@ -270,6 +270,7 @@ def spectate_game(game_id: str):
         # game mechanics.
         GAMES[game_id].remove_player(session['sid'])
         GAMES[game_id].add_spectator(session['sid'])
+        mark_new_update(game_id)
         return redirect(f'/game/{game_id}')
     flash(f'Unable to find game: {game_id}')
     return redirect('/')
@@ -359,9 +360,16 @@ def login():
 @app.route('/logout')
 def logout():
     check_session_config()
+    # storing this so we can destroy the session then disassociate the player
+    s = session['sid']
     response = make_response(render_template('logout.html'))
     session.clear()
     response.set_cookie(app.config['SESSION_COOKIE_NAME'], expires=0)
+
+    # Remove player and disassociate references to them
+    update_all_games_for_player(s)
+    del PLAYERS[s]
+
     flash('Session destroyed. You are now logged out; redirecting to /')
     return response
 
@@ -400,7 +408,7 @@ def add_question(game_id: str, question_text: str):
             app.logger.error(f'Unable to add question for game {game_id}')
             return False
         if success:
-            game_status(game_id)
+            mark_new_update(game_id)
             return True
 
     app.logger.error(f'Unable to add question for game {game_id}')
@@ -468,30 +476,40 @@ def answer_question(game_id: str, question_id: int, answer: str):
                       room=game_id)
         return False
 
-    game_status(game_id)
+    mark_new_update(game_id)
 
 
 @socketio.on('get_game_state')
-def game_status(game_id: str):
+def game_status(game_id: str, timestamp: int):
     if game_id in GAMES:
+        if GAMES[game_id].get_update_timestamp() == timestamp:
+            return {
+                'status': 'NO_UPDATE',
+                'game_state': '',
+            }
+        return {
+            'status': 'OK',
+            'game_state': parse_game_state(game_id, session['sid']),
+        }
+    return {'status': 'FAILED', 'game_state': ''}
+        
+        # for player in GAMES[game_id].get_players():
+        #     if player in SOCKET_MAP:
+        #         socketio.emit('game_state',
+        #                       parse_game_state(game_id, player),
+        #                       to=SOCKET_MAP[player],)
+        #     else:
+        #         app.logger.debug(
+        #             f'Unable to broadcast to {PLAYERS[player].name}')
 
-        for player in GAMES[game_id].get_players():
-            if player in SOCKET_MAP:
-                socketio.emit('game_state',
-                              parse_game_state(game_id, player),
-                              to=SOCKET_MAP[player],)
-            else:
-                app.logger.debug(
-                    f'Unable to broadcast to {PLAYERS[player].name}')
-
-        for spectator in GAMES[game_id].get_spectators():
-            if spectator in SOCKET_MAP:
-                socketio.emit('game_state',
-                              parse_game_state(game_id, spectator),
-                              to=SOCKET_MAP[spectator])
-            else:
-                app.logger.debug('Unable to broadcast to spectator: '
-                                 f'{PLAYERS[spectator].name}')
+        # for spectator in GAMES[game_id].get_spectators():
+        #     if spectator in SOCKET_MAP:
+        #         socketio.emit('game_state',
+        #                       parse_game_state(game_id, spectator),
+        #                       to=SOCKET_MAP[spectator])
+        #     else:
+        #         app.logger.debug('Unable to broadcast to spectator: '
+        #                          f'{PLAYERS[spectator].name}')
 
 
 # Mayor functions
@@ -500,7 +518,7 @@ def undo(game_id: str):
     app.logger.debug(f'Attempting to undo something for {game_id}')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         GAMES[game_id].undo_answer()
-        game_status(game_id)
+        mark_new_update(game_id)
 
 
 @socketio.on('start_vote')
@@ -514,7 +532,7 @@ def start_vote(game_id: str):
                           room=game_id)
             return
 
-        game_status(game_id)
+        mark_new_update(game_id)
 
 
 @socketio.on('nominate_for_mayor')
@@ -527,7 +545,7 @@ def nominate_for_mayor(game_id: str):
 def set_word_choice_count(game_id: str, word_count: int):
     if game_id in GAMES and GAMES[game_id].admin == session['sid']:
         GAMES[game_id].set_word_choice_count(word_count)
-        game_status(game_id)
+        mark_new_update(game_id)
 
     socketio.emit('admin_error',
                   f'Unable to set word count to {word_count}.',
@@ -560,7 +578,7 @@ def set_doppelganger_target(game_id: str, target_sid: str):
                        westwords.Doppelganger) and
                 GAMES[game_id].is_player_in_game(target_sid)):
             GAMES[game_id].set_doppelganger_target(target_sid)
-            game_status(game_id)
+            mark_new_update(game_id)
 
 
 @socketio.on('set_player_target')
@@ -569,7 +587,7 @@ def set_player_target(game_id: str, target_sid: str):
         player_role = GAMES[game_id].get_player_role(session['sid'])
         if (player_role and player_role.is_targetting_role()):
             GAMES[game_id].set_player_target(session['sid'], target_sid)
-            game_status(game_id)
+            mark_new_update(game_id)
 
 
 @socketio.on('acknowledge_revealed_info')
@@ -578,7 +596,7 @@ def acknowledge_revealed_info(game_id: str):
         app.logger.debug(
             f'ACK attempt received for {PLAYERS[session["sid"]].name}')
         GAMES[game_id].acknowledge_revealed_info(session['sid'])
-        game_status(game_id)
+        mark_new_update(game_id)
 
 
 # TODO: implement all the scenarios around this
@@ -588,7 +606,7 @@ def start_game(game_id: str):
     if game_id in GAMES:
         try:
             GAMES[game_id].start_night_phase_word_choice()
-            game_status(game_id)
+            mark_new_update(game_id)
         except GameError as e:
             socketio.emit('user_info', f"Game start failed. {e}")
 
@@ -598,7 +616,7 @@ def reset_game(game_id):
     # Implement game reset feature
     if game_id in GAMES and GAMES[game_id].admin == session['sid']:
         GAMES[game_id].reset()
-        game_status(game_id)
+        mark_new_update(game_id)
     else:
         app.logger.debug('Unable to reset game. User not admin.')
 
@@ -607,7 +625,7 @@ def reset_game(game_id):
 def get_required_voters(game_id: str):
     if game_id in GAMES:
         GAMES[game_id].get_required_voters()
-        game_status(game_id)
+        mark_new_update(game_id)
 
 
 @socketio.on('vote')
@@ -629,7 +647,7 @@ def vote(game_id, target_id):
                     app.logger.error(
                         f"Error delivery to {PLAYERS[session['sid']].name} failed.")
 
-            game_status(game_id)
+            mark_new_update(game_id)
     else:
         app.logger.debug(f'Unknown player SID {target_id}')
 
@@ -760,7 +778,7 @@ def set_word(game_id: str, word: str):
         return
 
     GAMES[game_id].set_word(word)
-    game_status(game_id)
+    mark_new_update(game_id)
 
 
 if __name__ == '__main__':

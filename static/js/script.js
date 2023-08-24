@@ -9,7 +9,21 @@ var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
 var local_time_skew = 0;
 function get_game_state(game_id) {
-    socket.emit('get_game_state', game_id);
+    if (JSON.stringify(local_game_state) === '{}') {
+        timestamp = 0;
+    } else {
+        timestamp = local_game_state.update_timestamp;
+    }
+    console.log('Emitting get_game_state for ' + game_id)
+    socket.emit('get_game_state', game_id, timestamp, (response) => {
+        if (response.status === 'OK') {
+            refresh_game_state(response.game_state);
+        } else if (response.status === 'NO_UPDATE') {
+            console.log('Game state unchanged.')
+        } else {
+            console.info('Failed to retrieve game state.');
+        }
+    });
 }
 function close_dialog() {
     let dialog = document.querySelector('dialog');
@@ -47,10 +61,10 @@ function send_reset_req() {
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate)
 }
-socket.on('game_state', function (state) {
-    console.log('Got a socket connection for game_state updates. Updating..')
-    refresh_game_state(state);
-});
+// socket.on('game_state', function (state) {
+//     console.log('Got a socket connection for game_state updates. Updating..')
+//     refresh_game_state(state);
+// });
 
 function format_players(local_game_state) {
     let html = '';
@@ -358,6 +372,13 @@ ready(function () {
             dialog.showModal();
         }
     });
+    socket.on('game_state_update', function (data) {
+        console.log('Received an update request');
+        console.table(data);
+        if (local_game_state.update_timestamp !== data.timestamp) {
+            get_game_state(local_game_state.game_id);
+        }
+    })
 
     // // var timer;
     // // game_timer = document.getElementById('game_timer');
@@ -377,19 +398,21 @@ ready(function () {
     // }
 
     var question = document.getElementById('question');
-    question.addEventListener('keypress', function (event) {
-        if (event.key === "Enter") {
+    if (question !== null) {
+        question.addEventListener('keypress', function (event) {
+            if (event.key === "Enter") {
+                if (question.value != "") {
+                    socket.emit('question', local_game_state.game_id, question.value);
+                    question.value = "";
+                }
+            }
+        });
+        document.getElementById('question_submit').addEventListener('click', function () {
             if (question.value != "") {
                 socket.emit('question', local_game_state.game_id, question.value);
                 question.value = "";
             }
-        }
-    });
-    document.getElementById('question_submit').addEventListener('click', function () {
-        if (question.value != "") {
-            socket.emit('question', local_game_state.game_id, question.value);
-            question.value = "";
-        }
-    });
+        });
+    }
 
 });
