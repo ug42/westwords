@@ -46,6 +46,8 @@ socketio = SocketIO(app)
 # TODO: Remove question controls from spectator in JS
 # TODO: Add ability for people to join mid-game.
 # TODO: Add game timer and updates
+# TODO: Add NIGHT_PHASE_DOPPELGANGER phase template
+# TODO: Add NIGHT_PHASE_TARGETTING phase template
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -492,24 +494,6 @@ def game_status(game_id: str, timestamp: int):
             'game_state': parse_game_state(game_id, session['sid']),
         }
     return {'status': 'FAILED', 'game_state': ''}
-        
-        # for player in GAMES[game_id].get_players():
-        #     if player in SOCKET_MAP:
-        #         socketio.emit('game_state',
-        #                       parse_game_state(game_id, player),
-        #                       to=SOCKET_MAP[player],)
-        #     else:
-        #         app.logger.debug(
-        #             f'Unable to broadcast to {PLAYERS[player].name}')
-
-        # for spectator in GAMES[game_id].get_spectators():
-        #     if spectator in SOCKET_MAP:
-        #         socketio.emit('game_state',
-        #                       parse_game_state(game_id, spectator),
-        #                       to=SOCKET_MAP[spectator])
-        #     else:
-        #         app.logger.debug('Unable to broadcast to spectator: '
-        #                          f'{PLAYERS[spectator].name}')
 
 
 # Mayor functions
@@ -742,7 +726,7 @@ def get_voting_information(game_id: str):
         except GameError as e:
             socketio.emit(
                 'user_info', f'Failed to get word: {e}', room=game_id)
-            return {'success': False, 'role': None}
+            return {'status': 'ERROR', 'voting_html': None}
 
         return {
             'status': 'OK',
@@ -756,7 +740,43 @@ def get_voting_information(game_id: str):
                 vote=vote,
             ),
         }
-    return {'success': False, 'role': None}
+    return {'status': 'ERROR', 'voting_html': None}
+
+@socketio.on('get_night_action_page')
+def get_night_action_page(game_id: str):
+    if (game_id in GAMES and
+        session['sid'] and 
+        GAMES[game_id].is_night_action_phase()):
+        if session['sid'] not in GAMES[game_id].get_players_needing_to_target():
+            return {'status': 'NO_ACTION', 'voting_html': None}
+
+        candidate_sids = GAMES[game_id].get_players()
+        candidates = []
+        for candidate_sid in candidate_sids:
+            if candidate_sid != session['sid']:
+                candidates.append(
+                    {'sid': candidate_sid,
+                    'name': PLAYERS[candidate_sid].name})
+
+        role = GAMES[game_id].get_player_role((session['sid']))
+        night_action_description = role.get_night_action_text()
+        if str(role) == 'Doppelganger':
+            js_function = 'set_doppelganger_target'
+        else:
+            js_function = 'set_player_target'
+
+        return {
+            'status': 'OK',
+            'night_action_choice': render_template(
+                'night_action_choice.html.j2',
+                js_function=js_function,
+                role=str(role),
+                game_id=game_id,
+                candidates=candidates,
+                night_action_text=night_action_description,
+            ),
+        }
+    return {'status': False, 'night_action_choice': None}
 
 
 @socketio.on('set_word')

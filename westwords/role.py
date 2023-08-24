@@ -358,8 +358,12 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     ],
     '4':
     [
-        Villager(),
-        Villager(),
+        # Villager(),
+        # Villager(),
+        # Seer(),
+        # Werewolf()
+        Esper(),
+        Intern(),
         Seer(),
         Werewolf()
     ],

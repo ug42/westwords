@@ -63,7 +63,7 @@ class Game(object):
         # TODO: Add concept of a game admin and management of users in that space
         self.timer = timer
         self.update_timestamp = int(time.time() * 1000)
-        self.player_sids = {}
+        self.player_sids = RoleDict()
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
         self.spectators = []
@@ -217,9 +217,12 @@ class Game(object):
 
         Returns:
             True if successful set; False otherwise."""
-        if (self.game_state == GameState.NIGHT_PHASE_TARGETTING and
+        if (self.is_night_action_phase() and
             player_sid in self.night_actions_required and
-                target_sid in self.player_sids):
+            target_sid in self.player_sids):
+            if str(self.player_sids[player_sid]) == 'Doppelganger':
+                return self.set_doppelganger_target(player_sid, target_sid)
+
             if self.player_sids[player_sid].target_player(
                     player_sid, target_sid, self.player_sids):
                 if player_sid in self.night_actions_required:
@@ -287,7 +290,7 @@ class Game(object):
         for player_sid in self.player_sids:
             self.player_sids[player_sid] = None
 
-    def start_vote(self):
+    def start_vote(self) -> bool:
         """Start the voting process.
 
         Returns:
@@ -320,21 +323,27 @@ class Game(object):
         self.game_state = GameState.VOTING
         return True
 
-    def _finish_game(self):
+    def _finish_game(self) -> bool:
         if self.game_state == GameState.VOTING:
             self._tally_results()
             self.game_state = GameState.FINISHED
             return True
         return False
 
-    def is_started(self):
+    def is_started(self) -> bool:
         return self.game_state in [
             GameState.DAY_PHASE_QUESTIONS,
             GameState.AWAITING_VOTE,
         ]
 
-    def is_voting(self):
+    def is_voting(self) -> bool:
         return self.game_state == GameState.VOTING
+    
+    def is_night_action_phase(self) -> bool:
+        return self.game_state in [
+            GameState.NIGHT_PHASE_DOPPELGANGER,
+            GameState.NIGHT_PHASE_TARGETTING,
+        ]
 
     def get_words(self):
         """Returns list of word choices if in word choice phase."""

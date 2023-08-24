@@ -58,6 +58,12 @@ function send_start_req() {
 function send_reset_req() {
     socket.emit('game_reset', local_game_state.game_id);
 }
+function set_player_target(target) {
+    socket.emit('set_player_target', local_game_state.game_id, target)
+}
+function set_doppelganger_target(target) {
+    socket.emit('set_player_target', local_game_state.game_id, target)
+}
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate)
 }
