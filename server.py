@@ -726,10 +726,6 @@ def get_voting_information(game_id: str):
                 'user_info', f'Failed to get word: {e}', room=game_id)
             return {'success': False, 'role': None}
 
-        app.logger.debug(f'Attempting to generate voting list for session.')
-        # TODO: Make this so it displays all players voting and who we're
-        # waiting on. Should probably get all players so we can see who has and
-        # hasn't voted.
         return {
             'status': 'OK',
             'voting_html': render_template(
