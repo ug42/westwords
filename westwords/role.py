@@ -83,6 +83,9 @@ class Role(object):
         if self.targetting_role:
             return self.night_action_description
         return None
+    
+    def get_role_description(self) -> str:
+        return self.description
         
     def get_image_name(self) -> str:
         if self.image_name:
@@ -133,8 +136,11 @@ class Werewolf(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Tries to lead guesses away from the word. Sees word and other
-        werewolves, but not minion.
+        You are a werewolf. Not really evil, just misunderstood. You'll try to
+        lead guesses away from the word, as you will have seen the word and
+        other werewolves, but not minion. If Village team guesses the word,
+        Werewolves have a chance to win by finding and executing the Seer/Intern
+        Seer or Fortune Teller.
         """
         self.image_name = 'werewolf.png'
         self.max_instances = 4
@@ -182,9 +188,10 @@ class Seer(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Village-aligned but sees the word. If the Werewolves find and choose to
-        execute this player after the Village team guesses the word, the
-        Werewolf team wins.
+        You are the Seer. As in you've seen things, and that is generally a bad
+        idea. You're aligned with Village and see the word. If the Village team
+        guesses the word, the Werewolves team will have a chance to find and
+        execute you or other word-seeing roles to steal the win.
         """
         self.image_name = 'seer.png'
         self.required = True
@@ -211,9 +218,10 @@ class Intern(Role):
         super().__init__(doppelganger=doppelganger)
         # Will only see word if Mayor is Seer
         self.description = """
-        Ordinary villager unless the Mayor is a Seer, in which case, they become
-        the Seer. Werewolves executing the Intern is only a win condition if
-        the Mayor is a Seer.
+        You're just an ordinary villager unless the Mayor is a Seer, in which
+        case, you become take the Seer mantle, with all that entails. The mayor
+        is no longer the Werewolves' target; you are. (and maybe a Fortune
+        Teller)
         """
         self.image_name = 'intern.png'
         self.sees_word = False
@@ -239,8 +247,9 @@ class FortuneTeller(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Village team player. Sees the first letter of each word. Werewolf team
-        wins if they find the Fortune Teller, Seer, or Intern Seer.
+        You're the Fortune Teller. Probably not a great one seeing as you only
+        get to see the first letter of each word. You align with the Village
+        team. Werewolf team wins if they find you, the Seer, or Intern Seer.
         """
         self.image_name = 'fortune_teller.png'
         self.sees_word = False
@@ -265,10 +274,10 @@ class Minion(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Werewolf-aligned character that doesn't get seen by Werewolves. Village
-        team still wins if executing the Minion.
-
-        Does not vote to find the Intern Seer/Seer/Fortune Teller.
+        You are a minion. I know. I always wanted to be one, too. You align with
+        the Werewolf team, but they don't see you. Typical. Village team still
+        wins if executing the Minion, but you don't get to vote. It's like High
+        School again. All risk, no reward.
         """
         self.image_name = 'minion.png'
         self.required_players = 7
@@ -294,10 +303,9 @@ class Beholder(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Villager who knows the players with the Intern, Seer and Fortune
+        A villager who knows the players with the Intern, Seer and Fortune
         Teller roles, but not who has which role. Does not lose on being
-        targetted by Werewolves. Otherwise known as the villager who know too
-        much.
+        targeted by Werewolves.
         """
         self.image_name = 'beholder.png'
         self.required_players = 5
@@ -320,7 +328,8 @@ class Mason(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Villager who happens to know which players are the other Masons.
+        You are a Mason. A villager. One of many... or two. You get to know the
+        other Masons.
         """
         self.image_name = 'mason.png'
         self.required_players = 8
@@ -346,8 +355,11 @@ class Esper(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        Villager who lets their neighbor know they're not a Werewolf by 
-        sending good vibes to another person.
+        You are the Esper. Like most Espers, you end up trying to train
+        telekenesis only to end up leaving vague feelings of discomfort in your
+        targets. Unfortunately, your targets know exactly where this discomfort
+        originates, so you might as well lean into that. (i.e., the target upon
+        whom you infringed their psyche will know you as an Esper.)
         """
         self.image_name = 'esper.png'
         self.required_players = 5
@@ -369,15 +381,6 @@ class Esper(Role):
 
             
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
-    # '1':
-    # [
-    #     Villager()
-    # ],
-    # '2':
-    # [
-    #     Villager(),
-    #     Werewolf()
-    # ],
     '3':
     [
         Villager(),
@@ -386,26 +389,10 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     ],
     '4':
     [
-        # Villager(),
-        # Villager(),
-        # Seer(),
-        # Werewolf()
-        # Beholder(),
-        # Doppelganger(),
-        FortuneTeller(),
-        Werewolf(),
-        # Mason(),
-        # Mason(),
-        # Intern(),
-        # Seer(),
-        Minion(),
-        # Werewolf(),
-        # Werewolf(),
-        # Werewolf(),
-        # FortuneTeller(),
-        # Beholder(),
-        # Esper(),
-        Doppelganger()
+        Villager(),
+        Villager(),
+        Seer(),
+        Werewolf()
     ],
     '5':
     [

@@ -651,6 +651,17 @@ def get_results(game_id: str):
                 'target': PLAYERS[votes[voter_sid]].name,
                 'target_role': str(GAMES[game_id].get_player_role(votes[voter_sid])),
             })
+        v = {}
+        for vote in votes:
+            if votes[vote] not in v:
+                v[votes[vote]] = 0
+            v[votes[vote]] += 1
+        vote_count = []
+        for target in v:
+            vote_count.append({'name': PLAYERS[target].name,
+                               'count': v[target],
+                               'killed': target in killed_sids})
+
         killed_names = []
         for killed_sid in killed_sids:
             killed_names.append(PLAYERS[killed_sid].name)
@@ -661,8 +672,10 @@ def get_results(game_id: str):
                 winner=winner.value,  # This should be the capitalized string
                 player_won=player_won,
                 role=role,
-                killed_names=killed_names,
-                vote_information=vote_information,
+                # killed_names=killed_names,
+                vote_count=vote_count,
+                # vote_information=vote_information,
+                mayor=PLAYERS[GAMES[game_id].mayor].name,
             ),
         }
     return {'status': 'BAD', 'results_html': None}
@@ -690,6 +703,7 @@ def get_player_revealed_information(game_id: str):
                 known_word=known_word,
                 word_is_known=known_word is not None,
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
+                role_description=role.get_role_description(),
             ),
         }
     return {'status': 'BAD', 'reveal_html': None}

@@ -214,6 +214,18 @@ function refresh_game_state(g) {
     let questions_div = document.getElementById('questions_div');
     questions_div.innerHTML = local_game_state.question_html;
 
+    let question_input = document.getElementById('question_input');
+    question_input.hidden = true;
+    let proper_noun_btn = document.getElementById('proper_noun');
+    proper_noun_btn.hidden = true;
+    let breadbox_btn = document.getElementById('breadbox');
+    breadbox_btn.hidden = true;
+    let dialog_box = document.getElementById('dialog-box');
+    dialog_box.hidden = true;
+    let controls = document.getElementById('controls');
+    controls.hidden = false;
+    let dialog = document.querySelector('dialog');
+
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
@@ -243,7 +255,6 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'NIGHT_PHASE_DOPPELGANGER' ||
         local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
         socket.emit('get_night_action_page', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
             if (response.status === 'OK') {
                 dialog.innerHTML = response.night_action_html;
                 dialog.showModal();
@@ -252,19 +263,12 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
             if (response.status === 'OK') {
                 dialog.innerHTML = response.reveal_html;
                 dialog.showModal();
             }
         });
     }
-    let question_input = document.getElementById('question_input');
-    let proper_noun_btn = document.getElementById('proper_noun');
-    let breadbox_btn = document.getElementById('breadbox');
-    question_input.hidden = true;
-    proper_noun_btn.hidden = true;
-    breadbox_btn.hidden = true;
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
@@ -274,19 +278,19 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'VOTING') {
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
             if (response.status === 'OK') {
-                dialog.innerHTML = response.voting_html;
-                dialog.showModal();
+                dialog_box.innerHTML = response.voting_html;
+                dialog_box.hidden = false;
+                controls.hidden = true;
             }
         });
     }
     if (local_game_state.game_state === 'FINISHED') {
         socket.emit('get_results', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
             if (response.status === 'OK') {
-                dialog.innerHTML = response.results_html;
-                dialog.showModal();
+                dialog_box.innerHTML = response.results_html;
+                dialog_box.hidden = false;
+                controls.hidden = true;
             }
         });
     }

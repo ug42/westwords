@@ -6,20 +6,17 @@
     <!-- TODO: Make it so the updated game_status and the dynamic status is the same. -->
     <!-- TODO: set clock to run based on the current state. -->
     <!-- TODO: Move out of the material design bits or improve ugly buttons -->
+    <div id="admin_controls" hidden>
+        <button onclick="send_start_req()"
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+            id="game_start">Start game</button>
+        <button onclick="send_reset_req()"
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+            id="game_reset">Reset game</button></p>
+    </div>
     <div id="controls">
         <div id="game_timer"></div>
         <!-- These two controls should be gated -->
-        <div id="admin_controls" hidden>
-            <b>Admin controls</b>
-            <button onclick="send_start_req()"
-                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
-                id="game_start">Start game</button>
-            <button onclick="send_reset_req()"
-                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="game_reset">Reset game</button></p>
-            <button onclick="boot_player()" class="mdl-button">Boot player</button></p>
-            <button onclick="make_admin()" class="mdl-button">Make admin</button></p>
-        </div>
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
@@ -45,17 +42,21 @@
                 id="question_submit">Submit question</button>
         </div>
         <p>
-        <div id="mayor_display" style="display: inline;" hidden>Mayor tokens:
-            <div id="mayor_tokens" style="display:inline;"></div>
-            <div hidden id="mayor_controls">
-                <b>Mayor controls</b>
-                <button onclick="undo_answer('{{ game_id }}')" class="mdl-button" id="undo">Undo last answer</button>
-                <button onclick="start_vote('{{ game_id }}')" class="mdl-button" id="finish" hidden>Finish Game/Start
-                    Vote</button>
-            </div>
-        </div>
         </p>
 
+    </div>
+    <div id="mayor_display" style="display: inline;" hidden>Mayor tokens:
+        <div id="mayor_tokens" style="display:inline;"></div>
+        <div hidden id="mayor_controls">
+            <b>Mayor controls</b>
+            <button onclick="undo_answer('{{ game_id }}')" class="mdl-button" id="undo">Undo last answer</button>
+            <button onclick="start_vote('{{ game_id }}')" class="mdl-button" id="finish" hidden>Finish Game/Start
+                Vote</button>
+        </div>
+    </div>
+    <div hidden=true id="dialog-box" class="box-shadow-fuzz rounded-corners">
+    </div>
+    <div id="player_info">
         <p>
             <b>Players:</b>
         <div id="players"></div>

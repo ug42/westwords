@@ -13,6 +13,28 @@ body {
   margin: 0;
 }
 
+.rounded-corners {
+  border-radius: 25px;
+  background: #292929;
+  border-color:rgba(0, 0, 0, 0.12);
+  padding: 20px;
+  margin-right: 10px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  /* width: 200px;
+  height: 150px; */
+}
+
+.box-shadow-fuzz {
+  border: 1px solid;
+  padding: 10px;
+  box-shadow: 5px 10px 8px #888888;
+}
+
+.voted-dead {
+  color: rgb(216, 68, 68);
+}
+
 .mdl-layout__content {
   margin-left: 20px;
   margin-top: 20px;
