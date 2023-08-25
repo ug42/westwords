@@ -53,7 +53,7 @@
       <!-- Add spacer, to align navigation to the right -->
       <div class="mdl-layout-spacer"></div>
       <!-- Navigation. We hide it in small screens. -->
-      <nav class="mdl-navigation mdl-layout--large-screen-only">
+      <nav class="mdl-navigation">
         {{ session.username }}
       </nav>
     </div>
@@ -61,15 +61,12 @@
   <div class="mdl-layout__drawer">
     <span class="mdl-layout-title">Westwords</span>
     <nav class="mdl-navigation">
-      <a class="mdl-navigation__link" href="">Link</a>
-      <a class="mdl-navigation__link" href="">Link</a>
-      <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">Change Name</button>
-      {# <form action="/username" id="username_change" method="POST">
+            <form action="/username" id="username_change" method="POST">
         Username: <input type="text" name="username" id="username">
         <li onclick="hideSidebar()">
           <a href="#" onclick="document.getElementById('username_change').submit()">Change username</a>
         </li>
-      </form> #}
+      </form>
     </nav>
   </div>
   <main class="mdl-layout__content">

@@ -58,11 +58,11 @@ function send_start_req() {
 function send_reset_req() {
     socket.emit('game_reset', local_game_state.game_id);
 }
-function set_player_target(target) {
-    socket.emit('set_player_target', local_game_state.game_id, target)
+function set_player_target(game_id, target) {
+    socket.emit('set_player_target', game_id, target)
 }
-function set_doppelganger_target(target) {
-    socket.emit('set_player_target', local_game_state.game_id, target)
+function set_doppelganger_target(game_id, target) {
+    socket.emit('set_player_target', game_id, target)
 }
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate)
@@ -86,7 +86,7 @@ function format_players(local_game_state) {
         html += '</div>';
     }
     for (let i = 0; i < local_game_state.spectators.length; i++) {
-        html += '<div>' + local_game_state.spectators[i] 
+        html += '<div>' + local_game_state.spectators[i]
         html += ' (Spectator) </div>';
     }
     return html
@@ -165,7 +165,7 @@ function game_setup_buttons() {
     admin_controls.hidden = true;
     let join_game_btn = document.getElementById('join_game');
     let spectate_btn = document.getElementById('spectate');
-    if (local_game_state.spectating === true) {   
+    if (local_game_state.spectating === true) {
         // If we're already spectating, hide the spectating button, show the
         // join button
         join_game_btn.hidden = false;
@@ -187,11 +187,11 @@ function start_timer(timestamp) {
 }
 
 (function () {
-	window.onpageshow = function(event) {
-		if (event.persisted) {
-			window.location.reload();
-		}
-	};
+    window.onpageshow = function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    };
 })();
 
 function refresh_game_state(g) {
@@ -213,7 +213,7 @@ function refresh_game_state(g) {
 
     let questions_div = document.getElementById('questions_div');
     questions_div.innerHTML = local_game_state.question_html;
-    
+
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
@@ -231,11 +231,34 @@ function refresh_game_state(g) {
 
     let title_bar_role = document.getElementById('title-bar-role');
     if (local_game_state.role !== 'None') {
-        title_bar_role.innerHTML = 'Role: ' + local_game_state.role;
+        let html = 'Role: ' + local_game_state.role;
+        if (local_game_state.player_is_mayor) {
+            html += ' [Mayor]'
+        }
+        title_bar_role.innerHTML = html
     } else {
         title_bar_role.innerHTML = 'Waiting...';
     }
 
+    if (local_game_state.game_state === 'NIGHT_PHASE_DOPPELGANGER' ||
+        local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
+        socket.emit('get_night_action_page', local_game_state.game_id, (response) => {
+            let dialog = document.querySelector('dialog');
+            if (response.status === 'OK') {
+                dialog.innerHTML = response.night_action_html;
+                dialog.showModal();
+            }
+        });
+    }
+    if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
+        socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
+            let dialog = document.querySelector('dialog');
+            if (response.status === 'OK') {
+                dialog.innerHTML = response.reveal_html;
+                dialog.showModal();
+            }
+        });
+    }
     let question_input = document.getElementById('question_input');
     let proper_noun_btn = document.getElementById('proper_noun');
     let breadbox_btn = document.getElementById('breadbox');
@@ -248,15 +271,6 @@ function refresh_game_state(g) {
             proper_noun_btn.hidden = false;
             breadbox_btn.hidden = false;
         }
-    }
-    if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
-        socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
-            let dialog = document.querySelector('dialog');
-            if (response.status === 'OK') {
-                dialog.innerHTML = response.reveal_html;
-                dialog.showModal();
-            }
-        });
     }
     if (local_game_state.game_state === 'VOTING') {
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
@@ -348,8 +362,8 @@ function ready(fn) {
 }
 ready(function () {
     var dialog = document.querySelector('dialog');
-    if (! dialog.showModal) {
-      dialogPolyfill.registerDialog(dialog);
+    if (!dialog.showModal) {
+        dialogPolyfill.registerDialog(dialog);
     }
     var snackbarContainer = document.querySelector('#demo-toast-example');
     dialog.showModal();

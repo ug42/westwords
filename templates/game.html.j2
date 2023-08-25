@@ -17,6 +17,8 @@
             <button onclick="send_reset_req()"
                 class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="game_reset">Reset game</button></p>
+            <button onclick="boot_player()" class="mdl-button">Boot player</button></p>
+            <button onclick="make_admin()" class="mdl-button">Make admin</button></p>
         </div>
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
@@ -37,14 +39,6 @@
                 class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="leave_game">Quit Game</button>
         </p>
-        {% if DEBUG %}
-        <b>DEBUGGING</b>
-        <button onclick="get_game_state('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="get_game_state">Get game
-            state</button>
-        <div>Game state: <div style="display: inline;" id="game_state">{{game_state}}</div>
-        </div>
-        {% endif %}
         <div id="question_input" hidden>
             Question: <input type="text" id="question">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"

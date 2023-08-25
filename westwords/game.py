@@ -128,8 +128,7 @@ class Game(object):
         if (self.game_state in [
                 GameState.NIGHT_PHASE_WORD_CHOICE,
                 GameState.NIGHT_PHASE_DOPPELGANGER,
-            ] and
-                self.word is not None):
+            ] and self.word is not None):
             self.night_actions_required = [
                 p for p in self.player_sids if self.player_sids[p].targetting_role]
             self.game_state = GameState.NIGHT_PHASE_TARGETTING
@@ -423,6 +422,8 @@ class Game(object):
         if (target_sid in self.player_sids and
                 isinstance(self.player_sids[player_sid], Doppelganger)):
 
+            s = self.player_sids[player_sid]
+            t = self.player_sids[target_sid]
             self.player_sids[player_sid] = deepcopy(
                 self.player_sids[target_sid])
             self.player_sids[player_sid].doppelganger = True
@@ -521,10 +522,11 @@ class Game(object):
         if not self.is_voting():
             raise GameError(f'Game not in voting state.')
         if voter_sid not in self.required_voters:
-            raise GameError(f'Player {voter_sid} is ineligible to vote.')
+            raise GameError(f'Player {PLAYERS[voter_sid].name} is '
+                            'ineligible to vote.')
         if target_sid not in self.player_sids:
-            raise GameError(
-                f'Unable to vote for player {target_sid}; Not found in game.')
+            raise GameError('Unable to vote for player '
+                            f'{PLAYERS[target_sid].name}; Not found in game.')
         if target_sid == voter_sid:
             raise GameError('You can\'t vote for yourself. :P')
 

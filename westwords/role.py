@@ -146,7 +146,10 @@ class Werewolf(Role):
         self.affiliation = Affiliation.WEREWOLF
 
     def __str__(self):
-        return "Werewolf"
+        role_str = "Werewolf"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         self.known_word = word
@@ -169,7 +172,10 @@ class Villager(Role):
         self.max_instances = 8
 
     def __str__(self):
-        return "Villager"
+        role_str = "Villager"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
 
 class Seer(Role):
@@ -186,7 +192,10 @@ class Seer(Role):
         self.team_loses_if_killed = True
 
     def __str__(self):
-        return "Seer"
+        role_str = "Seer"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         self.known_word = word
@@ -213,7 +222,10 @@ class Intern(Role):
         self.team_loses_if_killed = False
 
     def __str__(self):
-        return "Intern"
+        role_str = "Intern"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         if isinstance(player_roles[mayor], Seer):
@@ -228,15 +240,18 @@ class FortuneTeller(Role):
         super().__init__(doppelganger=doppelganger)
         self.description = """
         Village team player. Sees the first letter of each word. Werewolf team
-        wins if they find the Fortune Teller or the Seer.
+        wins if they find the Fortune Teller, Seer, or Intern Seer.
         """
-        self.image_name = 'fortune_teller.jpg'
+        self.image_name = 'fortune_teller.png'
         self.sees_word = False
         self.required_players = 5
         self.team_loses_if_killed = True
 
     def __str__(self):
-        return "Fortune Teller"
+        role_str = "Fortune Teller"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         sub_words = []
@@ -253,7 +268,7 @@ class Minion(Role):
         Werewolf-aligned character that doesn't get seen by Werewolves. Village
         team still wins if executing the Minion.
 
-        Does not vote with Werewolves to find the Seer/Fortune Teller.
+        Does not vote to find the Intern Seer/Seer/Fortune Teller.
         """
         self.image_name = 'minion.png'
         self.required_players = 7
@@ -262,7 +277,10 @@ class Minion(Role):
         self.affiliation = Affiliation.WEREWOLF
 
     def __str__(self):
-        return "Minion"
+        role_str = "Minion"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         for p in player_roles:
@@ -277,14 +295,18 @@ class Beholder(Role):
         super().__init__(doppelganger=doppelganger)
         self.description = """
         Villager who knows the players with the Intern, Seer and Fortune
-        Teller roles. Does not lose on being targetted by Werewolves. Otherwise
-        known as the villager who know too much.
+        Teller roles, but not who has which role. Does not lose on being
+        targetted by Werewolves. Otherwise known as the villager who know too
+        much.
         """
         self.image_name = 'beholder.png'
         self.required_players = 5
 
     def __str__(self):
-        return "Beholder"
+        role_str = "Beholder"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         for p in player_roles:
@@ -305,7 +327,10 @@ class Mason(Role):
         self.max_instances = 2
 
     def __str__(self):
-        return "Mason"
+        role_str = "Mason"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         logging.debug(f'Processing for {player_sid} in night action')
@@ -333,7 +358,10 @@ class Esper(Role):
         """
 
     def __str__(self):
-        return "Esper"
+        role_str = "Esper"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
     def _role_night_action(self, player_sid, target_sid, player_roles):
         if target_sid in player_roles:
@@ -362,10 +390,22 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         # Villager(),
         # Seer(),
         # Werewolf()
-        Esper(),
-        Intern(),
-        Seer(),
-        Werewolf()
+        # Beholder(),
+        # Doppelganger(),
+        FortuneTeller(),
+        Werewolf(),
+        # Mason(),
+        # Mason(),
+        # Intern(),
+        # Seer(),
+        Minion(),
+        # Werewolf(),
+        # Werewolf(),
+        # Werewolf(),
+        # FortuneTeller(),
+        # Beholder(),
+        # Esper(),
+        Doppelganger()
     ],
     '5':
     [

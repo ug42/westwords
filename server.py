@@ -46,8 +46,9 @@ socketio = SocketIO(app)
 # TODO: Remove question controls from spectator in JS
 # TODO: Add ability for people to join mid-game.
 # TODO: Add game timer and updates
-# TODO: Add NIGHT_PHASE_DOPPELGANGER phase template
-# TODO: Add NIGHT_PHASE_TARGETTING phase template
+# TODO: Add known_info text when adding known_players to role
+# TODO: Add role text to player_reveal.html.j2
+# TODO: Move the vote/player_target/reveal dialog to hidden divs
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -688,6 +689,7 @@ def get_player_revealed_information(game_id: str):
                 known_players=known_players,
                 known_word=known_word,
                 word_is_known=known_word is not None,
+                mayor=PLAYERS[GAMES[game_id].mayor].name,
             ),
         }
     return {'status': 'BAD', 'reveal_html': None}
@@ -723,23 +725,38 @@ def get_voting_information(game_id: str):
 
         try:
             word = GAMES[game_id].get_word()
+            required_voters = GAMES[game_id].get_required_voters()
         except GameError as e:
             socketio.emit(
                 'user_info', f'Failed to get word: {e}', room=game_id)
             return {'status': 'ERROR', 'voting_html': None}
 
-        return {
-            'status': 'OK',
-            'voting_html': render_template(
-                'voting.html.j2',
-                word=word,
-                game_id=game_id,
-                voting_text=voting_text,
-                candidates=candidates,
-                voters=voters,
-                vote=vote,
-            ),
-        }
+        if session['sid'] in required_voters:
+            return {
+                'status': 'OK',
+                'voting_html': render_template(
+                    'voting.html.j2',
+                    word=word,
+                    game_id=game_id,
+                    voting_text=voting_text,
+                    candidates=candidates,
+                    voters=voters,
+                    vote=vote,
+                ),
+            }
+        else:
+            return {
+                'status': 'OK',
+                'voting_html': render_template(
+                    'voting.html.j2',
+                    word=word,
+                    game_id=game_id,
+                    voting_text=voting_text,
+                    candidates=[],
+                    voters=voters,
+                    vote=None,
+                ),
+            }
     return {'status': 'ERROR', 'voting_html': None}
 
 @socketio.on('get_night_action_page')
@@ -759,7 +776,7 @@ def get_night_action_page(game_id: str):
                     'name': PLAYERS[candidate_sid].name})
 
         role = GAMES[game_id].get_player_role((session['sid']))
-        night_action_description = role.get_night_action_text()
+        night_action_description = role.get_night_action_description()
         if str(role) == 'Doppelganger':
             js_function = 'set_doppelganger_target'
         else:
@@ -767,8 +784,8 @@ def get_night_action_page(game_id: str):
 
         return {
             'status': 'OK',
-            'night_action_choice': render_template(
-                'night_action_choice.html.j2',
+            'night_action_html': render_template(
+                'night_action.html.j2',
                 js_function=js_function,
                 role=str(role),
                 game_id=game_id,
@@ -776,7 +793,7 @@ def get_night_action_page(game_id: str):
                 night_action_text=night_action_description,
             ),
         }
-    return {'status': False, 'night_action_choice': None}
+    return {'status': False, 'night_action_html': None}
 
 
 @socketio.on('set_word')
