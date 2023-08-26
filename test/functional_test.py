@@ -104,7 +104,7 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertEqual(roles, {'mason1': 'Mason'})
         word, roles = self.game.get_player_revealed_information('werewolf2', acknowledge=True)
         self.assertEqual(word, selected_word)
-        self.assertEqual(roles, {'doppelganger': 'Esper', 'werewolf1': 'Werewolf'})
+        self.assertEqual(roles, {'doppelganger': 'Esper (Doppelganger)', 'werewolf1': 'Werewolf'})
         word, roles = self.game.get_player_revealed_information('fortuneteller', acknowledge=True)
         self.assertRegexpMatches(word, r'(.\*+){1,}$')
         self.assertEqual(roles, {})

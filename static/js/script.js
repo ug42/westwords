@@ -21,8 +21,14 @@ function close_dialog() {
     let dialog = document.querySelector('dialog');
     dialog.close()
 }
+function set_timer(game_id, timer_seconds) {
+    socket.emit('set_timer', game_id, timer_seconds)
+}
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
+}
+function delete_question(game_id, question_id) {
+    socket.emit('delete_question', game_id, question_id);
 }
 function send_word(game_id, word) {
     socket.emit('set_word', game_id, word);
@@ -207,7 +213,7 @@ function start_timer(end_timestamp_ms) {
                     start_vote(local_game_state.game_id)
                 }
             }
-            if (remaining_ms < 1) {
+            if (remaining_ms > 0) {
                 game_timer.innerHTML = format_time(remaining_ms);
             } else {
                 game_timer.innerHTML = '00:00';
@@ -230,18 +236,18 @@ function refresh_game_state(g) {
     local_game_state = g;
     close_dialog()
 
-    let game_timer = document.getElementById('game_timer');
-    game_timer.innerHTML = format_time(local_game_state.timer * 1000);
-
+    
+    // Move mayor tokens template to remove source
     let mayor_tokens = document.getElementById('mayor_tokens');
     mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
-
+    
+    // TODO: Move players to a jinja2 template and populate from remote source
     let players = document.getElementById('players');
     players.innerHTML = format_players(local_game_state);
-
+    
     let questions_div = document.getElementById('questions_div');
     questions_div.innerHTML = local_game_state.question_html;
-
+    
     let question_input = document.getElementById('question_input');
     question_input.hidden = true;
     let proper_noun_btn = document.getElementById('proper_noun');
@@ -253,7 +259,9 @@ function refresh_game_state(g) {
     let controls = document.getElementById('controls');
     controls.hidden = false;
     let dialog = document.querySelector('dialog');
-
+    let game_timer = document.getElementById('game_timer');
+    game_timer.innerHTML = format_time(local_game_state.timer * 1000);
+    
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
@@ -268,7 +276,7 @@ function refresh_game_state(g) {
     } else {
         game_started_buttons();
     }
-
+    
     let title_bar_role = document.getElementById('title-bar-role');
     if (local_game_state.role !== 'None') {
         let html = 'Role: ' + local_game_state.role;
@@ -279,9 +287,9 @@ function refresh_game_state(g) {
     } else {
         title_bar_role.innerHTML = 'Waiting...';
     }
-
+    
     if (local_game_state.game_state === 'NIGHT_PHASE_DOPPELGANGER' ||
-        local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
+    local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
         socket.emit('get_night_action_page', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
                 dialog.innerHTML = response.night_action_html;
@@ -299,7 +307,7 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
         start_timer(local_game_state.end_timestamp_ms, local_game_state.timer)
-
+        
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
             proper_noun_btn.hidden = false;
@@ -308,6 +316,7 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'VOTING') {
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
+            game_timer.innerHTML = "00:00"
             if (response.status === 'OK') {
                 dialog_box.innerHTML = response.voting_html;
                 dialog_box.hidden = false;
@@ -317,6 +326,7 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'FINISHED') {
         socket.emit('get_results', local_game_state.game_id, (response) => {
+            game_timer.innerHTML = "00:00"
             if (response.status === 'OK') {
                 dialog_box.innerHTML = response.results_html;
                 dialog_box.hidden = false;
@@ -331,23 +341,6 @@ function refresh_game_state(g) {
     if (local_game_state.player_is_mayor) {
         let finish_btn = document.getElementById('finish');
         let mayor_controls = document.getElementById('mayor_controls');
-        if (local_game_state.game_state === 'AWAITING_VOTE') {
-            let dialog = document.querySelector('dialog');
-            let html = '<div class="mdl-dialog__content">'
-            html += '<p>Last token played, Undo or Move to vote</p>'
-            html += '<p><button onclick="undo_answer(\''
-            html += local_game_state.game_id
-            html += '\')" class="mdl-button">Undo last answer</button></p>'
-            html += '<p><button onclick="start_vote(\''
-            html += local_game_state.game_id
-            html += '\')" class="mdl-button">Start Vote</button></p>'
-            html += '<p><button type="button" class="mdl-button close" '
-            html += 'onclick="close_dialog()">Close</button></p></div>'
-            dialog.innerHTML = html
-            dialog.showModal();
-            mayor_controls.hidden = false;
-            finish_btn.hidden = false;
-        }
         if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
             mayor_controls.hidden = false;
             finish_btn.hidden = true;
@@ -372,7 +365,7 @@ function ready(fn) {
     }
 }
 ready(function () {
-
+    
     var dialog = document.querySelector('dialog');
     if (!dialog.showModal) {
         dialogPolyfill.registerDialog(dialog);

@@ -14,6 +14,7 @@ class Question(object):
     def __init__(self, player_sid, question_text):
         self.player_sid = player_sid
         self.question_text = question_text
+        self.deleted = False
         self.answer = None
 
     def __str__(self):
@@ -26,25 +27,13 @@ class Question(object):
         if self.answer:
             return self.answer.name
         return None
+    
+    def mark_deleted(self):
+        if not self.answer:
+            self.deleted = True
 
-    def _html_format(self):
-        """Provides a baseline HTML format for the question."""
-        # id and player name are held outside this scope.
-        return ('<div class="question"'
-                'id="q{id}">'
-                '{player_name}'
-                f': {escape(self.question_text)}'
-                '<div id="q{id}a" style="display: inline">')
-
-    def html_format(self):
-        # This should be the actual name of answer.
-        # TODO: move this to be an image with alt text.
-        if self.answer:
-            answer = self.answer.name
-        else:
-            answer = ''
-        return self._html_format() + f'({answer})</div>'
-
+    def is_deleted(self):
+        return self.deleted
 
     def answer_question(self, answer: AnswerToken):
         """Sets the answer for this question."""

@@ -32,31 +32,37 @@ app.config['USE_PERMANENT_SESSION'] = True
 socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
-# TODO: game lock for players state
+# Server mechanics
+# TODO: Add auto-destroy of game after some period of no updates.
+
+# Game mechanics
 # TODO: Add ability of question asker to remove question if not answered
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
-# TODO: Add auto-destroy of game after some period of no updates.
 # TODO: Add ability for people to join mid-game.
-# TODO: Add game timer and updates
-# TODO: Add known_info text when adding known_players to role
-# TODO: Add role text to player_reveal.html.j2
-# TODO: Move the vote/player_target/reveal dialog to hidden divs
-# TODO: Add timer to vote mechanic
-# TODO: Stop UI flashing from updates UI elements reloading
-# TODO: Flatten buttons for common questions
-# TODO: Increase font
+# TODO: Add known_info text when adding known_players to role this should be
+#   like "Esper communicated with you during the night, or Mayor is the Seer,
+#   so you are the Seer now."
 # TODO: Add a button for "Maybe, but let's not go there."
-# TODO: Add button to refusing to answer question
+# TODO: Add timer to vote mechanic
+
+# UI elements
 # TODO: Build custom set of questions
+# TODO: Stop UI flashing from updates UI elements reloading
+# TODO: Increase font
 # TODO: Add a frequent set of questions.
-# TODO: make move to vote automatic
 # TODO: Display word throughout game for roles that know it
 # TODO: Display votes and roles at end of game
+# TODO: Add button to refusing to answer question
+# TODO: Move the vote/player_target/reveal dialog to hidden divs
+# TODO: Make this not flash the screen each time mark_new_update is called.
+#   (UI elements reloading)
 
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
+
+
 class PlayerDict(UserDict):
     def __getitem__(self, key: any) -> westwords.Player:
         return super().__getitem__(key)
@@ -70,6 +76,7 @@ class GamesDict(UserDict):
 # TODO: move this off to a backing store.
 PLAYERS = PlayerDict()
 GAMES = GamesDict()
+
 
 def parse_game_state(game_id: str, session_sid: str):
     """Parses the initial game state dict + tuple into a dict with player info.
@@ -87,20 +94,24 @@ def parse_game_state(game_id: str, session_sid: str):
     # TODO: Move this whole thing to a damned GameStatus class cuz wow.
     if not game_id:
         GAMES[None] = westwords.Game(timer=0, player_sids=[])
-    (game_state, questions, player_sids) = GAMES[game_id].get_state(game_id)
+    game_state = GAMES[game_id].get_state(game_id)
+    questions = GAMES[game_id].get_questions()
+    player_sids = GAMES[game_id].get_players()
 
     game_state['update_timestamp'] = GAMES[game_id].get_update_timestamp()
 
     game_state['question_html'] = ''
 
     for id, question in enumerate(questions):
-        question_info = get_question_info(question, id)
-        game_state['question_html'] = render_template(
-            'question_layout.html.j2',
-            question_object=question_info,
-            player_is_mayor=GAMES[game_id].mayor == session_sid,
-            game_id=game_id
-        ) + game_state['question_html']
+        if not question.is_deleted():
+            question_info = get_question_info(question, id)
+            game_state['question_html'] = render_template(
+                'question_layout.html.j2',
+                question_object=question_info,
+                player_is_mayor=GAMES[game_id].mayor == session_sid,
+                own_question=question.player_sid == session_sid,
+                game_id=game_id,
+            ) + game_state['question_html']
 
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
@@ -422,8 +433,8 @@ def add_question(game_id: str, question_text: str):
     return False
 
 
-@socketio.on('get_question')
-def get_question(game_id: str, question_id: int):
+@socketio.on('get_questions')
+def get_questions(game_id: str, question_id: int):
     if game_id in GAMES and int(question_id) < len(GAMES[game_id].questions):
         question = GAMES[game_id].questions[question_id]
         return {
@@ -477,7 +488,6 @@ def answer_question(game_id: str, question_id: int, answer: str):
     error = GAMES[game_id].answer_question(question_id,
                                            answer_token)
     if error:
-        # TODO: Move this to use a generic error raised with more info?
         socketio.emit('mayor_error',
                       error,
                       room=game_id)
@@ -515,14 +525,13 @@ def start_vote(game_id: str):
     app.logger.debug('Attempting to start vote. Surely this won\'t fail.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
+   
         if not success:
             socketio.emit('mayor_error',
                           f'Unable to finish game and start vote.',
                           room=game_id)
             return
         mark_new_update(game_id)
-        
-    
 
 
 @socketio.on('nominate_for_mayor')
@@ -593,8 +602,14 @@ def acknowledge_revealed_info(game_id: str):
             mark_new_update(game_id)
 
 
-# TODO: implement all the scenarios around this
 # Timer functions
+@socketio.on('set_timer')
+def set_timer(game_id: str, timer_seconds: int):
+    if game_id in GAMES:
+        GAMES[game_id].set_timer(timer_seconds)
+        mark_new_update(game_id)
+
+
 @socketio.on('game_start')
 def start_game(game_id: str):
     if game_id in GAMES:
@@ -640,7 +655,6 @@ def vote(game_id, target_id):
                 else:
                     app.logger.error(
                         f"Error delivery to {PLAYERS[session['sid']].name} failed.")
-            # TODO: Make this not flash the screen each time
             mark_new_update(game_id)
     else:
         app.logger.debug(f'Unknown player SID {target_id}')
@@ -712,7 +726,7 @@ def get_player_revealed_information(game_id: str):
                 known_word=known_word,
                 word_is_known=known_word is not None,
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
-                role_description=role.get_role_description(),
+                role_description=role.get_role_description().strip(),
             ),
         }
     return {'status': 'BAD', 'reveal_html': None}
@@ -721,7 +735,8 @@ def get_player_revealed_information(game_id: str):
 @socketio.on('get_voting_page')
 def get_voting_information(game_id: str):
     if (game_id in GAMES and session['sid']):
-        voter_sids, votes, word_guessed, candidate_sids = GAMES[game_id].voting_info()
+        voter_sids, votes, word_guessed, candidate_sids = GAMES[game_id].voting_info(
+        )
         if not voter_sids:
             socketio.emit('mayor_error',
                           f'No voting players found for game {game_id}')
@@ -735,7 +750,7 @@ def get_voting_information(game_id: str):
             if candidate_sid != session['sid']:
                 candidates.append(
                     {'sid': candidate_sid,
-                    'name': PLAYERS[candidate_sid].name})
+                     'name': PLAYERS[candidate_sid].name})
 
         vote = None
         if session['sid'] in votes:
@@ -782,11 +797,12 @@ def get_voting_information(game_id: str):
             }
     return {'status': 'ERROR', 'voting_html': None}
 
+
 @socketio.on('get_night_action_page')
 def get_night_action_page(game_id: str):
     if (game_id in GAMES and
-        session['sid'] and 
-        GAMES[game_id].is_night_action_phase()):
+        session['sid'] and
+            GAMES[game_id].is_night_action_phase()):
         if session['sid'] not in GAMES[game_id].get_players_needing_to_target():
             return {'status': 'NO_ACTION', 'voting_html': None}
 
@@ -796,7 +812,7 @@ def get_night_action_page(game_id: str):
             if candidate_sid != session['sid']:
                 candidates.append(
                     {'sid': candidate_sid,
-                    'name': PLAYERS[candidate_sid].name})
+                     'name': PLAYERS[candidate_sid].name})
 
         role = GAMES[game_id].get_player_role((session['sid']))
         night_action_description = role.get_night_action_description()
@@ -839,6 +855,21 @@ def set_word(game_id: str, word: str):
 
     GAMES[game_id].set_word(word)
     mark_new_update(game_id)
+
+
+@socketio.on('delete_question')
+def delete_question(game_id: str, question_id: int):
+    if game_id in GAMES:
+        q = GAMES[game_id].get_question(question_id)
+        if session['sid'] == q.player_sid:
+            try:
+                GAMES[game_id].delete_question(question_id)
+                mark_new_update(game_id)
+            except GameError as e:
+                socketio.emit('user_info',
+                              e,
+                              to=SOCKET_MAP[session['sid']])
+                
 
 
 if __name__ == '__main__':

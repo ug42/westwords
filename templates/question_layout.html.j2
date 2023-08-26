@@ -1,19 +1,37 @@
-
 <div>{{ question_object.player }}: {{ question_object.question }}
     <div id="q{{question_object.id}}a" style="display: inline">
-    {% if question_object.answer -%}
-        {{ question_object.answer }}
-    {%- else -%}
         {% if player_is_mayor -%}
+        {% if question_object.answer %}
+        {{ question_object.answer }}
+        {% else %}
         <div style="display: inline">
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')">Yes</button>
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')">No</button>
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'maybe')">Maybe</button>
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_close')">So Close</button>
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_far')">Very far off</button>
-            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'correct')">Correct!</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'yes')" class="material-icons" title="Yes">check_circle</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'no')" class="material-icons" title="No">cancel</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'maybe')" class="material-icons" title="Maybe">help</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_close')" class="material-icons" title="So close!">radar</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'so_far')" class="material-icons" title="Very far off!">delete_forever</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'correct')" class="material-icons" title="Correct!">star</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'laramie')" class="material-icons" title="Laramie?">trolley</button>
+            <button onclick="answer('{{ game_id }}', {{ question_object.id }}, 'broney')" class="material-icons" title="Maybe, but let's not go there.">sentiment_neutral</button>
+</span>
         </div>
-        {%- endif %}
-    {%- endif %}
+        {% endif %}
+        {% endif %}
+        {% if own_question and not question_object.answer %}
+        <div style="display: inline;">
+            <button style="border: 0; background: none; -webkit-appearance: none;"
+                onclick="delete_question('{{ game_id }}', {{ question_object.id }})">
+                <span class="material-icons" title="Delete question">close</span>
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+        {# class="material-icons" title="Yes">check_circle
+        class="material-icons" title="No">cancel
+        class="material-icons" title="Maybe">help</div>
+        class="material-icons" title="Very far off!">delete_forever</div>
+        class="material-icons" title="So close!">radar</div>
+        class="material-icons" title="Correct!">star</div>
+        class="material-icons" title="Laramie?">trolley</div> #}

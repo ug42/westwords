@@ -1,11 +1,10 @@
-<div class="mdl-dialog__content">
-    Here's what you know.
-</div>
 <div>
-    Your role: {{player_role}} <br>
-    <i>{{role_description}}</i><br>
-    {% if image is not none %}<center><img src="{{ url_for('static', filename='img/' + image) }}" width="200" height="200"></center><br> {% endif %}
-    {% if known_word is not none %} Word: <b>{{known_word}}</b><br> {% endif %}
+    <h5>
+    Your role is {{player_role}}
+    </h5>
+{% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5><br> {% endif %}
+    {% if image is not none %}<center><img src="{{ url_for('static', filename='img/' + image) }}" title="{{role_description}}" width="200" height="200"></center><br> {% endif %}
+    
     {% for p in known_players %}
     <br>Player: <b>{{ p.name }} {% if p.name == mayor %} (Mayor) {% endif %}</b> role: <b>{{ p.role }}</b><br>
     {% endfor %}

@@ -2,7 +2,7 @@
 import logging
 import math
 import time
-from collections import UserDict
+from collections import UserDict, UserList
 from copy import deepcopy
 from datetime import datetime, timedelta
 from random import choice, choices, shuffle
@@ -64,8 +64,8 @@ class Game(object):
     """
 
     def __init__(self, timer=360, player_sids=[]):
-        # TODO: Add concept of a game admin and management of users in that space
         self.timer = timer
+        self.vote_timer = 30
         self.update_timestamp = int(time.time() * 1000)
         self.player_sids = RoleDict()
         for player_sid in player_sids:
@@ -238,7 +238,7 @@ class Game(object):
     def get_players_needing_to_target(self):
         return self.night_actions_required
 
-    def get_players(self):
+    def get_players(self) -> RoleDict:
         return self.player_sids
 
     def get_spectators(self):
@@ -299,18 +299,19 @@ class Game(object):
         """
         self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
         self.out_of_tokens = self.get_tokens()['yesno'] <= 0
-        # TODO: Make this so the local time skew addresses this and isn't nasty
-        # about the time skew on not starting a vote.
-        elapsed_time = (datetime.now() - self.start_time).seconds
-        if elapsed_time >= self.timer:
-            self.game_state = GameState.AWAITING_VOTE
+        if self.start_time:
+            # TODO: Remove the extra 2 second buffer after time skew is done.
+            if self.timer <= (datetime.now() - self.start_time).seconds + 2:
+                self.game_state = GameState.VOTING
         if (self.out_of_tokens or self.word_guessed):
-            self.game_state = GameState.AWAITING_VOTE
+            self.game_state = GameState.VOTING
 
-        if self.game_state != GameState.AWAITING_VOTE:
-            logging_func('End of game conditions not met.\n'
-                         f'Word guessed: {self.word_guessed}\n'
-                         f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
+        if self.game_state != GameState.VOTING:
+            logging_func(
+                'End of game conditions not met.\n'
+                f'Word guessed: {self.word_guessed}\n'
+                f'Elapsed sec: {(datetime.now() - self.start_time).seconds}'
+                f'Reqd sec: {self.timer}')
             return False
 
         if self.word_guessed:
@@ -321,8 +322,6 @@ class Game(object):
             # Drop all player_sids into required voters since everyone can vote
             # including Werewolfs and Minions during this state.
             self.required_voters = list(self.player_sids)
-
-        self.game_state = GameState.VOTING
         return True
 
     def _finish_game(self) -> bool:
@@ -335,7 +334,6 @@ class Game(object):
     def is_started(self) -> bool:
         return self.game_state in [
             GameState.DAY_PHASE_QUESTIONS,
-            GameState.AWAITING_VOTE,
         ]
 
     def is_voting(self) -> bool:
@@ -552,9 +550,9 @@ class Game(object):
             game_id: A string representing the associated game to include.
 
         Returns:
-            A tuple with a a dict representing the current GameState enum name
-            value, the current timer as seen from the Game, and the game id,
-            list of player_sids, and a list of question.Question objects.
+            A dict representing the current GameState enum name value, the
+            current timer as seen from the Game, an int forexpected end of game
+            epoch timestamp in ms, str game id.
         """
 
         end_timestamp_ms = 0
@@ -571,7 +569,7 @@ class Game(object):
             'admin': self.admin,
             'tokens': self.get_tokens(),
         }
-        return (game_status, self.questions, self.player_sids)
+        return game_status
 
     # Player and Role functions
     def get_player_role(self, sid: str) -> Role:
@@ -756,7 +754,13 @@ class Game(object):
         self.questions.append(question)
         return (True, question_id)
 
-    def get_question(self, id):
+    def delete_question(self, question_id):
+        q = self.get_question(question_id)
+        if q.get_answer():
+            raise GameError('Unable to delete question; already answered.')
+        q.mark_deleted()
+
+    def get_question(self, id) -> Question:
         """Returns the Question object for the specified ID.
 
         Args:
@@ -769,6 +773,11 @@ class Game(object):
             return self.questions[id]
         except KeyError:
             return None
+        
+    def get_questions(self) -> list[Question]:
+        return self.questions
+    
+
 
     def _get_next_question_id(self):
         return len(self.questions)
@@ -785,7 +794,7 @@ class Game(object):
         """
         if (self.tokens[AnswerToken.CORRECT] <= 0 or
                 self.tokens[AnswerToken.YES] <= 0):
-            return 'Last token played, Undo or Move to vote'
+            self.start_vote()
 
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
@@ -854,13 +863,13 @@ class Game(object):
                 self.tokens[AnswerToken.NO] -= 1
                 self.tokens[AnswerToken.YES] -= 1
                 if self.tokens[token] < 1:
-                    self.game_state = GameState.AWAITING_VOTE
+                    self.game_state = GameState.VOTING
                     return True
 
             else:
                 self.tokens[token] -= 1
                 if token == AnswerToken.CORRECT:
-                    self.game_state = GameState.AWAITING_VOTE
+                    self.game_state = GameState.VOTING
                     return True
             return True
 
