@@ -353,8 +353,8 @@ class Game(object):
             if not self.word_choices:
                 all_words = []
                 for word_list in WORDLISTS:
-                    words = WORDLISTS[word_list].get_words(
-                        level=self.word_difficulty)
+                    # words = WORDLISTS[word_list].get_all_words(level=self.word_difficulty)
+                    words = WORDLISTS[word_list].get_all_words()
                     all_words += words
                 self.word_choices = choices(
                     all_words, k=self.word_choice_count)
