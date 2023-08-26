@@ -1,10 +1,3 @@
-// TODO: add separate sockets for each of the game comms
-// TODO: Reload the page with the correct buttons appearing
-// TODO: Get the questions to show up with answers for other people after being answered
-// TODO: Fix it so the mayor error and admin error are closeable
-// TODO: Update on-screen role info on game state change
-// TODO: Spectators see no player data
-
 var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
 var local_time_skew = 0;
@@ -214,7 +207,11 @@ function start_timer(end_timestamp_ms) {
                     start_vote(local_game_state.game_id)
                 }
             }
-            game_timer.innerHTML = format_time(remaining_ms);
+            if (remaining_ms < 1) {
+                game_timer.innerHTML = format_time(remaining_ms);
+            } else {
+                game_timer.innerHTML = '00:00';
+            }
         }, 1000);
 
     }
@@ -232,12 +229,6 @@ function refresh_game_state(g) {
     console.log('Attempting to refresh game state')
     local_game_state = g;
     close_dialog()
-
-    // TODO: Remove this or check to see if game_state is available
-    let game_state = document.getElementById('game_state');
-    if (game_state !== null) {
-        game_state.innerHTML = local_game_state.game_state;
-    }
 
     let game_timer = document.getElementById('game_timer');
     game_timer.innerHTML = format_time(local_game_state.timer * 1000);

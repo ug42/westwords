@@ -353,6 +353,7 @@ class Game(object):
             if not self.word_choices:
                 all_words = []
                 for word_list in WORDLISTS:
+                    # TODO: Add ability to select word difficulties
                     # words = WORDLISTS[word_list].get_all_words(level=self.word_difficulty)
                     words = WORDLISTS[word_list].get_all_words()
                     all_words += words

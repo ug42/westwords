@@ -13,7 +13,7 @@ class WordList(object):
     def get_all_words(self):
         all_words = []
         for level in self.word_list:
-            words += [word for word in self.word_list[level]]
+            all_words += [word for word in self.word_list[level]]
         return all_words
 
     def get_words(self, level='easy'):

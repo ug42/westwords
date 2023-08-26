@@ -20,8 +20,8 @@
         <!-- so break them into a if game is started thing. -->
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
-                noun?</button></p>
-        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+                noun?</button>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it
                 bigger than a breadbox?</button></p>
         <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
@@ -37,7 +37,7 @@
                 id="leave_game">Quit Game</button>
         </p>
         <div id="question_input" hidden>
-            Question: <input type="text" id="question">
+            Question: <input type="text" id="question" autocomplete="on">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="question_submit">Submit question</button>
         </div>

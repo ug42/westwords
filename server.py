@@ -33,22 +33,27 @@ socketio = SocketIO(app)
 
 # TOP LEVEL TODOs
 # TODO: game lock for players state
-# TODO: Add user-specific (roles/controls) and game-specific
-# (players/spectators/game_state/etc) game state broadcasts and updates
-# TODO: Rate-limit the number of game state updates to 1/sec (ish)
 # TODO: Add ability of question asker to remove question if not answered
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
-# TODO: Add doppelganger choice dialog
 # TODO: Add auto-destroy of game after some period of no updates.
-# TODO: Remove self from voting candidates
-# TODO: Remove vote buttons from non-voters
-# TODO: Remove question controls from spectator in JS
 # TODO: Add ability for people to join mid-game.
 # TODO: Add game timer and updates
 # TODO: Add known_info text when adding known_players to role
 # TODO: Add role text to player_reveal.html.j2
 # TODO: Move the vote/player_target/reveal dialog to hidden divs
+# TODO: Add timer to vote mechanic
+# TODO: Stop UI flashing from updates UI elements reloading
+# TODO: Flatten buttons for common questions
+# TODO: Increase font
+# TODO: Add a button for "Maybe, but let's not go there."
+# TODO: Add button to refusing to answer question
+# TODO: Build custom set of questions
+# TODO: Add a frequent set of questions.
+# TODO: make move to vote automatic
+# TODO: Display word throughout game for roles that know it
+# TODO: Display votes and roles at end of game
+
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -524,6 +529,8 @@ def start_vote(game_id: str):
 def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         GAMES[game_id].nominate_for_mayor(session['sid'])
+        socketio.emit('user_info', f"You are running for mayor.",
+                      to=SOCKET_MAP[session['sid']])
 
 
 @socketio.on('set_word_choice_count')
@@ -572,7 +579,8 @@ def set_player_target(game_id: str, target_sid: str):
         player_role = GAMES[game_id].get_player_role(session['sid'])
         if (player_role and player_role.is_targetting_role()):
             GAMES[game_id].set_player_target(session['sid'], target_sid)
-            mark_new_update(game_id)
+            if len(GAMES[game_id].get_players_needing_to_target()) == 0:
+                mark_new_update(game_id)
 
 
 @socketio.on('acknowledge_revealed_info')
@@ -581,7 +589,8 @@ def acknowledge_revealed_info(game_id: str):
         app.logger.debug(
             f'ACK attempt received for {PLAYERS[session["sid"]].name}')
         GAMES[game_id].acknowledge_revealed_info(session['sid'])
-        mark_new_update(game_id)
+        if len(GAMES[game_id].get_players_needing_to_ack()) == 0:
+            mark_new_update(game_id)
 
 
 # TODO: implement all the scenarios around this
@@ -631,7 +640,7 @@ def vote(game_id, target_id):
                 else:
                     app.logger.error(
                         f"Error delivery to {PLAYERS[session['sid']].name} failed.")
-
+            # TODO: Make this not flash the screen each time
             mark_new_update(game_id)
     else:
         app.logger.debug(f'Unknown player SID {target_id}')
