@@ -115,7 +115,7 @@ class testGameFunctions(unittest.TestCase):
     def testGetState(self):
         game_status, questions, player_sids = self.game.get_state('somename')
         self.assertEqual(game_status['game_state'], 'SETUP')
-        self.assertEqual(game_status['time'], 300)
+        self.assertEqual(game_status['timer'], 300)
         self.assertEqual(game_status['game_id'], 'somename')
         self.assertEqual(game_status['admin'], None)
         self.assertEqual(game_status['mayor'], None)

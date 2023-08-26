@@ -14,7 +14,6 @@ function get_game_state(game_id) {
     } else {
         timestamp = local_game_state.update_timestamp;
     }
-    console.log('Emitting get_game_state for ' + game_id)
     socket.emit('get_game_state', game_id, timestamp, (response) => {
         if (response.status === 'OK') {
             refresh_game_state(response.game_state);
@@ -68,7 +67,6 @@ function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate)
 }
 // socket.on('game_state', function (state) {
-//     console.log('Got a socket connection for game_state updates. Updating..')
 //     refresh_game_state(state);
 // });
 
@@ -148,7 +146,6 @@ function game_started_buttons() {
 }
 
 function game_setup_buttons() {
-    // reset_game_timer(local_game_state.time);
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
     let game_reset_btn = document.getElementById('game_reset');
@@ -177,13 +174,50 @@ function game_setup_buttons() {
     }
 }
 
-function get_time_skew(server_timestamp) {
-    let time_skew = Date.now() - server_timestamp
-    return time_skew
+function correct_for_server_time_skew(timestamp_ms, server_timestamp_ms) {
+    local_time_ms = Date.now()
+    let time_skew = timestamp_ms - server_timestamp_ms
+    // Since we are subtracting server time from local timestamp, we add
+    return timestamp_ms + time_skew
 }
 
-function start_timer(timestamp) {
+function format_time(timer_ms) {
+    // Time calculations for days, hours, minutes and seconds
+    function printf_02d(number) {
+        return (number < 10 ? '0' : '') + number
+    }
+    var minutes = printf_02d(
+        Math.floor((timer_ms % (1000 * 60 * 60)) / (1000 * 60)));
+    var seconds = printf_02d(
+        Math.floor((timer_ms % (1000 * 60)) / 1000));
 
+    // Retun MM:SS string
+    return minutes + ":" + seconds;
+}
+
+function start_timer(end_timestamp_ms) {
+    // Set the date we're counting down to
+    let game_timer = document.getElementById('game_timer');
+
+    if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS' &&
+        typeof refresh_timer === 'undefined') {
+        // Update the count down every 1 second
+        var refresh_timer = setInterval(function () {
+            let now = Date.now();
+            let remaining_ms = end_timestamp_ms - now
+
+            // If the count down is over, write some text 
+            if (remaining_ms < 0) {
+                clearInterval(refresh_timer);
+                game_timer.innerHTML = "00:00";
+                if (local_game_state.player_is_mayor) {
+                    start_vote(local_game_state.game_id)
+                }
+            }
+            game_timer.innerHTML = format_time(remaining_ms);
+        }, 1000);
+
+    }
 }
 
 (function () {
@@ -204,6 +238,9 @@ function refresh_game_state(g) {
     if (game_state !== null) {
         game_state.innerHTML = local_game_state.game_state;
     }
+
+    let game_timer = document.getElementById('game_timer');
+    game_timer.innerHTML = format_time(local_game_state.timer * 1000);
 
     let mayor_tokens = document.getElementById('mayor_tokens');
     mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
@@ -270,6 +307,8 @@ function refresh_game_state(g) {
         });
     }
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
+        start_timer(local_game_state.end_timestamp_ms, local_game_state.timer)
+
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
             proper_noun_btn.hidden = false;
@@ -334,29 +373,6 @@ function refresh_game_state(g) {
     }
 };
 
-// function timer_update(state, players, $section) {
-//     var $clock, clock_text, millis_left, minutes_left, now, seconds, seconds_left, timeout;
-//     $clock = $section.find('.clock');
-//     now = netgames.to_server_timestamp(Date.now());
-//     millis_left = Math.max(0, state.deadline - now);
-//     seconds_left = Math.floor(millis_left / 1000);
-//     minutes_left = Math.floor(seconds_left / 60);
-//     seconds = ('0' + (seconds_left - minutes_left * 60)).slice(-2);
-//     clock_text = minutes_left + ":" + seconds;
-//     if (millis_left <= 10 * 1000) {
-//       $clock.text(seconds);
-//     } else {
-//       $clock.text(clock_text);
-//     }
-//     $('#cheatsheet-screen .clock').text(clock_text);
-//     $clock.toggleClass('large', millis_left <= 10 * 1000);
-//     timeout = millis_left > 0 ? millis_left % 1000 : 1000;
-//     return clock_timeout = setTimeout(function() {
-//       return netgames.refresh(state, players);
-//     }, timeout);
-//   }
-// },
-
 function ready(fn) {
     if (document.readyState !== 'loading') {
         fn();
@@ -365,6 +381,7 @@ function ready(fn) {
     }
 }
 ready(function () {
+
     var dialog = document.querySelector('dialog');
     if (!dialog.showModal) {
         dialogPolyfill.registerDialog(dialog);
@@ -387,7 +404,10 @@ ready(function () {
     socket.on('mayor_error', function (data) {
         if (local_game_state.player_is_mayor === true) {
             let dialog = document.querySelector('dialog');
-            dialog.innerHTML = data;
+            html = data;
+            html += '<br><button type="button" class="mdl-button close"';
+            html += ' onclick="close_dialog()">OK</button>';
+            dialog.innerHTML = html;
 
             dialog.showModal();
         }
@@ -400,29 +420,10 @@ ready(function () {
         }
     });
     socket.on('game_state_update', function (data) {
-        console.log('Received an update request');
-        console.table(data);
         if (local_game_state.update_timestamp !== data.timestamp) {
             get_game_state(local_game_state.game_id);
         }
     })
-
-    // // var timer;
-    // // game_timer = document.getElementById('game_timer');
-    // reset_game_timer(local_game_state.time);
-    // function reset_game_timer(seconds) {
-    //     timer = new easytimer.Timer({
-    //         countdown: true,
-    //         startValues: { seconds: seconds }
-    //     });
-    //     game_timer.innerHTML = timer.getTimeValues().toString();
-    //     timer.addEventListener('secondsUpdated', function (e) {
-    //         game_timer.innerHTML = timer.getTimeValues().toString();
-    //     });
-    //     timer.addEventListener('targetAchieved', function (e) {
-    //         game_timer.innerHTML = 'KABOOM!!';
-    //     });
-    // }
 
     var question = document.getElementById('question');
     if (question !== null) {

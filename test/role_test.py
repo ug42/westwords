@@ -90,7 +90,7 @@ class testWestwordsRoles(unittest.TestCase):
                 self.player_sids,
                 'mason1',
                 "Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelmason': 'Mason',
+            ("Bardily's Best +fraging", {'doppelmason': 'Mason (Doppelganger)',
                                          'mason2': 'Mason'}))
         self.assertTrue(
             self.player_sids['mason1'].add_known_role('esper', 'Esper'))
@@ -102,7 +102,7 @@ class testWestwordsRoles(unittest.TestCase):
                 'mason1',
                 "Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'esper': 'Esper',
-                                         'doppelmason': 'Mason',
+                                         'doppelmason': 'Mason (Doppelganger)',
                                          'mason2': 'Mason'}))
         self.assertFalse(self.player_sids['mason1'].add_known_role(
             'esper', 'Esper'))
@@ -117,7 +117,7 @@ class testWestwordsRoles(unittest.TestCase):
                 player_roles=self.player_sids,
                 mayor='esper',
                 word="Bardily's Best +fraging"),
-            (None, {'doppelmason': 'Mason', 'mason2': 'Mason'}))
+            (None, {'doppelmason': 'Mason (Doppelganger)', 'mason2': 'Mason'}))
 
     def testWerewolfRoleMayor(self):
         self.assertFalse(self.player_sids['werewolf1'].target_player(
@@ -133,7 +133,7 @@ class testWestwordsRoles(unittest.TestCase):
                 self.player_sids,
                 'werewolf1',
                 "Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf',
+            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf (Doppelganger)',
                                          'werewolf2': 'Werewolf'}))
         self.assertTrue(
             self.player_sids['werewolf1'].add_known_role('esper', 'Esper'))
@@ -144,7 +144,7 @@ class testWestwordsRoles(unittest.TestCase):
                 self.player_sids,
                 'werewolf1',
                 "Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf',
+            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf (Doppelganger)',
                                          'esper': 'Esper',
                                          'werewolf2': 'Werewolf'}))
         self.assertFalse(self.player_sids['werewolf1'].add_known_role(
@@ -160,7 +160,7 @@ class testWestwordsRoles(unittest.TestCase):
                 player_roles=self.player_sids,
                 mayor='esper',
                 word="Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf',
+            ("Bardily's Best +fraging", {'doppelwolf': 'Werewolf (Doppelganger)',
                                          'werewolf2': 'Werewolf'}))
 
     def testSeerRoleMayor(self):
@@ -177,7 +177,7 @@ class testWestwordsRoles(unittest.TestCase):
                 self.player_sids,
                 'seer',
                 "Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelseer': 'Seer'}))
+            ("Bardily's Best +fraging", {'doppelseer': 'Seer (Doppelganger)'}))
         self.assertTrue(
             self.player_sids['seer'].add_known_role('esper', 'Esper'))
         # Is the mayor
@@ -187,7 +187,7 @@ class testWestwordsRoles(unittest.TestCase):
                 self.player_sids,
                 'seer',
                 "Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelseer': 'Seer',
+            ("Bardily's Best +fraging", {'doppelseer': 'Seer (Doppelganger)',
                                          'esper': 'Esper'}))
         self.assertFalse(self.player_sids['seer'].add_known_role(
             'esper', 'Esper'))
@@ -202,7 +202,7 @@ class testWestwordsRoles(unittest.TestCase):
                 player_roles=self.player_sids,
                 mayor='esper',
                 word="Bardily's Best +fraging"),
-            ("Bardily's Best +fraging", {'doppelseer': 'Seer'}))
+            ("Bardily's Best +fraging", {'doppelseer': 'Seer (Doppelganger)'}))
 
     def testFortunTellerRoleMayor(self):
         self.assertFalse(self.player_sids['fortuneteller'].target_player(
@@ -424,8 +424,8 @@ class testWestwordsRoles(unittest.TestCase):
             ("Bardily's Best +fraging", {
                 'werewolf1': 'Werewolf',
                     'werewolf2': 'Werewolf',
-                    'doppelminion': 'Minion',
-                    'doppelwolf': 'Werewolf', 
+                    'doppelminion': 'Minion (Doppelganger)',
+                    'doppelwolf': 'Werewolf (Doppelganger)', 
             }))
         self.assertTrue(
             self.player_sids['minion'].add_known_role('esper', 'Esper'))
@@ -440,8 +440,8 @@ class testWestwordsRoles(unittest.TestCase):
                 'esper': 'Esper',
              'werewolf1': 'Werewolf',
                     'werewolf2': 'Werewolf',
-                    'doppelminion': 'Minion',
-                    'doppelwolf': 'Werewolf', }))
+                    'doppelminion': 'Minion (Doppelganger)',
+                    'doppelwolf': 'Werewolf (Doppelganger)', }))
         self.assertFalse(self.player_sids['minion'].add_known_role(
             'esper', 'Esper'))
         self.assertFalse(self.player_sids['minion']._role_night_action(
@@ -457,8 +457,8 @@ class testWestwordsRoles(unittest.TestCase):
                 word="Bardily's Best +fraging"),
             (None, {'werewolf1': 'Werewolf',
                     'werewolf2': 'Werewolf',
-                    'doppelminion': 'Minion',
-                    'doppelwolf': 'Werewolf', }))
+                    'doppelminion': 'Minion (Doppelganger)',
+                    'doppelwolf': 'Werewolf (Doppelganger)', }))
 
 
 if __name__ == '__main__':

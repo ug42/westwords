@@ -307,7 +307,6 @@ def game_index(game_id: str, spectate: str = None):
         players=game_state['players'],
         game_name=game_state['game_id'],
         game_state=game_state['game_state'],
-        time=game_state['time'],
         mayor=game_state['mayor'],
         tokens=game_state['tokens'],
         player_is_mayor=game_state['player_is_mayor'],
@@ -516,8 +515,9 @@ def start_vote(game_id: str):
                           f'Unable to finish game and start vote.',
                           room=game_id)
             return
-
         mark_new_update(game_id)
+        
+    
 
 
 @socketio.on('nominate_for_mayor')

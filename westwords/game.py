@@ -1,9 +1,10 @@
 # Game and player-related classes
 import logging
+import math
+import time
 from collections import UserDict
 from copy import deepcopy
 from datetime import datetime, timedelta
-import time
 from random import choice, choices, shuffle
 from typing import Any
 
@@ -12,13 +13,12 @@ from westwords.question import Question, QuestionError
 from westwords.role import Role
 
 from .enums import Affiliation, AnswerToken, GameState
-from .role import (Beholder, Doppelganger, Esper, FortuneTeller, Intern, Mason,
-                   Minion, Seer, Villager, Werewolf,
-                   DEFAULT_ROLES_BY_PLAYER_COUNT)
+from .role import (DEFAULT_ROLES_BY_PLAYER_COUNT, Beholder, Doppelganger,
+                   Esper, FortuneTeller, Intern, Mason, Minion, Seer, Villager,
+                   Werewolf)
 from .wordlists import WORDLISTS
 
-# logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class RoleDict(UserDict):
@@ -40,6 +40,10 @@ ROLES = RoleDict({
 })
 
 
+def logging_func(e: str):
+    print(e)
+
+
 class GameError(Exception):
 
     def __init__(self, message):
@@ -59,7 +63,7 @@ class Game(object):
         admin: A string player session ID of the admin for the game
     """
 
-    def __init__(self, timer=300, player_sids=[]):
+    def __init__(self, timer=360, player_sids=[]):
         # TODO: Add concept of a game admin and management of users in that space
         self.timer = timer
         self.update_timestamp = int(time.time() * 1000)
@@ -71,10 +75,8 @@ class Game(object):
         self.word_difficulty = 'medium'
         self.token_defaults = {
             # YES and NO share the same token count
-            # AnswerToken.YES: 36,
-            # AnswerToken.NO: 36,
-            AnswerToken.YES: 1,
-            AnswerToken.NO: 1,
+            AnswerToken.YES: 36,
+            AnswerToken.NO: 36,
             AnswerToken.MAYBE: 10,
             AnswerToken.SO_CLOSE: 1,
             AnswerToken.SO_FAR: 1,
@@ -95,7 +97,7 @@ class Game(object):
             True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            logging.debug(f'Game not in SETUP state: {self.game_state}')
+            logging_func(f'Game not in SETUP state: {self.game_state}')
             return False
         # TODO: Remove this in favor of choosing roles
         try:
@@ -126,9 +128,9 @@ class Game(object):
 
     def _start_night_phase_targetting(self):
         if (self.game_state in [
-                GameState.NIGHT_PHASE_WORD_CHOICE,
-                GameState.NIGHT_PHASE_DOPPELGANGER,
-            ] and self.word is not None):
+            GameState.NIGHT_PHASE_WORD_CHOICE,
+            GameState.NIGHT_PHASE_DOPPELGANGER,
+        ] and self.word is not None):
             self.night_actions_required = [
                 p for p in self.player_sids if self.player_sids[p].targetting_role]
             self.game_state = GameState.NIGHT_PHASE_TARGETTING
@@ -218,7 +220,7 @@ class Game(object):
             True if successful set; False otherwise."""
         if (self.is_night_action_phase() and
             player_sid in self.night_actions_required and
-            target_sid in self.player_sids):
+                target_sid in self.player_sids):
             if str(self.player_sids[player_sid]) == 'Doppelganger':
                 return self.set_doppelganger_target(player_sid, target_sid)
 
@@ -297,17 +299,18 @@ class Game(object):
         """
         self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
         self.out_of_tokens = self.get_tokens()['yesno'] <= 0
+        # TODO: Make this so the local time skew addresses this and isn't nasty
+        # about the time skew on not starting a vote.
         elapsed_time = (datetime.now() - self.start_time).seconds
-        if (elapsed_time < self.timer
-                and not (self.out_of_tokens or self.word_guessed)):
-            logging.debug('End of game conditions not met.'
-                          f'Word guessed: {self.word_guessed}'
-                          f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
-            return False
+        if elapsed_time >= self.timer:
+            self.game_state = GameState.AWAITING_VOTE
+        if (self.out_of_tokens or self.word_guessed):
+            self.game_state = GameState.AWAITING_VOTE
 
         if self.game_state != GameState.AWAITING_VOTE:
-            logging.debug(
-                f'Current game state {self.game_state} is not AWAITING_VOTE.')
+            logging_func('End of game conditions not met.\n'
+                         f'Word guessed: {self.word_guessed}\n'
+                         f'Elapsed time: {elapsed_time} vs Timer: {self.timer}')
             return False
 
         if self.word_guessed:
@@ -337,7 +340,7 @@ class Game(object):
 
     def is_voting(self) -> bool:
         return self.game_state == GameState.VOTING
-    
+
     def is_night_action_phase(self) -> bool:
         return self.game_state in [
             GameState.NIGHT_PHASE_DOPPELGANGER,
@@ -384,7 +387,7 @@ class Game(object):
         """
         if self.game_state == GameState.NIGHT_PHASE_WORD_CHOICE:
             if word not in self.word_choices:
-                logging.debug(
+                logging_func(
                     f'Unable to set {word}. Word not in: {self.word_choices}')
                 return False
             self.word = word
@@ -490,7 +493,7 @@ class Game(object):
             and a dict of votes for each player.
         """
         if self.game_state != GameState.FINISHED:
-            logging.debug(f'Game not finished, no results to give.')
+            logging_func(f'Game not finished, no results to give.')
             return None
         return (self.winner, self.killed_players, self.votes)
 
@@ -501,7 +504,7 @@ class Game(object):
             time_in_seconds: Integer time. in. seconds.
         """
         if time_in_seconds > 0:
-            logging.debug(f'Setting time to {time_in_seconds}')
+            logging_func(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
     def get_required_voters(self) -> list[str]:
@@ -552,9 +555,16 @@ class Game(object):
             value, the current timer as seen from the Game, and the game id,
             list of player_sids, and a list of question.Question objects.
         """
+
+        end_timestamp_ms = 0
+        if self.start_time:
+            end_time = self.start_time + timedelta(seconds=self.timer)
+            end_timestamp_ms = int(time.mktime(end_time.timetuple()) * 1e3)
+
         game_status = {
             'game_state': self.game_state.name,
-            'time': self.timer,
+            'timer': self.timer,
+            'end_timestamp_ms': end_timestamp_ms,
             'game_id': game_id,
             'mayor': self.mayor,
             'admin': self.admin,
@@ -579,7 +589,7 @@ class Game(object):
     def nominate_for_mayor(self, sid: str):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
-            logging.debug(f'Adding {sid} to mayor nominees')
+            logging_func(f'Adding {sid} to mayor nominees')
 
     def add_player(self, sid: str):
         """Add player to game.
@@ -588,7 +598,7 @@ class Game(object):
             True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            logging.debug(
+            logging_func(
                 f'Player unable to join. Game in progress. Spectating.')
             self.add_spectator(sid)
             return False
@@ -600,7 +610,7 @@ class Game(object):
                 self.admin = self._get_next_admin()
             return True
         else:
-            logging.debug(f'ADD: User {sid} already in game')
+            logging_func(f'ADD: User {sid} already in game')
             return False
 
     def add_spectator(self, sid: str) -> bool:
@@ -613,7 +623,7 @@ class Game(object):
             self.spectators.append(sid)
             return True
         else:
-            logging.debug(f'User {sid} already spectating game.')
+            logging_func(f'User {sid} already spectating game.')
             return False
 
     def remove_player(self, sid: str) -> None:
@@ -622,16 +632,16 @@ class Game(object):
             if self.admin not in self.player_sids:
                 self.admin = self._get_next_admin()
         else:
-            logging.debug(f'DELETE: User {sid} not in game')
+            logging_func(f'DELETE: User {sid} not in game')
 
     def remove_spectator(self, sid: str) -> None:
         if sid in self.spectators:
             self.spectators.remove(sid)
         else:
-            logging.debug(f'DELETE: User {sid} not spectating game')
+            logging_func(f'DELETE: User {sid} not spectating game')
 
     def is_player_in_game(self, sid: str) -> bool:
-        logging.debug(f'Attempting to verify player {sid}')
+        logging_func(f'Attempting to verify player {sid}')
         return sid in self.player_sids
 
     def _current_role_instances(self, role: str) -> int:
@@ -659,10 +669,10 @@ class Game(object):
             return False
 
         if self._current_role_instances(role) >= role.get_max_instances():
-            logging.info(f'Unable to add {role}: too many of that role.')
+            logging_func(f'Unable to add {role}: too many of that role.')
             return False
         if len(self.player_sids) < role.get_required_players():
-            logging.info(f'Unable to add {role}: too few players.')
+            logging_func(f'Unable to add {role}: too few players.')
             return False
 
         self.selected_roles.append(role)
@@ -681,17 +691,17 @@ class Game(object):
             return False
 
         if role.is_required() and self._current_role_instances(role) == 1:
-            logging.info(f'Unable to remove {role} as it is required.')
+            logging_func(f'Unable to remove {role} as it is required.')
             return False
         if self._current_role_instances(role) < 1:
-            logging.info(
+            logging_func(
                 f'Unable to remove role {role} as it is not selected.')
             return False
 
         for i in range(len(self.selected_roles)):
             if self.selected_roles[i] == role:
                 removed_role = self.selected_roles[i].pop()
-                logging.debug(f'Removed role: {removed_role}')
+                logging_func(f'Removed role: {removed_role}')
                 return True
 
         # In case I missed something :)
@@ -806,7 +816,7 @@ class Game(object):
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
-                logging.debug(
+                logging_func(
                     f'Undoing answer for question id {self.last_answered}')
                 question = self.questions[self.last_answered]
                 token = question.clear_answer()
@@ -816,13 +826,18 @@ class Game(object):
                 self.game_state = GameState.DAY_PHASE_QUESTIONS
                 return True
         except (TypeError, KeyError) as e:
-            logging.error(f'Encountered error: {e}')
-        logging.debug(
+            logging_func(f'Encountered error: {e}')
+        logging_func(
             f'No answer to undo for question id: {self.last_answered}')
         return False
 
     def _add_token(self, token: AnswerToken):
-        self.tokens[token] += 1
+        if token in [AnswerToken.NO, AnswerToken.YES]:
+            # Because both count for the mayor tokens... doh.
+            self.tokens[AnswerToken.NO] += 1
+            self.tokens[AnswerToken.YES] += 1
+        else:
+            self.tokens[token] += 1
 
     def _remove_token(self, token: AnswerToken):
         """Decrement the token counter and evaluate/set end of game status.
