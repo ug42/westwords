@@ -1,23 +1,37 @@
-{%- for player in players -%}
-<span>
-    {%- if player.admin -%}<span class="material-icons" title="Admin"></span>{%- endif -%}
-    {{ player.name }}
-    {% if player.mayor %}(Mayor)
-        {%- for t in mayor_token_count -%}
-        {%- if t.count > -1 -%}
-        <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}" title="{{t.token.token_text}}">
-            {{ t.token.token_icon }}
+<table>
+    {%- for player in players -%}
+    <tr class="player-table">
+        <td class="player-table">
+        <span>
+            {{ player.name }}
+            {% if player.admin %} (admin){% endif %}
+            {% if player.mayor %} (mayor){% endif %}
         </span>
-        {%- endif -%}
+        </td>
+        {%- if player.mayor -%}
+        <td class="player-table"></td>
+        {%- for t in mayor_token_count -%}
+        <td class="player-table">
+            {# {%- if t.count > 0 -%} #}
+            <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
+                title="{{t.token.token_text}}">
+                {{ t.token.token_icon }}
+            </span>
+            {# {%- endif -%} #}
+        </td>
         {%- endfor -%}
-    {% endif %}
-    {%- for t in player.token_count -%}
-    {%- if t.count > 0 -%}
-    <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}" title="{{t.token.token_text}}">
-        {{ t.token.token_icon }}
-    </span>
-    {%- endif -%}
+        {% else %}
+        {%- for t in player.token_count -%}
+        <td class="player-table">
+            {# {%- if t.count > 0 -%} #}
+            <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
+                title="{{t.token.token_text}}">
+                {{ t.token.token_icon }}
+            </span>
+            {# {%- endif -%} #}
+        </td>
+        {%- endfor -%}
+        {%- endif -%}
+    </tr>
     {%- endfor -%}
-    <br>
-</span>
-{%- endfor -%}
+</table>

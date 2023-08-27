@@ -410,6 +410,7 @@ def get_questions(game_id: str):
     if game_id in GAMES:
         questions = GAMES[game_id].get_questions()
         questions_html = ''
+        tokens = [token for token in GAMES[game_id].tokens if GAMES[game_id].tokens[token] > 0]
         for id, question in enumerate(questions):
             if not question.is_deleted():
                 question_info = get_question_info(question, id)
@@ -419,7 +420,7 @@ def get_questions(game_id: str):
                     player_is_mayor=GAMES[game_id].mayor == session['sid'],
                     own_question=question.player_sid == session['sid'],
                     game_id=game_id,
-                    tokens=AnswerToken,
+                    tokens=tokens,
                 ) + questions_html
         return {
             'status': 'OK',
@@ -434,7 +435,7 @@ def get_players(game_id: str):
         player_sids = GAMES[game_id].get_players()
         admin = GAMES[game_id].admin
         mayor = GAMES[game_id].mayor
-        mayor_tokens = GAMES[game_id].get_tokens()
+        mayor_tokens = GAMES[game_id].tokens
         mayor_token_count = []
         mayor_token_count.append({
             'token': {
@@ -545,7 +546,7 @@ def undo(game_id: str):
 
 @socketio.on('start_vote')
 def start_vote(game_id: str):
-    app.logger.debug('Attempting to start vote. Surely this won\'t fail.')
+    app.logger.debug('Attempting to start vote.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
 
@@ -763,7 +764,7 @@ def get_voting_information(game_id: str):
         if not voter_sids:
             socketio.emit('mayor_error',
                           f'No voting players found for game {game_id}')
-            return
+            return {'status': 'ERROR', 'voting_html': None}
         voters = []
         for voter_sid in voter_sids:
             if voter_sid not in votes:

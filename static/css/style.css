@@ -23,6 +23,12 @@ body {
   margin-bottom: 10px;
 }
 
+.player-table {
+  vertical-align: middle;
+  font-size: 14pt;
+  /* border: 1px solid black; */
+}
+
 .box-shadow-fuzz {
   border: 1px solid;
   padding: 10px;

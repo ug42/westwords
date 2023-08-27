@@ -93,6 +93,10 @@ class Game(object):
     def __repr__(self):
         return f'Game(timer={self.timer},player_sids={list(self.player_sids.keys())})'
 
+    @property
+    def tokens(self) -> dict[AnswerToken, int]:
+        return self._tokens
+
     # Game state functions
     def start_night_phase_word_choice(self):
         """Start the night phase of game.
@@ -211,7 +215,7 @@ class Game(object):
                 candidates = self.player_sids
             return (self.required_voters, self.votes, self.word_guessed,
                     candidates)
-        return None, None, None
+        return None, None, None, None
 
     def set_player_target(self, player_sid, target_sid):
         """Set the target of player's night action.
@@ -277,9 +281,9 @@ class Game(object):
         self.required_voters = []
         self.selected_roles = []
         self.start_time = None
-        self.tokens = {}
+        self._tokens = {}
         for token in AnswerToken:
-            self.tokens[token] = token.default_count
+            self._tokens[token] = token.default_count
         self.vote_count = []
         self.votes = {}
         self.winner = None
@@ -295,9 +299,10 @@ class Game(object):
         Returns:
             True if voting state successfully; False otherwise.
         """
-        self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
-        self.out_of_tokens = (self.get_tokens().YES <= 0 or
-                              self.get_tokens().NO <= 0)
+        self.word_guessed = self._tokens[AnswerToken.CORRECT] < 1
+        
+        self.out_of_tokens = (self._tokens[AnswerToken.YES] <= 0 or
+                              self._tokens[AnswerToken.NO] <= 0)
         if self.start_time:
             # TODO: Remove the extra 2 second buffer after time skew is done.
             if self.timer <= (datetime.now() - self.start_time).seconds + 2:
@@ -536,9 +541,6 @@ class Game(object):
             self._finish_game()
         return True
 
-    def get_tokens(self) -> dict[AnswerToken, int]:
-        return self.tokens
-
     def get_state(self, game_id: str) -> dict[str, Any]:
         """Returns a dict of the current game state.
 
@@ -552,14 +554,17 @@ class Game(object):
         """
 
         end_timestamp_ms = 0
+        remaining_time_ms = 0
         if self.start_time:
             end_time = self.start_time + timedelta(seconds=self.timer)
             end_timestamp_ms = int(time.mktime(end_time.timetuple()) * 1e3)
+            remaining_time_ms = end_timestamp_ms - int(time.time() * 1000)
 
         game_status = {
             'game_state': self.game_state.name,
             'timer': self.timer,
             'end_timestamp_ms': end_timestamp_ms,
+            'remaining_time_ms': remaining_time_ms,
             'game_id': game_id,
             'mayor': self.mayor,
             'admin': self.admin,
@@ -787,8 +792,8 @@ class Game(object):
         Returns:
             Str error, if present, or None otherwise.
         """
-        if (self.tokens[AnswerToken.CORRECT] <= 0 or
-                self.tokens[AnswerToken.YES] <= 0):
+        if (self._tokens[AnswerToken.CORRECT] <= 0 or
+                self._tokens[AnswerToken.YES] <= 0):
             self.start_vote()
 
         if question_id < len(self.questions):
@@ -838,10 +843,10 @@ class Game(object):
     def _add_token(self, token: AnswerToken):
         if token in [AnswerToken.NO, AnswerToken.YES]:
             # Because both count for the mayor tokens... doh.
-            self.tokens[AnswerToken.NO] += 1
-            self.tokens[AnswerToken.YES] += 1
+            self._tokens[AnswerToken.NO] += 1
+            self._tokens[AnswerToken.YES] += 1
         else:
-            self.tokens[token] += 1
+            self._tokens[token] += 1
 
     def _remove_token(self, token: AnswerToken):
         """Decrement the token counter and evaluate/set end of game status.
@@ -852,16 +857,16 @@ class Game(object):
         Returns:
             A tuple of bools indicating successfully removing a token.
         """
-        if self.tokens[token] > 0:
+        if self._tokens[token] > 0:
             if token in [AnswerToken.NO, AnswerToken.YES]:
-                self.tokens[AnswerToken.NO] -= 1
-                self.tokens[AnswerToken.YES] -= 1
-                if self.tokens[token] < 1:
+                self._tokens[AnswerToken.NO] -= 1
+                self._tokens[AnswerToken.YES] -= 1
+                if self._tokens[token] < 1:
                     self.game_state = GameState.VOTING
                     return True
 
             else:
-                self.tokens[token] -= 1
+                self._tokens[token] -= 1
                 if token == AnswerToken.CORRECT:
                     self.game_state = GameState.VOTING
                     return True
