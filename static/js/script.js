@@ -65,70 +65,6 @@ function set_doppelganger_target(game_id, target) {
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate)
 }
-// socket.on('game_state', function (state) {
-//     refresh_game_state(state);
-// });
-
-function format_players(local_game_state) {
-    let html = '';
-    for (const player in local_game_state.players) {
-        html += '<div>' + player
-        if (player === local_game_state.admin) {
-            html = '<b>' + html + '</b>';
-        }
-        if (player === local_game_state.mayor) {
-            html += ' (Mayor)';
-        }
-        html += parse_tokens(local_game_state.players[player])
-        html += '</div>';
-    }
-    for (let i = 0; i < local_game_state.spectators.length; i++) {
-        html += '<div>' + local_game_state.spectators[i]
-        html += ' (Spectator) </div>';
-    }
-    return html
-}
-function parse_tokens(tokens) {
-    let html = '<div style="display: inline;">';
-    if (typeof tokens === 'undefined') {
-        return '';
-    }
-    if (typeof tokens.yesno !== 'undefined' && tokens.yesno > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Yes/No" data-badge="';
-        html += tokens.yesno;
-        html += '">check_circle</div>';
-    }
-    if (typeof tokens.yes === 'number' && tokens.yes > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Yes" data-badge="';
-        html += tokens.yes;
-        html += '">check_circle</div>';
-    }
-    if (typeof tokens.no === 'number' && tokens.no > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="No" data-badge="';
-        html += tokens.no;
-        html += '">cancel</div>';
-    }
-    if (typeof tokens.maybe === 'number' && tokens.maybe > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Maybe" data-badge="';
-        html += tokens.maybe;
-        html += '">help</div>';
-    }
-    if (typeof tokens.so_far === 'number' && tokens.so_far > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Very far off!">delete_forever</div>';
-    }
-    if (typeof tokens.so_close === 'number' && tokens.so_close > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="So close!">radar</div>';
-    }
-    if (typeof tokens.correct === 'number' && tokens.correct > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Correct!">star</div>';
-    }
-    if (typeof tokens.laramie === 'number' && tokens.laramie > 0) {
-        html += '<div class="material-icons mdl-badge mdl-badge--overlap" title="Laramie?">trolley</div>';
-    }
-    html += "</div>";
-
-    return html;
-}
 
 function game_started_buttons() {
     // timer.start();
@@ -236,18 +172,13 @@ function refresh_game_state(g) {
     local_game_state = g;
     close_dialog()
 
-    
-    // Move mayor tokens template to remove source
-    let mayor_tokens = document.getElementById('mayor_tokens');
-    mayor_tokens.innerHTML = parse_tokens(local_game_state.tokens);
-    
-    // TODO: Move players to a jinja2 template and populate from remote source
     let players = document.getElementById('players');
-    players.innerHTML = format_players(local_game_state);
-    
+    socket.emit('get_players', local_game_state.game_id, (response) => {
+        if (response.status === 'OK') {
+            players.innerHTML = response.players_html;
+        }
+    });
     let questions_div = document.getElementById('questions_div');
-    questions_div.innerHTML = local_game_state.question_html;
-    
     let question_input = document.getElementById('question_input');
     question_input.hidden = true;
     let proper_noun_btn = document.getElementById('proper_noun');
@@ -307,6 +238,11 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
         start_timer(local_game_state.end_timestamp_ms, local_game_state.timer)
+        socket.emit('get_questions', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                questions_div.innerHTML = response.questions_html;
+            }
+        });
         
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
@@ -315,6 +251,11 @@ function refresh_game_state(g) {
         }
     }
     if (local_game_state.game_state === 'VOTING') {
+        socket.emit('get_questions', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                questions_div.innerHTML = response.questions_html;
+            }
+        });
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
             game_timer.innerHTML = "00:00"
             if (response.status === 'OK') {
@@ -325,7 +266,17 @@ function refresh_game_state(g) {
         });
     }
     if (local_game_state.game_state === 'FINISHED') {
+        socket.emit('get_questions', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                questions_div.innerHTML = response.questions_html;
+            }
+        });
         socket.emit('get_results', local_game_state.game_id, (response) => {
+                    socket.emit('get_questions', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                questions_div.innerHTML = response.questions_html;
+            }
+        });
             game_timer.innerHTML = "00:00"
             if (response.status === 'OK') {
                 dialog_box.innerHTML = response.results_html;

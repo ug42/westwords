@@ -11,16 +11,7 @@ class Player(object):
     def __init__(self, name, game=None):
         self.name = name
         self.rooms = []
-        self.tokens = {
-            AnswerToken.CORRECT: 0,
-            AnswerToken.YES: 0,
-            AnswerToken.NO: 0,
-            AnswerToken.MAYBE: 0,
-            AnswerToken.SO_CLOSE: 0,
-            AnswerToken.SO_FAR: 0,
-            AnswerToken.CORRECT: 0,
-            AnswerToken.LARAMIE: 0,
-        }
+        self.tokens = {token: 0 for token in AnswerToken}
 
     def __repr__(self):
         return f'Player({self.name})'

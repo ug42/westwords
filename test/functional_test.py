@@ -129,7 +129,7 @@ class testWestwordsFunctional(unittest.TestCase):
         with self.assertRaises(GameError):
             self.game.add_question('mason1', 'How can this be?')
         # Assure we can't answer a question that doesn't yet exist
-        error = self.game.answer_question(0, AnswerToken.NONE)
+        error = self.game.answer_question(0, AnswerToken.YES)
         self.assertEqual(error, 'Unknown question or other error encountered.')
 
         success, id = self.game.add_question(

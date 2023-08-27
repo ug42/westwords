@@ -90,7 +90,7 @@ class testGameFunctions(unittest.TestCase):
                               ['foo', 'bar', 'baz', 'xxx'])
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(100)
-        self.game.start_time = datetime.now() - timedelta(seconds=99)
+        self.game.start_time = datetime.now() - timedelta(seconds=97)
         self.assertEqual(self.game.start_vote(), False)
 
     def testGetResults(self):
@@ -125,6 +125,7 @@ class testGameFunctions(unittest.TestCase):
                 AnswerToken.MAYBE.value: 10,
                 AnswerToken.SO_FAR.value: 1,
                 AnswerToken.LARAMIE.value: 1,
+                AnswerToken.BRONEY.value: 1,
                 AnswerToken.CORRECT.value: 1,
                 'yesno': 36,
             },

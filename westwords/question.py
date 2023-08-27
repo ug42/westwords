@@ -25,7 +25,7 @@ class Question(object):
 
     def get_answer(self):
         if self.answer:
-            return self.answer.name
+            return self.answer
         return None
     
     def mark_deleted(self):

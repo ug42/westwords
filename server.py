@@ -48,15 +48,16 @@ socketio = SocketIO(app)
 
 # UI elements
 # TODO: Build custom set of questions
+# TODO: Add a frequent set of questions.
 # TODO: Stop UI flashing from updates UI elements reloading
 # TODO: Increase font
-# TODO: Add a frequent set of questions.
 # TODO: Display word throughout game for roles that know it
 # TODO: Display votes and roles at end of game
 # TODO: Add button to refusing to answer question
 # TODO: Move the vote/player_target/reveal dialog to hidden divs
 # TODO: Make this not flash the screen each time mark_new_update is called.
 #   (UI elements reloading)
+# TODO: Add GDPR cookie notice
 
 
 SOCKET_MAP = {}
@@ -88,43 +89,17 @@ def parse_game_state(game_id: str, session_sid: str):
     Returns:
         game_state: a dict of str 'game_state', int 'timer', str 'game_id',
             str 'mayor' name, str 'admin' name, bool 'player_is_mayor', bool
-            'player_is_admin', a str 'question_html' of formatted questions, a
-            list of str 'players' names, and a str 'role' for the player, a list of str .
+            'player_is_admin', a str 'role' for the player
     """
     # TODO: Move this whole thing to a damned GameStatus class cuz wow.
     if not game_id:
         GAMES[None] = westwords.Game(timer=0, player_sids=[])
     game_state = GAMES[game_id].get_state(game_id)
-    questions = GAMES[game_id].get_questions()
-    player_sids = GAMES[game_id].get_players()
-
     game_state['update_timestamp'] = GAMES[game_id].get_update_timestamp()
-
-    game_state['question_html'] = ''
-
-    for id, question in enumerate(questions):
-        if not question.is_deleted():
-            question_info = get_question_info(question, id)
-            game_state['question_html'] = render_template(
-                'question_layout.html.j2',
-                question_object=question_info,
-                player_is_mayor=GAMES[game_id].mayor == session_sid,
-                own_question=question.player_sid == session_sid,
-                game_id=game_id,
-            ) + game_state['question_html']
-
     required_voters = GAMES[game_id].get_required_voters()
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
     players_needing_to_target = GAMES[game_id].get_players_needing_to_target()
     spectators = GAMES[game_id].get_spectators()
-
-    players = {}
-    for player_sid in player_sids:
-        player = PLAYERS[player_sid]
-        players[player.name] = {}
-        for token, count in GAMES[game_id].get_player_token_count(
-                player_sid).items():
-            players[player.name][token.value] = count
 
     game_state.update({
         'players_names_needing_ack': [
@@ -136,7 +111,6 @@ def parse_game_state(game_id: str, session_sid: str):
         'player_is_waiting_for_target': session['sid'] in players_needing_to_target,
         'player_is_waiting_for_ack': session['sid'] in players_needing_to_ack,
         'spectating': session_sid in spectators,
-        'players': players,
         'spectators': [PLAYERS[p].name for p in spectators],
     })
 
@@ -151,8 +125,9 @@ def parse_game_state(game_id: str, session_sid: str):
     except KeyError:
         game_state['admin'] = None
 
-    if session_sid in player_sids:
-        game_state['role'] = str(player_sids[session_sid]).capitalize()
+    players = GAMES[game_id].get_players()
+    if session_sid in players:
+        game_state['role'] = str(players[session_sid]).capitalize()
     else:
         game_state['role'] = 'Spectator'
 
@@ -319,12 +294,9 @@ def game_index(game_id: str, spectate: str = None):
 
     return render_template(
         'game.html.j2',
-        question_html=game_state['question_html'],
-        players=game_state['players'],
         game_name=game_state['game_id'],
         game_state=game_state['game_state'],
         mayor=game_state['mayor'],
-        tokens=game_state['tokens'],
         player_is_mayor=game_state['player_is_mayor'],
         player_is_admin=game_state['player_is_admin'],
         role=game_state['role'],
@@ -434,17 +406,68 @@ def add_question(game_id: str, question_text: str):
 
 
 @socketio.on('get_questions')
-def get_questions(game_id: str, question_id: int):
-    if game_id in GAMES and int(question_id) < len(GAMES[game_id].questions):
-        question = GAMES[game_id].questions[question_id]
+def get_questions(game_id: str):
+    if game_id in GAMES:
+        questions = GAMES[game_id].get_questions()
+        questions_html = ''
+        for id, question in enumerate(questions):
+            if not question.is_deleted():
+                question_info = get_question_info(question, id)
+                questions_html = render_template(
+                    'question_layout.html.j2',
+                    question_object=question_info,
+                    player_is_mayor=GAMES[game_id].mayor == session['sid'],
+                    own_question=question.player_sid == session['sid'],
+                    game_id=game_id,
+                    tokens=AnswerToken,
+                ) + questions_html
         return {
             'status': 'OK',
-            'question': render_template(
-                'question_layout.html.j2',
-                question_object=get_question_info(question, question_id),
-                player_is_mayor=GAMES[game_id].mayor == session['sid'],
-                game_id=game_id
-            )
+            'questions_html': questions_html,
+        }
+    return {'status': 'FAILED', 'question': ''}
+
+
+@socketio.on('get_players')
+def get_players(game_id: str):
+    if game_id in GAMES:
+        player_sids = GAMES[game_id].get_players()
+        admin = GAMES[game_id].admin
+        mayor = GAMES[game_id].mayor
+        mayor_tokens = GAMES[game_id].get_tokens()
+        mayor_token_count = []
+        mayor_token_count.append({
+            'token': {
+                'token_text': 'Yes/No',
+                'token_icon': AnswerToken.YES.token_icon,
+            },
+            'count': mayor_tokens[AnswerToken.YES],
+        })
+        for token in mayor_tokens:
+            if token not in [AnswerToken.YES, AnswerToken.NO]:
+                mayor_token_count.append(
+                    {'token': token, 'count': mayor_tokens[token]}
+                )
+
+        players = []
+        for player_sid in player_sids:
+            tokens = GAMES[game_id].get_player_token_count(player_sid)
+            token_count = []
+            for token in tokens:
+                token_count.append({'token': token, 'count': tokens[token]})
+            players.append({
+                'name': PLAYERS[player_sid].name,
+                'token_count': token_count,
+                'mayor': player_sid == mayor,
+                'admin': player_sid == admin,
+            })
+        players_html = render_template(
+            'player_layout.html.j2',
+            players=players,
+            mayor_token_count=mayor_token_count)
+        return {
+            'status': 'OK',
+            'players_html': players_html,
         }
     return {'status': 'FAILED', 'question': ''}
 
@@ -525,7 +548,7 @@ def start_vote(game_id: str):
     app.logger.debug('Attempting to start vote. Surely this won\'t fail.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
-   
+
         if not success:
             socketio.emit('mayor_error',
                           f'Unable to finish game and start vote.',
@@ -869,7 +892,6 @@ def delete_question(game_id: str, question_id: int):
                 socketio.emit('user_info',
                               e,
                               to=SOCKET_MAP[session['sid']])
-                
 
 
 if __name__ == '__main__':

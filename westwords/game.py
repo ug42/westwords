@@ -80,8 +80,12 @@ class Game(object):
             AnswerToken.MAYBE: 10,
             AnswerToken.SO_CLOSE: 1,
             AnswerToken.SO_FAR: 1,
-            # Purpose is generally unknown even by lar.
+            # Custom-built for anyone to contribute meaning.
             AnswerToken.LARAMIE: 1,
+            AnswerToken.BRONEY: 1,
+            # AnswerToken.MICHAEL: 1,
+            # AnswerToken.MATT: 1,
+            # AnswerToken.JOHANNA: 1,
             AnswerToken.CORRECT: 1,
         }
         self.reset()
@@ -247,15 +251,7 @@ class Game(object):
     def get_player_token_count(self, player_sid):
         if player_sid in self.player_token_count:
             return self.player_token_count[player_sid]
-        return {
-            AnswerToken.YES: 0,
-            AnswerToken.NO: 0,
-            AnswerToken.MAYBE: 0,
-            AnswerToken.SO_CLOSE: 0,
-            AnswerToken.SO_FAR: 0,
-            AnswerToken.LARAMIE: 0,
-            AnswerToken.CORRECT: 0,
-        }
+        return {token: 0 for token in AnswerToken}
 
     def _start_day_phase(self):
         """Start the question-asking phase of game.
@@ -281,7 +277,9 @@ class Game(object):
         self.required_voters = []
         self.selected_roles = []
         self.start_time = None
-        self.tokens = self.token_defaults.copy()
+        self.tokens = {}
+        for token in AnswerToken:
+            self.tokens[token] = token.default_count
         self.vote_count = []
         self.votes = {}
         self.winner = None
@@ -298,7 +296,8 @@ class Game(object):
             True if voting state successfully; False otherwise.
         """
         self.word_guessed = self.tokens[AnswerToken.CORRECT] < 1
-        self.out_of_tokens = self.get_tokens()['yesno'] <= 0
+        self.out_of_tokens = (self.get_tokens().YES <= 0 or
+                              self.get_tokens().NO <= 0)
         if self.start_time:
             # TODO: Remove the extra 2 second buffer after time skew is done.
             if self.timer <= (datetime.now() - self.start_time).seconds + 2:
@@ -537,11 +536,8 @@ class Game(object):
             self._finish_game()
         return True
 
-    def get_tokens(self) -> dict[str, int]:
-        result = {i.value: self.tokens[i] for i in self.tokens if i not in [
-            AnswerToken.NO, AnswerToken.YES]}
-        result['yesno'] = self.tokens[AnswerToken.YES]
-        return result
+    def get_tokens(self) -> dict[AnswerToken, int]:
+        return self.tokens
 
     def get_state(self, game_id: str) -> dict[str, Any]:
         """Returns a dict of the current game state.
@@ -567,7 +563,6 @@ class Game(object):
             'game_id': game_id,
             'mayor': self.mayor,
             'admin': self.admin,
-            'tokens': self.get_tokens(),
         }
         return game_status
 
@@ -800,27 +795,26 @@ class Game(object):
             if self.questions[question_id].get_answer():
                 return 'Question is already answered.'
 
-            if answer is not AnswerToken.NONE:
+            success = self._remove_token(answer)
+            if not success:
+                return f"Out of {answer.name} tokens"
 
-                success = self._remove_token(answer)
-                if not success:
-                    return f"Out of {answer.name} tokens"
-
-                asking_player_sid = self.questions[question_id].player_sid
-                self.questions[question_id].answer_question(answer)
-                self.last_answered = question_id
-                if asking_player_sid not in self.player_token_count:
-                    self.player_token_count[asking_player_sid] = {
-                        AnswerToken.YES: 0,
-                        AnswerToken.NO: 0,
-                        AnswerToken.MAYBE: 0,
-                        AnswerToken.SO_CLOSE: 0,
-                        AnswerToken.SO_FAR: 0,
-                        AnswerToken.LARAMIE: 0,
-                        AnswerToken.CORRECT: 0,
-                    }
-                self.player_token_count[asking_player_sid][answer] += 1
-                return None
+            asking_player_sid = self.questions[question_id].player_sid
+            self.questions[question_id].answer_question(answer)
+            self.last_answered = question_id
+            if asking_player_sid not in self.player_token_count:
+                self.player_token_count[asking_player_sid] = {
+                    AnswerToken.YES: 0,
+                    AnswerToken.NO: 0,
+                    AnswerToken.MAYBE: 0,
+                    AnswerToken.SO_CLOSE: 0,
+                    AnswerToken.SO_FAR: 0,
+                    AnswerToken.LARAMIE: 0,
+                    AnswerToken.BRONEY: 0,
+                    AnswerToken.CORRECT: 0,
+                }
+            self.player_token_count[asking_player_sid][answer] += 1
+            return None
         return 'Unknown question or other error encountered.'
 
     def undo_answer(self):

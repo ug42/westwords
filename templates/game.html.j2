@@ -43,14 +43,13 @@
         </p>
 
     </div>
-    <div id="mayor_display" style="display: inline;" hidden>Mayor tokens:
-        <div id="mayor_tokens" style="display:inline;"></div>
-        <div hidden id="mayor_controls">
+    <div id="mayor_display" style="display: inline;" hidden>
+        <span hidden id="mayor_controls">
             <b>Mayor controls</b>
             <button onclick="undo_answer('{{ game_id }}')" class="mdl-button" id="undo">Undo last answer</button>
             <button onclick="start_vote('{{ game_id }}')" class="mdl-button" id="finish" hidden>Finish Game/Start
                 Vote</button>
-        </div>
+        </span>
     </div>
     <div hidden=true id="dialog-box" class="box-shadow-fuzz rounded-corners">
     </div>
@@ -62,7 +61,6 @@
         </p>
     </div>
     <div id="questions_div">
-        {{ question_html }}
     </div>
 
 </div>

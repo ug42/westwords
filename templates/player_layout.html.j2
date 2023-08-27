@@ -1,0 +1,23 @@
+{%- for player in players -%}
+<span>
+    {%- if player.admin -%}<span class="material-icons" title="Admin"></span>{%- endif -%}
+    {{ player.name }}
+    {% if player.mayor %}(Mayor)
+        {%- for t in mayor_token_count -%}
+        {%- if t.count > -1 -%}
+        <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}" title="{{t.token.token_text}}">
+            {{ t.token.token_icon }}
+        </span>
+        {%- endif -%}
+        {%- endfor -%}
+    {% endif %}
+    {%- for t in player.token_count -%}
+    {%- if t.count > 0 -%}
+    <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}" title="{{t.token.token_text}}">
+        {{ t.token.token_icon }}
+    </span>
+    {%- endif -%}
+    {%- endfor -%}
+    <br>
+</span>
+{%- endfor -%}
