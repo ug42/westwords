@@ -43,7 +43,6 @@ socketio = SocketIO(app)
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
-# TODO: Add a button for "Maybe, but let's not go there."
 # TODO: Add timer to vote mechanic
 
 # UI elements
