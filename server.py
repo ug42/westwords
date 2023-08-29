@@ -54,14 +54,10 @@ socketio = SocketIO(app)
 # UI elements
 # TODO: Build custom set of questions
 # TODO: Add a frequent set of questions.
-# TODO: Stop UI flashing from updates UI elements reloading
 # TODO: Increase font
 # TODO: Display word throughout game for roles that know it
-# TODO: Display votes and roles at end of game
 # TODO: Add button to refusing to answer question
 # TODO: Move the vote/player_target/reveal dialog to hidden divs
-# TODO: Make this not flash the screen each time mark_new_update is called.
-#   (UI elements reloading)
 # TODO: Add GDPR cookie notice
 
 
