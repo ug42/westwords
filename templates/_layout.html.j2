@@ -54,7 +54,7 @@
       <!-- Add spacer, to align navigation to the right -->
       <div class="mdl-layout-spacer"></div>
       <!-- Navigation. We hide it in small screens. -->
-      <nav class="mdl-navigation">
+      <nav id="titlebar-username" class="username mdl-navigation">
         {{ session.username }}
       </nav>
     </div>
@@ -62,12 +62,24 @@
   <div class="mdl-layout__drawer">
     <span class="mdl-layout-title">Westwords</span>
     <nav class="mdl-navigation">
-            <form action="/username" id="username_change" method="POST">
-        Username: <input type="text" name="username" id="username">
-        <li onclick="hideSidebar()">
-          <a href="#" onclick="document.getElementById('username_change').submit()">Change username</a>
-        </li>
-        
+      <form action="/username" id="username_change" method="POST">
+        {%- if game_id|length -%}
+        <input hidden id="requesting_url" name="requesting_url" value="/game/{{ game_id }}" />
+        {%- endif -%}
+        Username: <input type="text" name="username" id="username" value="{{ session.username }}">
+        <div onclick="hideSidebar()">
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+            onclick="document.getElementById('username_change').submit()">Change username</button>
+        {% if game_id|length %}
+        <button onclick="window.location.href='/spectate/{{ game_id }}'"
+          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="spectate"
+          hidden>Spectate</button>
+        <button onclick="window.location.href='/leave/{{ game_id }}'"
+          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+          id="leave_game">Quit Game</button>
+        </div> 
+        {% endif %}
+
       </form>
     </nav>
   </div>

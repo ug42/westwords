@@ -3,45 +3,40 @@
 
 
 <div class="main">
-    <!-- TODO: Move out of the material design bits or improve ugly buttons -->
     <div id="game_timer" class="game_timer"></div>
-    <div id="admin_controls" hidden>
+    <div id="player_info">
+        <div id="players"></div>
+        <div id="spectators"></div>
+        </p>
+    </div>
+    <!-- TODO: Move out of the material design bits or improve ugly buttons -->
+    <div style="display:inline;" id="admin_controls" hidden>
         <button onclick="send_start_req()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
         <button onclick="send_reset_req()"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="game_reset">Reset game</button></p>
+            id="game_reset">Reset game</button>
     </div>
-    <div id="controls">
+    <div style="display:inline;" id="controls">
         <!-- These two controls should be gated -->
         <!-- so break them into a if game is started thing. -->
-        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
-                noun?</button>
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it
-                bigger than a breadbox?</button></p>
-        <p><button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="nominate_for_mayor">Run for Mayor!</button></p>
-        <p><button onclick="window.location.href='/join/{{ game_id }}'"
-                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="join_game" hidden>Join Game</button>
-            <button onclick="window.location.href='/spectate/{{ game_id }}'"
-                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="spectate" hidden>Spectate</button>
-            <button onclick="window.location.href='/leave/{{ game_id }}'"
-                class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="leave_game">Quit Game</button>
-        </p>
+            id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
+            noun?</button>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+            id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it
+            bigger than a breadbox?</button>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+            id="nominate_for_mayor">Run for Mayor!</button>
+        <button onclick="window.location.href='/join/{{ game_id }}'"
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="join_game"
+            hidden>Join Game</button>
         <div id="question_input" hidden>
             Question: <input type="text" id="question" autocomplete="on">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
                 id="question_submit">Submit question</button>
         </div>
-        <p>
-        </p>
-
     </div>
     <div id="mayor_display" style="display: inline;" hidden>
         <span hidden id="mayor_controls">
@@ -51,14 +46,7 @@
                 Vote</button>
         </span>
     </div>
-    <div hidden=true id="dialog-box" class="box-shadow-fuzz rounded-corners">
-    </div>
-    <div id="player_info">
-        <p>
-            <b>Players:</b>
-        <div id="players"></div>
-        <div id="spectators"></div>
-        </p>
+    <div hidden=true id="dialog-box" class="box-shadow-fuzz pad-right">
     </div>
     <div id="questions_div">
     </div>

@@ -8,9 +8,13 @@
 # Ok, so I mean if I move the data for the rooms and Game and Player objects off
 # to a backing store, I think that would effectively solve for the worker thread
 # problem.
+#
+# UPDATED NOTE: This may work for me now because I'm breaking out a lot of state
+# to move away from general broadcast, except for update notifications. I think
+# as long as the socket map and other global data store objects are accessible,
+# it may work.
 
 from collections import UserDict
-from datetime import timedelta
 import os
 import re
 from random import randint
@@ -44,6 +48,8 @@ socketio = SocketIO(app)
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
 # TODO: Add timer to vote mechanic
+# TODO: Add ability for game to complete with all votes (votes timed out)
+# TODO: Add pause for game timer NOT vote timer
 
 # UI elements
 # TODO: Build custom set of questions
@@ -148,6 +154,11 @@ def mark_new_update(game_id: str) -> None:
                       room=game_id)
 
 
+def refresh_players(game_id: str) -> None:
+    if game_id in GAMES:
+        socketio.emit('refresh_players', game_id)
+
+
 def get_question_info(question: westwords.Question, id: int):
     return {
         'id': id,
@@ -196,6 +207,8 @@ def favicon():
 def username():
     check_session_config()
     if request.method == 'POST' and request.form.get('username'):
+        if request.form.get("requesting_url"):
+            session['requesting_url'] = request.form.get("requesting_url")
         if username_taken(request.form.get('username'), session['sid']):
             flash(f'Username {request.form.get("username")} taken.')
             return redirect(url_for('login'))
@@ -217,6 +230,7 @@ def username():
 @app.route('/join?game_name=<game_id>', strict_slashes=False)
 def join_game(game_id: str):
     check_session_config()
+    game_id = game_id.casefold()
     app.logger.debug(
         f"{PLAYERS[session['sid']].name} attempting to join {game_id}")
     if game_id in GAMES:
@@ -232,25 +246,15 @@ def join_game(game_id: str):
 
 
 @app.route('/leave/<game_id>', strict_slashes=False)
-@app.route('/leave', strict_slashes=False)
-def leave_game(game_id: str = None):
+def leave_game(game_id: str):
     check_session_config()
-    if game_id:
-        if game_id in GAMES:
-            GAMES[game_id].remove_player(session['sid'])
-            GAMES[game_id].remove_spectator(session['sid'])
-            if (len(GAMES[game_id].get_players()) == 0 and
-                    len(GAMES[game_id].get_spectators()) == 0):
-                del GAMES[game_id]
-    else:
-        for room in PLAYERS[session['sid']].get_rooms():
-            if room in GAMES:
-                GAMES[game_id].remove_player(session['sid'])
-                GAMES[game_id].remove_spectator(session['sid'])
-                if len(GAMES[game_id].get_players()) == 0:
-                    del GAMES[game_id]
-            PLAYERS[session['sid']].leave_room(room)
-            leave_room(room)
+    game_id = game_id.casefold()
+    if game_id in GAMES:
+        GAMES[game_id].remove_player(session['sid'])
+        GAMES[game_id].remove_spectator(session['sid'])
+        if (len(GAMES[game_id].get_players()) == 0 and
+                len(GAMES[game_id].get_spectators()) == 0):
+            del GAMES[game_id]
     mark_new_update(game_id)
     return redirect('/')
 
@@ -258,7 +262,8 @@ def leave_game(game_id: str = None):
 @app.route('/spectate/<game_id>')
 def spectate_game(game_id: str):
     check_session_config()
-    if game_id and game_id in GAMES:
+    game_id = game_id.casefold()
+    if game_id in GAMES:
         # this should keep the player in the room for broadcast state, but not
         # game mechanics.
         GAMES[game_id].remove_player(session['sid'])
@@ -272,6 +277,7 @@ def spectate_game(game_id: str):
 @app.route('/game/<game_id>', strict_slashes=False)
 def game_index(game_id: str, spectate: str = None):
     check_session_config()
+    game_id = game_id.casefold()
     if game_id not in GAMES:
         return redirect(f'/create/{game_id}')
     if 'sid' not in session:
@@ -308,6 +314,7 @@ def game_index(game_id: str, spectate: str = None):
 @app.route('/get_words/<game_id>')
 def get_words(game_id: str):
     check_session_config()
+    game_id = game_id.casefold()
     if game_id in GAMES:
         if GAMES[game_id].word:
             return None
@@ -327,14 +334,12 @@ def get_words(game_id: str):
 def create_game(game_id: str = None):
     check_session_config()
     if request.method == 'POST' and request.form['game_id']:
-        app.logger.debug(f'POST method found: {request.form}')
         game_id = request.form['game_id']
     if not game_id:
         app.logger.debug(f'No game_id specified')
         return redirect('/')
-    app.logger.debug(f'Attempting to check if {game_id} exists')
+    game_id = game_id.casefold()
     if game_id not in GAMES:
-        app.logger.debug(f'{game_id} not found; creating')
         GAMES[game_id] = westwords.Game(player_sids=[session['sid']])
 
     return redirect(f'/join/{game_id}')
@@ -409,7 +414,8 @@ def get_questions(game_id: str):
     if game_id in GAMES:
         questions = GAMES[game_id].get_questions()
         questions_html = ''
-        tokens = [token for token in GAMES[game_id].tokens if GAMES[game_id].tokens[token] > 0]
+        tokens = [
+            token for token in GAMES[game_id].tokens if GAMES[game_id].tokens[token] > 0]
         for id, question in enumerate(questions):
             if not question.is_deleted():
                 question_info = get_question_info(question, id)
@@ -453,6 +459,10 @@ def get_players(game_id: str):
         for player_sid in player_sids:
             tokens = GAMES[game_id].get_player_token_count(player_sid)
             token_count = []
+            voted = False
+            if GAMES[game_id].is_voting():
+                voted = (player_sid in
+                         GAMES[game_id].get_players_needing_to_vote())
             for token in tokens:
                 token_count.append({'token': token, 'count': tokens[token]})
             players.append({
@@ -460,6 +470,7 @@ def get_players(game_id: str):
                 'token_count': token_count,
                 'mayor': player_sid == mayor,
                 'admin': player_sid == admin,
+                'voted': voted,
             })
         players_html = render_template(
             'player_layout.html.j2',
@@ -555,6 +566,26 @@ def start_vote(game_id: str):
                           room=game_id)
             return
         mark_new_update(game_id)
+
+
+@socketio.on('username_change')
+def username_change(username: str):
+    app.logger.debug(f'Attempting to change username to {username}')
+    if username_taken(username, session['sid']):
+        socketio.emit('user_info',
+                      f'Username {username} taken.',
+                      to=SOCKET_MAP[session['sid']])
+        return {'status': 'FAILED', 'new_username': None}
+    if re.search(r'mayor', username.casefold()):
+        socketio.emit('Cute, smartass.',
+                f'Username {username} taken.',
+                to=SOCKET_MAP[session['sid']])
+        return {'status': 'FAILED', 'new_username': None}
+
+    session['username'] = username
+    PLAYERS[session['sid']].name = session['username']
+    update_all_games_for_player(session['sid'])
+    return {'status': 'OK', 'new_username': username}
 
 
 @socketio.on('nominate_for_mayor')
@@ -653,13 +684,6 @@ def reset_game(game_id):
         app.logger.debug('Unable to reset game. User not admin.')
 
 
-@socketio.on('get_required_voters')
-def get_required_voters(game_id: str):
-    if game_id in GAMES:
-        GAMES[game_id].get_required_voters()
-        mark_new_update(game_id)
-
-
 @socketio.on('vote')
 def vote(game_id, target_id):
     if target_id in PLAYERS:
@@ -669,16 +693,17 @@ def vote(game_id, target_id):
         if game_id in GAMES:
             app.logger.debug(f'Attempting to vote for {target_id}')
             try:
-                GAMES[game_id].vote(session['sid'], target_id)
+                if GAMES[game_id].vote(session['sid'], target_id):
+                    if len(GAMES[game_id].get_players_needing_to_vote()) == 0:
+                        mark_new_update(game_id)
+                    else:
+                        refresh_players(game_id)
             except GameError as e:
                 if session['sid'] in SOCKET_MAP:
                     socketio.emit('user_info',
                                   f'Vote failed: {e}',
                                   to=SOCKET_MAP[session['sid']])
-                else:
-                    app.logger.error(
-                        f"Error delivery to {PLAYERS[session['sid']].name} failed.")
-            mark_new_update(game_id)
+
     else:
         app.logger.debug(f'Unknown player SID {target_id}')
 
@@ -720,7 +745,7 @@ def get_results(game_id: str):
                 role=role,
                 # killed_names=killed_names,
                 vote_count=vote_count,
-                # vote_information=vote_information,
+                vote_information=vote_information,
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
             ),
         }
@@ -775,9 +800,6 @@ def get_voting_information(game_id: str):
                     {'sid': candidate_sid,
                      'name': PLAYERS[candidate_sid].name})
 
-        vote = None
-        if session['sid'] in votes:
-            vote = votes[session['sid']]
         if word_guessed:
             voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
                            'Teller!')
@@ -801,8 +823,6 @@ def get_voting_information(game_id: str):
                     game_id=game_id,
                     voting_text=voting_text,
                     candidates=candidates,
-                    voters=voters,
-                    vote=vote,
                 ),
             }
         else:
@@ -814,8 +834,6 @@ def get_voting_information(game_id: str):
                     game_id=game_id,
                     voting_text=voting_text,
                     candidates=[],
-                    voters=voters,
-                    vote=None,
                 ),
             }
     return {'status': 'ERROR', 'voting_html': None}
@@ -892,6 +910,13 @@ def delete_question(game_id: str, question_id: int):
                 socketio.emit('user_info',
                               e,
                               to=SOCKET_MAP[session['sid']])
+
+
+@socketio.on('finish_vote')
+def finish_vote(game_id: str):
+    if game_id in GAMES:
+        if session['sid'] == GAMES[game_id].mayor:
+            GAMES[game_id].finish_game()
 
 
 if __name__ == '__main__':

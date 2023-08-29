@@ -1,9 +1,17 @@
 <table>
     {%- for player in players -%}
     <tr class="player-table">
+        <td id="voted" width=30>
+        {% if player.voted %}
+        <img src="{{ url_for('static', filename='img/voting-white.png') }}"width="24" height="24">
+        {% endif %}
+        </td>
         <td class="player-table">
         <span>
-            {{ player.name }}
+            <span class="username">
+                {{ player.name }}
+            </span>
+
             {% if player.admin %} (admin){% endif %}
             {% if player.mayor %} (mayor){% endif %}
         </span>

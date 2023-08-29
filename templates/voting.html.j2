@@ -4,7 +4,8 @@ The word was: {{word}}<br>
     {{voting_text}}
 <div>
     {% for c in candidates %}
-    <button type="button" class="mdl-button mdl-js-button mdl-button--raised {% if vote == c.sid %}mdl-button--accent {% endif %}close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
+    <button type="button" class="mdl-button mdl-js-button mdl-button--raised close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
     {% endfor %}
 </div>
-<br>Waiting for:<br>{% for v in voters %} {{v}}, {% endfor %}
+<br>
+<div>

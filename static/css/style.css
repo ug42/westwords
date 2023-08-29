@@ -13,10 +13,10 @@ body {
   margin: 0;
 }
 
-.rounded-corners {
-  border-radius: 25px;
+.pad-right {
+  /* border-radius: 25px; */
   background: #292929;
-  border-color:rgb(0, 0, 0);
+  /* border-color:rgb(0, 0, 0); */
   padding: 20px;
   margin-right: 10px;
   margin-top: 20px;
@@ -26,7 +26,6 @@ body {
 .player-table {
   vertical-align: middle;
   font-size: 14pt;
-  /* border: 1px solid black; */
 }
 
 .box-shadow-fuzz {
@@ -97,4 +96,30 @@ body {
 .mdl-dialog__content {
   padding: 20px 24px 24px 24px;
   color: rgba(0, 0, 0, 0.54);
+}
+
+/* Style the button that is used to open and close the collapsible content */
+.collapsible {
+  background-color: #686868;
+  color: #444;
+  cursor: pointer;
+  padding: 5px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .collapsible:hover {
+  background-color: #858585;
+}
+
+/* Style the collapsible content. Note: hidden by default */
+.content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #000000;
 }

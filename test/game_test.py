@@ -37,7 +37,7 @@ class testGameControlFunctions(unittest.TestCase):
             "Game(timer=300,player_sids=['foo', 'bar', 'baz', 'xxx'])")
 
     def testFinishGameFail(self):
-        self.assertFalse(self.game._finish_game())
+        self.assertFalse(self.game.finish_game())
 
     def testIsStarted(self):
         self.assertFalse(self.game.is_started())

@@ -63,7 +63,7 @@ class Game(object):
         admin: A string player session ID of the admin for the game
     """
 
-    def __init__(self, timer=360, player_sids=[]):
+    def __init__(self, timer=10, player_sids=[]):
         self.timer = timer
         self.vote_timer = 30
         self.update_timestamp = int(time.time() * 1000)
@@ -193,12 +193,6 @@ class Game(object):
             return True
         return False
 
-    def get_players_needing_to_ack(self):
-        """Returns a list of player SIDs needing to ack the reveal info."""
-        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
-            return []
-        return self.reveal_ack_required
-
     def voting_info(self):
         """Returns voting options.
 
@@ -245,6 +239,22 @@ class Game(object):
 
     def get_players_needing_to_target(self):
         return self.night_actions_required
+    
+    def get_players_needing_to_ack(self):
+        """Returns a list of player SIDs needing to ack the reveal info."""
+        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
+            return []
+        return self.reveal_ack_required
+
+    def get_players_needing_to_vote(self) -> list[str]:
+        if self.game_state != GameState.VOTING:
+            return []
+        return list(set(self.required_voters) - set(self.votes))
+
+    def get_required_voters(self) -> list[str]:
+        if self.game_state != GameState.VOTING:
+            return []
+        return self.required_voters
 
     def get_players(self) -> RoleDict:
         return self.player_sids
@@ -300,15 +310,15 @@ class Game(object):
             True if voting state successfully; False otherwise.
         """
         self.word_guessed = self._tokens[AnswerToken.CORRECT] < 1
-        
         self.out_of_tokens = (self._tokens[AnswerToken.YES] <= 0 or
                               self._tokens[AnswerToken.NO] <= 0)
-        if self.start_time:
-            # TODO: Remove the extra 2 second buffer after time skew is done.
-            if self.timer <= (datetime.now() - self.start_time).seconds + 2:
+        if self.is_started():
+            if self.start_time:
+                # TODO: Remove the extra 2 second buffer after time skew is done.
+                if self.timer <= (datetime.now() - self.start_time).seconds + 2:
+                    self.game_state = GameState.VOTING
+            if (self.out_of_tokens or self.word_guessed):
                 self.game_state = GameState.VOTING
-        if (self.out_of_tokens or self.word_guessed):
-            self.game_state = GameState.VOTING
 
         if self.game_state != GameState.VOTING:
             logging_func(
@@ -328,7 +338,7 @@ class Game(object):
             self.required_voters = list(self.player_sids)
         return True
 
-    def _finish_game(self) -> bool:
+    def finish_game(self) -> bool:
         if self.game_state == GameState.VOTING:
             self._tally_results()
             self.game_state = GameState.FINISHED
@@ -510,11 +520,6 @@ class Game(object):
             logging_func(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
-    def get_required_voters(self) -> list[str]:
-        if self.game_state != GameState.VOTING:
-            return []
-        return self.required_voters
-
     def vote(self, voter_sid: str, target_sid: str) -> bool:
         """Votes for player identified by session ID.
 
@@ -538,7 +543,7 @@ class Game(object):
 
         self.votes[voter_sid] = target_sid
         if set(self.votes) == set(self.required_voters):
-            self._finish_game()
+            self.finish_game()
         return True
 
     def get_state(self, game_id: str) -> dict[str, Any]:
@@ -773,11 +778,9 @@ class Game(object):
             return self.questions[id]
         except KeyError:
             return None
-        
+
     def get_questions(self) -> list[Question]:
         return self.questions
-    
-
 
     def _get_next_question_id(self):
         return len(self.questions)
@@ -792,10 +795,6 @@ class Game(object):
         Returns:
             Str error, if present, or None otherwise.
         """
-        if (self._tokens[AnswerToken.CORRECT] <= 0 or
-                self._tokens[AnswerToken.YES] <= 0):
-            self.start_vote()
-
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
                 return 'Question is already answered.'
@@ -819,6 +818,9 @@ class Game(object):
                     AnswerToken.CORRECT: 0,
                 }
             self.player_token_count[asking_player_sid][answer] += 1
+            if (self._tokens[AnswerToken.CORRECT] <= 0 or
+                    self._tokens[AnswerToken.YES] <= 0):
+                self.start_vote()
             return None
         return 'Unknown question or other error encountered.'
 

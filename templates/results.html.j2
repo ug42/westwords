@@ -18,4 +18,21 @@ You lost as a {{role}}.
 {% endif %}
 </strong>
 {% endfor %}
+<button type="button" class="collapsible" id="vote_details">Vote Details</button>
+<div class="content">
+    <table width="100%">
+    <tr>
+    <thead><td width="50%">Player</td><td>Vote</td></thead>
+    </tr>
+    {% for v in vote_information %}
+    <tr>
+    <td>
+    {{ v.voter }} ({{ v.voter_role }})
+    </td>
+    <td>
+    {{ v.target }} ({{ v.target_role }})
+    </td>
+    </tr>
+    {%endfor%}
+    </table>
 </div>

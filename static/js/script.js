@@ -11,7 +11,7 @@ function get_game_state(game_id) {
         if (response.status === 'OK') {
             refresh_game_state(response.game_state);
         } else if (response.status === 'NO_UPDATE') {
-            console.log('Game state unchanged.')
+            console.log('Game state unchanged.');
         } else {
             console.info('Failed to retrieve game state.');
         }
@@ -19,10 +19,10 @@ function get_game_state(game_id) {
 }
 function close_dialog() {
     let dialog = document.querySelector('dialog');
-    dialog.close()
+    dialog.close();
 }
 function set_timer(game_id, timer_seconds) {
-    socket.emit('set_timer', game_id, timer_seconds)
+    socket.emit('set_timer', game_id, timer_seconds);
 }
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
@@ -33,7 +33,7 @@ function delete_question(game_id, question_id) {
 function send_word(game_id, word) {
     socket.emit('set_word', game_id, word);
     let dialog = document.querySelector('dialog');
-    dialog.close()
+    dialog.close();
 }
 function ack_reveal() {
     close_dialog();
@@ -44,11 +44,11 @@ function ask_question(game_id, question) {
 }
 function undo_answer(game_id) {
     socket.emit('undo', game_id);
-    close_dialog()
+    close_dialog();
 }
 function start_vote(game_id) {
-    socket.emit('start_vote', game_id)
-    close_dialog()
+    socket.emit('start_vote', game_id);
+    close_dialog();
 }
 function send_start_req() {
     socket.emit('game_start', local_game_state.game_id);
@@ -57,14 +57,31 @@ function send_reset_req() {
     socket.emit('game_reset', local_game_state.game_id);
 }
 function set_player_target(game_id, target) {
-    socket.emit('set_player_target', game_id, target)
+    socket.emit('set_player_target', game_id, target);
 }
 function set_doppelganger_target(game_id, target) {
-    socket.emit('set_player_target', game_id, target)
+    socket.emit('set_player_target', game_id, target);
 }
 function vote_player(game_id, candidate) {
-    socket.emit('vote', game_id, candidate)
+    socket.emit('vote', game_id, candidate);
 }
+// function username_change(username) {
+//     socket.emit('username_change', username, (response) => {
+//         if (response.status === 'OK') {
+//             usernames = document.getElementsByClassName('username');
+//             for (let i = 0; i < usernames.length; i++) {
+//                 usernames[i].innerText = username;
+//             }
+//             username_input = document.getElementsByClassName('username');
+//             for (let i = 0; i < usernames.length; i++) {
+//                 username_input[i].value = username;
+//             }  
+//             console.log('Changed username to ' + username);
+//         } else {
+//             console.info('Failed to change username.');
+//         }
+//     });
+// }
 
 function game_started_buttons() {
     // timer.start();
@@ -130,6 +147,20 @@ function format_time(timer_ms) {
     return minutes + ":" + seconds;
 }
 
+function stop_timer() {
+    if (typeof refresh_timer !== 'undefined') {
+        clearInterval(refresh_timer);
+    }
+    let game_timer = document.getElementById('game_timer');
+    game_timer.innerHTML = '00:00';
+    local_game_state.remaining_time_ms = 0;
+    local_game_state.end_timestamp_ms = Date.now();
+}
+
+function pause_timer() {
+    // TODO: Make a pause timer, I guess.
+}
+
 function start_timer(end_timestamp_ms) {
     // Set the date we're counting down to
     let game_timer = document.getElementById('game_timer');
@@ -146,6 +177,7 @@ function start_timer(end_timestamp_ms) {
                 clearInterval(refresh_timer);
                 game_timer.innerHTML = "00:00";
                 if (local_game_state.player_is_mayor) {
+                    stop_timer()
                     console.log('Attempting to start vote as mayor.')
                     start_vote(local_game_state.game_id)
                 }
@@ -192,7 +224,6 @@ function refresh_game_state(g) {
     close_dialog()
 
     refresh_players(local_game_state.game_id);
-
 
     let question_input = document.getElementById('question_input');
     question_input.hidden = true;
@@ -279,6 +310,18 @@ function refresh_game_state(g) {
                 dialog_box.innerHTML = response.results_html;
                 dialog_box.hidden = false;
                 controls.hidden = true;
+                let vote_details = document.getElementById('vote_details');
+                if (vote_details !== null) {
+                    vote_details.addEventListener("click", function () {
+                        this.classList.toggle("active");
+                        var content = this.nextElementSibling;
+                        if (content.style.display === "block") {
+                            content.style.display = "none";
+                        } else {
+                            content.style.display = "block";
+                        }
+                    });
+                }
             }
         });
     }
@@ -355,7 +398,11 @@ ready(function () {
         if (local_game_state.update_timestamp !== data.timestamp) {
             get_game_state(local_game_state.game_id);
         }
-    })
+    });
+    socket.on('refresh_players', function (data)  {
+        console.log(data);
+        refresh_players(data);
+    });
 
     var question = document.getElementById('question');
     if (question !== null) {
@@ -371,6 +418,14 @@ ready(function () {
             if (question.value != "") {
                 socket.emit('question', local_game_state.game_id, question.value);
                 question.value = "";
+            }
+        });
+    }
+    var username_input = document.getElementById('username_change');
+    if (username_input !== null) {
+        username_input.addEventListener('keypress', function (event) {
+            if (event.key === "Enter") {
+                username_input.submit()
             }
         });
     }

@@ -2,7 +2,7 @@
 {% block body %}
 <div class="main">
     <form action="/username" method="POST">
-        <p>Enter a username: <input id="username" name="username" value="{{ session.username }}">
+        <p>Enter a username: <input id="username" class="username-input" name="username" value="{{ session.username }}">
             <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" id=".">Submit</button>
         </p>
     </form>
