@@ -57,6 +57,7 @@ socketio = SocketIO(app)
 # TODO: Increase font
 # TODO: Add button to refusing to answer question
 # TODO: Add GDPR cookie notice
+# TODO: clean up questions on SETUP phase.
 
 
 SOCKET_MAP = {}

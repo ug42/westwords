@@ -190,7 +190,6 @@ function start_vote_timer() {
     if (local_game_state.game_state === 'VOTING' &&
         typeof refresh_vote_timer === 'undefined') {
         var refresh_vote_timer = setInterval(function () {
-            console.log('Setting up vote timer...')
             local_game_state.remaining_vote_time_ms = local_game_state.end_vote_timestamp_ms - Date.now();
 
             // If the count down is over, write some text 
@@ -271,7 +270,7 @@ function refresh_game_state(g) {
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
     } else {
-        if (local_game_state.spectating === true || 
+        if (local_game_state.spectating === true ||
             local_game_state.nominated_for_mayor === true) {
             nominate_for_mayor_btn.hidden = true;
         } else {
@@ -284,6 +283,7 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'SETUP') {
         game_setup_buttons();
+        refresh_questions(local_game_state.game_id);
     } else {
         game_started_buttons();
     }
