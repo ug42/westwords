@@ -57,7 +57,7 @@ socketio = SocketIO(app)
 # TODO: Increase font
 # TODO: Add button to refusing to answer question
 # TODO: Add GDPR cookie notice
-# TODO: clean up questions on SETUP phase.
+# TODO: Add mayor pop-up to answer questions
 
 
 SOCKET_MAP = {}
@@ -173,24 +173,37 @@ def username_taken(username: str, user_sid: str):
     return False
 
 
-def check_session_config():
+def check_session_config() -> str:
     if 'sid' not in session:
+        app.logger.debug('adding SID')
         session['sid'] = str(uuid4())
     if 'username' not in session:
+        app.logger.debug('adding username')
         u = f'Not_a_wolf_{randint(1000,9999)}'
         while username_taken(u, session['sid']):
             u = f'Not_a_wolf_{randint(1000,9999)}'
             app.logger.debug(f"{u} username taken, trying again")
         session['username'] = u
-        session['requesting_url'] = request.url
-        return redirect(url_for('login'))
+        if request.url and 'requesting_url' not in session:
+            app.logger.debug(f'Adding redirect URL: {request.url}')
+            session['requesting_url'] = request.url
+        return '/login'
+
     if session['sid'] not in PLAYERS:
+        app.logger.debug('Adding PLAYERS entry')
         PLAYERS[session['sid']] = westwords.Player(session['username'])
+
+    PLAYERS[session['sid']].name = session['username']
+    
+    return ''
+    
 
 
 @app.route('/')
 def index():
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
     return render_template('index.html.j2')
 
 
@@ -202,10 +215,14 @@ def favicon():
 
 @app.route('/username', methods=['POST'])
 def username():
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     if request.method == 'POST' and request.form.get('username'):
         if request.form.get("requesting_url"):
-            session['requesting_url'] = request.form.get("requesting_url")
+            if 'requesting_url' not in session:
+                session['requesting_url'] = request.form.get("requesting_url")
         if username_taken(request.form.get('username'), session['sid']):
             flash(f'Username {request.form.get("username")} taken.')
             return redirect(url_for('login'))
@@ -223,10 +240,18 @@ def username():
     return redirect('/')
 
 
+@app.route('/privacy_policy')
+def privacy_policy():
+    return render_template('privacy_policy.html.j2')
+
+
 @app.route('/join/<game_id>', strict_slashes=False)
 @app.route('/join?game_name=<game_id>', strict_slashes=False)
 def join_game(game_id: str):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     game_id = game_id.casefold()
     app.logger.debug(
         f"{PLAYERS[session['sid']].name} attempting to join {game_id}")
@@ -244,7 +269,10 @@ def join_game(game_id: str):
 
 @app.route('/leave/<game_id>', strict_slashes=False)
 def leave_game(game_id: str):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     game_id = game_id.casefold()
     if game_id in GAMES:
         GAMES[game_id].remove_player(session['sid'])
@@ -258,7 +286,10 @@ def leave_game(game_id: str):
 
 @app.route('/spectate/<game_id>')
 def spectate_game(game_id: str):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     game_id = game_id.casefold()
     if game_id in GAMES:
         # this should keep the player in the room for broadcast state, but not
@@ -273,7 +304,10 @@ def spectate_game(game_id: str):
 
 @app.route('/game/<game_id>', strict_slashes=False)
 def game_index(game_id: str, spectate: str = None):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     game_id = game_id.casefold()
     if game_id not in GAMES:
         return redirect(f'/create/{game_id}')
@@ -310,7 +344,10 @@ def game_index(game_id: str, spectate: str = None):
 
 @app.route('/get_words/<game_id>')
 def get_words(game_id: str):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     game_id = game_id.casefold()
     if game_id in GAMES:
         if GAMES[game_id].word:
@@ -329,7 +366,10 @@ def get_words(game_id: str):
 @app.route('/create', methods=['POST', 'GET'], strict_slashes=False)
 @app.route('/create/<game_id>', methods=['GET'], strict_slashes=False)
 def create_game(game_id: str = None):
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     if request.method == 'POST' and request.form['game_id']:
         game_id = request.form['game_id']
     if not game_id:
@@ -344,13 +384,19 @@ def create_game(game_id: str = None):
 
 @app.route('/login')
 def login():
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     return render_template('login.html')
 
 
 @app.route('/logout')
 def logout():
-    check_session_config()
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+
     # storing this so we can destroy the session then disassociate the player
     s = session['sid']
     response = make_response(render_template('logout.html'))
@@ -557,7 +603,7 @@ def undo(game_id: str):
 
 @socketio.on('start_vote')
 def start_vote(game_id: str):
-    app.logger.debug('Attempting to start vote.')
+    app.logger.debug(f'Attempting to start vote from {PLAYERS[session["sid"].name]}.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
 
@@ -923,7 +969,7 @@ def delete_question(game_id: str, question_id: int):
 def finish_vote(game_id: str):
     if game_id in GAMES:
         if session['sid'] == GAMES[game_id].mayor:
-            app.logger.debug('Got call to finish the game.')
+            app.logger.debug(f'Got call to finish the game from {PLAYERS[session["sid"]].name}')
             GAMES[game_id].finish_game()
             mark_new_update(game_id)
 

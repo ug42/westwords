@@ -62,6 +62,7 @@
   <div class="mdl-layout__drawer">
     <span class="mdl-layout-title">Westwords</span>
     <nav class="mdl-navigation">
+      <p>
       <form action="/username" id="username_change" method="POST">
         {%- if game_id|length -%}
         <input hidden id="requesting_url" name="requesting_url" value="/game/{{ game_id }}" />
@@ -69,14 +70,22 @@
         Username: <input type="text" name="username" id="username" value="{{ session.username }}">
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
           onclick="document.getElementById('username_change').submit()">Change username</button>
-        {% if game_id|length %}
-        <button type="button" onclick="location.href='/spectate/{{ game_id }}'"
-          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="spectate"
-          hidden>Spectate</button>
-        <button type="button"  onclick="location.href='/leave/{{ game_id }}'"
-          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-          id="leave_game">Quit Game</button>
+        </p>
+        <p>
+          {% if game_id|length %}
+          <button type="button" onclick="location.href='/spectate/{{ game_id }}'"
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="spectate"
+            hidden>Spectate</button>
+        </p>
+        <p>
+          <button type="button" onclick="location.href='/leave/{{ game_id }}'"
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+            id="leave_game">Quit Game</button>
+        </p>
         {% endif %}
+        <p>
+          <a href="/privacy_policy">Privacy Policy</a>
+        </p>
 
       </form>
     </nav>
