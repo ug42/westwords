@@ -65,6 +65,9 @@ function set_doppelganger_target(game_id, target) {
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate);
 }
+function finish_vote(game_id) {
+    socket.emit('finish_vote', game_id);
+}
 // function username_change(username) {
 //     socket.emit('username_change', username, (response) => {
 //         if (response.status === 'OK') {
@@ -126,13 +129,6 @@ function game_setup_buttons() {
     }
 }
 
-function correct_for_server_time_skew(timestamp_ms, server_timestamp_ms) {
-    local_time_ms = Date.now()
-    let time_skew = timestamp_ms - server_timestamp_ms
-    // Since we are subtracting server time from local timestamp, we add
-    return timestamp_ms + time_skew
-}
-
 function format_time(timer_ms) {
     // Time calculations for days, hours, minutes and seconds
     function printf_02d(number) {
@@ -148,20 +144,17 @@ function format_time(timer_ms) {
 }
 
 function stop_timer() {
-    if (typeof refresh_timer !== 'undefined') {
-        clearInterval(refresh_timer);
-    }
-    let game_timer = document.getElementById('game_timer');
-    game_timer.innerHTML = '00:00';
     local_game_state.remaining_time_ms = 0;
     local_game_state.end_timestamp_ms = Date.now();
+    let game_timer = document.getElementById('game_timer');
+    game_timer.innerHTML = '00:00';
 }
 
 function pause_timer() {
     // TODO: Make a pause timer, I guess.
 }
 
-function start_timer(end_timestamp_ms) {
+function start_timer() {
     // Set the date we're counting down to
     let game_timer = document.getElementById('game_timer');
 
@@ -170,16 +163,15 @@ function start_timer(end_timestamp_ms) {
         local_game_state.end_timestamp_ms = Date.now() + local_game_state.remaining_time_ms;
         // Update the count down every 1 second
         var refresh_timer = setInterval(function () {
-            local_game_state.remaining_time_ms = end_timestamp_ms - Date.now();
+            local_game_state.remaining_time_ms = local_game_state.end_timestamp_ms - Date.now();
 
             // If the count down is over, write some text 
-            if (local_game_state.remaining_time_ms < 0) {
+            if (local_game_state.remaining_time_ms <= 0 ||
+                local_game_state.game_state === 'VOTING') {
                 clearInterval(refresh_timer);
                 game_timer.innerHTML = "00:00";
                 if (local_game_state.player_is_mayor) {
-                    stop_timer()
-                    console.log('Attempting to start vote as mayor.')
-                    start_vote(local_game_state.game_id)
+                    start_vote(local_game_state.game_id);
                 }
             }
             if (local_game_state.remaining_time_ms > 0) {
@@ -188,7 +180,34 @@ function start_timer(end_timestamp_ms) {
                 game_timer.innerHTML = '00:00';
             }
         }, 1000);
+    }
+}
 
+function start_vote_timer() {
+    // Set the date we're counting down to
+    let game_timer = document.getElementById('game_timer');
+
+    if (local_game_state.game_state === 'VOTING' &&
+        typeof refresh_vote_timer === 'undefined') {
+        var refresh_vote_timer = setInterval(function () {
+            console.log('Setting up vote timer...')
+            local_game_state.remaining_vote_time_ms = local_game_state.end_vote_timestamp_ms - Date.now();
+
+            // If the count down is over, write some text 
+            if (local_game_state.remaining_vote_time_ms <= 0 ||
+                local_game_state.game_state === 'FINISHED') {
+                clearInterval(refresh_vote_timer);
+                game_timer.innerHTML = "00:00";
+                if (local_game_state.player_is_mayor) {
+                    finish_vote(local_game_state.game_id);
+                }
+            }
+            if (local_game_state.remaining_vote_time_ms > 0) {
+                game_timer.innerHTML = format_time(local_game_state.remaining_vote_time_ms);
+            } else {
+                game_timer.innerHTML = '00:00';
+            }
+        }, 1000);
     }
 }
 
@@ -223,7 +242,17 @@ function refresh_game_state(g) {
     local_game_state = g;
     close_dialog()
 
+    // Start top down on display
+    let game_timer = document.getElementById('game_timer');
+    if (local_game_state.remaining_time_ms > 0) {
+        game_timer.innerHTML = format_time(local_game_state.remaining_time_ms);
+    } else {
+        game_timer.innerHTML = "00:00";
+    }
+    game_timer.hidden = false;
     refresh_players(local_game_state.game_id);
+    let player_info = document.getElementById('player_info')
+    player_info.hidden = false;
 
     let question_input = document.getElementById('question_input');
     question_input.hidden = true;
@@ -236,17 +265,22 @@ function refresh_game_state(g) {
     let controls = document.getElementById('controls');
     controls.hidden = false;
     let dialog = document.querySelector('dialog');
-    let game_timer = document.getElementById('game_timer');
-    game_timer.innerHTML = format_time(local_game_state.remaining_time_ms);
+
 
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
     } else {
-        nominate_for_mayor_btn.hidden = false;
-        nominate_for_mayor_btn.addEventListener('click', function () {
-            socket.emit('nominate_for_mayor', local_game_state.game_id)
-        });
+        if (local_game_state.spectating === true || 
+            local_game_state.nominated_for_mayor === true) {
+            nominate_for_mayor_btn.hidden = true;
+        } else {
+            nominate_for_mayor_btn.hidden = false;
+            nominate_for_mayor_btn.addEventListener('click', function () {
+                socket.emit('nominate_for_mayor', local_game_state.game_id)
+                nominate_for_mayor_btn.hidden = true;
+            });
+        }
     }
     if (local_game_state.game_state === 'SETUP') {
         game_setup_buttons();
@@ -263,6 +297,16 @@ function refresh_game_state(g) {
         title_bar_role.innerHTML = html
     } else {
         title_bar_role.innerHTML = 'Waiting...';
+    }
+    let footer_role_information = document.getElementById('footer_role_information');
+    if (footer_role_information !== null) {
+        socket.emit('get_footer', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                footer_role_information.innerHTML = response.reveal_html;
+            } else {
+                footer_role_information.innerHTML = '';
+            }
+        });
     }
 
     if (local_game_state.game_state === 'NIGHT_PHASE_DOPPELGANGER' ||
@@ -283,7 +327,7 @@ function refresh_game_state(g) {
         });
     }
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
-        start_timer(local_game_state.end_timestamp_ms, local_game_state.timer)
+        start_timer();
         refresh_questions(local_game_state.game_id);
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
@@ -293,7 +337,8 @@ function refresh_game_state(g) {
     }
     if (local_game_state.game_state === 'VOTING') {
         refresh_questions(local_game_state.game_id);
-        game_timer.innerHTML = "00:00"
+        stop_timer();
+        start_vote_timer();
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
                 dialog_box.innerHTML = response.voting_html;
@@ -399,7 +444,7 @@ ready(function () {
             get_game_state(local_game_state.game_id);
         }
     });
-    socket.on('refresh_players', function (data)  {
+    socket.on('refresh_players', function (data) {
         console.log(data);
         refresh_players(data);
     });

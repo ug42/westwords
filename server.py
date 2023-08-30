@@ -47,17 +47,15 @@ socketio = SocketIO(app)
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
-# TODO: Add timer to vote mechanic
 # TODO: Add ability for game to complete with all votes (votes timed out)
 # TODO: Add pause for game timer NOT vote timer
+# TODO: Fix it so correct word guessing/out of tokens means timer actually stops
 
 # UI elements
 # TODO: Build custom set of questions
 # TODO: Add a frequent set of questions.
 # TODO: Increase font
-# TODO: Display word throughout game for roles that know it
 # TODO: Add button to refusing to answer question
-# TODO: Move the vote/player_target/reveal dialog to hidden divs
 # TODO: Add GDPR cookie notice
 
 
@@ -101,6 +99,7 @@ def parse_game_state(game_id: str, session_sid: str):
     players_needing_to_ack = GAMES[game_id].get_players_needing_to_ack()
     players_needing_to_target = GAMES[game_id].get_players_needing_to_target()
     spectators = GAMES[game_id].get_spectators()
+    nominated_for_mayor = session['sid'] in GAMES[game_id].get_mayor_nominees()
 
     game_state.update({
         'players_names_needing_ack': [
@@ -111,6 +110,7 @@ def parse_game_state(game_id: str, session_sid: str):
         'player_is_waiting_for_vote': session['sid'] in required_voters,
         'player_is_waiting_for_target': session['sid'] in players_needing_to_target,
         'player_is_waiting_for_ack': session['sid'] in players_needing_to_ack,
+        'nominated_for_mayor': nominated_for_mayor,
         'spectating': session_sid in spectators,
         'spectators': [PLAYERS[p].name for p in spectators],
     })
@@ -456,6 +456,9 @@ def get_players(game_id: str):
             tokens = GAMES[game_id].get_player_token_count(player_sid)
             token_count = []
             voted = False
+            spectators = []
+            for spectator in GAMES[game_id].get_spectators():
+                spectators.append(PLAYERS[spectator].name)
             if GAMES[game_id].is_voting():
                 voted = (player_sid in
                          GAMES[game_id].get_players_needing_to_vote())
@@ -471,6 +474,7 @@ def get_players(game_id: str):
         players_html = render_template(
             'player_layout.html.j2',
             players=players,
+            spectators=spectators,
             mayor_token_count=mayor_token_count)
         return {
             'status': 'OK',
@@ -574,8 +578,8 @@ def username_change(username: str):
         return {'status': 'FAILED', 'new_username': None}
     if re.search(r'mayor', username.casefold()):
         socketio.emit('Cute, smartass.',
-                f'Username {username} taken.',
-                to=SOCKET_MAP[session['sid']])
+                      f'Username {username} taken.',
+                      to=SOCKET_MAP[session['sid']])
         return {'status': 'FAILED', 'new_username': None}
 
     session['username'] = username
@@ -658,6 +662,12 @@ def set_timer(game_id: str, timer_seconds: int):
     if game_id in GAMES:
         GAMES[game_id].set_timer(timer_seconds)
         mark_new_update(game_id)
+
+
+@socketio.on('set_vote_timer')
+def set_vote_timer(game_id: str, vote_timer_seconds: int):
+    if game_id in GAMES:
+        GAMES[game_id].set_vote_timer(vote_timer_seconds)
 
 
 @socketio.on('game_start')
@@ -768,9 +778,9 @@ def get_player_revealed_information(game_id: str):
                 image=role.get_image_name(),
                 known_players=known_players,
                 known_word=known_word,
-                word_is_known=known_word is not None,
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
                 role_description=role.get_role_description().strip(),
+                footer_mode=False,
             ),
         }
     return {'status': 'BAD', 'reveal_html': None}
@@ -912,7 +922,37 @@ def delete_question(game_id: str, question_id: int):
 def finish_vote(game_id: str):
     if game_id in GAMES:
         if session['sid'] == GAMES[game_id].mayor:
+            app.logger.debug('Got call to finish the game.')
             GAMES[game_id].finish_game()
+            mark_new_update(game_id)
+
+
+@socketio.on('get_footer')
+def get_footer(game_id: str):
+    if game_id in GAMES:
+        known_word, players = GAMES[game_id].get_player_revealed_information(
+            session['sid'])
+        if players or known_word:
+            known_players = []
+            if players:
+                for player in players:
+                    known_players.append(
+                        {'name': PLAYERS[player].name, 'role': players[player], })
+            role = GAMES[game_id].get_player_role(session['sid'])
+            return {
+                'status': 'OK',
+                'reveal_html': render_template(
+                    'player_reveal.html.j2',
+                    player_role=str(role),
+                    image=None,
+                    known_players=known_players,
+                    known_word=known_word,
+                    mayor=PLAYERS[GAMES[game_id].mayor].name,
+                    role_description=role.get_role_description().strip(),
+                    footer_mode=True,
+                ),
+            }
+    return {'status': 'NO_DATA', 'reveal_html': None}
 
 
 if __name__ == '__main__':

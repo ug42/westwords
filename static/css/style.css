@@ -28,6 +28,12 @@ body {
   font-size: 14pt;
 }
 
+.game_timer {
+  font-size: 36pt;
+  height: 40px;
+  text-align: center;
+}
+
 .box-shadow-fuzz {
   border: 1px solid;
   padding: 10px;
@@ -38,10 +44,30 @@ body {
   color: rgb(216, 68, 68);
 }
 
+.footer {
+  height: 30px;
+  width: 100%;
+  background-image: none;
+  background-repeat: repeat;
+  background-attachment: scroll;
+  background-position: 0% 0%;
+  position: fixed;
+  bottom: 0pt;
+  left: 0pt;
+
+}   
+
+.footer_contents {
+  width: 350px;
+  height:30px;
+  margin:auto;
+  display: inline;
+}
+
 .mdl-layout__content {
   margin-left: 20px;
   margin-top: 20px;
-  margin-bottom: 60px;
+  margin-bottom: 30px;
 }
 
 .mdl-dialog {

@@ -3,11 +3,9 @@
 
 
 <div class="main">
-    <div id="game_timer" class="game_timer"></div>
-    <div id="player_info">
+    <br><div id="game_timer" class="game_timer" hidden></div>
+    <div id="player_info" hidden>
         <div id="players"></div>
-        <div id="spectators"></div>
-        </p>
     </div>
     <!-- TODO: Move out of the material design bits or improve ugly buttons -->
     <div style="display:inline;" id="admin_controls" hidden>
@@ -18,7 +16,7 @@
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="game_reset">Reset game</button>
     </div>
-    <div style="display:inline;" id="controls">
+    <div style="display:inline;" id="controls" hidden>
         <!-- These two controls should be gated -->
         <!-- so break them into a if game is started thing. -->
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
@@ -50,6 +48,7 @@
     </div>
     <div id="questions_div">
     </div>
-
 </div>
+<footer id="footer_role_information" class="footer">
+</footer>
 {% endblock %}

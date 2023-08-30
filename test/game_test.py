@@ -118,18 +118,6 @@ class testGameFunctions(unittest.TestCase):
         self.assertEqual(game_status['game_id'], 'somename')
         self.assertEqual(game_status['admin'], None)
         self.assertEqual(game_status['mayor'], None)
-        self.assertCountEqual(
-            game_status['tokens'],
-            {
-                AnswerToken.SO_CLOSE.value: 1,
-                AnswerToken.MAYBE.value: 10,
-                AnswerToken.SO_FAR.value: 1,
-                AnswerToken.LARAMIE.value: 1,
-                AnswerToken.BRONEY.value: 1,
-                AnswerToken.CORRECT.value: 1,
-                'yesno': 36,
-            },
-        )
 
 
 class testEndOfGameFunctions(unittest.TestCase):

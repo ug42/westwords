@@ -65,7 +65,8 @@ class Game(object):
 
     def __init__(self, timer=10, player_sids=[]):
         self.timer = timer
-        self.vote_timer = 30
+        self.vote_timer = 60
+        self.end_vote_timestamp_ms = 0
         self.update_timestamp = int(time.time() * 1000)
         self.player_sids = RoleDict()
         for player_sid in player_sids:
@@ -165,11 +166,12 @@ class Game(object):
         Returns:
             A dict of known information about each player
         """
-        if self.game_state != GameState.NIGHT_PHASE_REVEAL:
-            return False
-        if player_sid in self.player_sids:
+        # If the player SID is in the list and has a role assigned.
+        if player_sid in self.player_sids and self.player_sids[player_sid]:
+
             if acknowledge:
                 self.acknowledge_revealed_info(player_sid)
+
             return self.player_sids[player_sid].get_night_action_info(
                 player_sid, self.player_sids, self.mayor, self.word)
 
@@ -261,6 +263,9 @@ class Game(object):
 
     def get_spectators(self):
         return [s for s in self.spectators if s not in self.player_sids]
+    
+    def get_mayor_nominees(self):
+        return self.mayor_nominees
 
     def get_player_token_count(self, player_sid):
         if player_sid in self.player_token_count:
@@ -319,6 +324,7 @@ class Game(object):
                     self.game_state = GameState.VOTING
             if (self.out_of_tokens or self.word_guessed):
                 self.game_state = GameState.VOTING
+                
 
         if self.game_state != GameState.VOTING:
             logging_func(
@@ -331,11 +337,16 @@ class Game(object):
         if self.word_guessed:
             for player_sid in self.player_sids:
                 if self.player_sids[player_sid].votes_on_guessed_word:
-                    self.required_voters.append(player_sid)
+                    if player_sid not in self.required_voters:
+                        self.required_voters.append(player_sid)
         else:
             # Drop all player_sids into required voters since everyone can vote
             # including Werewolfs and Minions during this state.
             self.required_voters = list(self.player_sids)
+        
+        # Set the voting end time stamp.
+        self.end_vote_timestamp_ms = int(time.time() + self.vote_timer) * 1e3
+
         return True
 
     def finish_game(self) -> bool:
@@ -346,12 +357,13 @@ class Game(object):
         return False
 
     def is_started(self) -> bool:
-        return self.game_state in [
-            GameState.DAY_PHASE_QUESTIONS,
-        ]
+        return self.game_state == GameState.DAY_PHASE_QUESTIONS
 
     def is_voting(self) -> bool:
         return self.game_state == GameState.VOTING
+    
+    def is_finished(self) -> bool:
+        return self.game_state == GameState.FINISHED
 
     def is_night_action_phase(self) -> bool:
         return self.game_state in [
@@ -520,6 +532,17 @@ class Game(object):
             logging_func(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
+    def set_vote_timer(self, time_in_seconds) -> None:
+        """Set the vote timer amount in seconds.
+
+        Args:
+            time_in_seconds: Integer time. in. seconds.
+        """
+        if time_in_seconds > 0:
+            logging_func(f'Setting time to {time_in_seconds}')
+            self.vote_timer = time_in_seconds
+
+
     def vote(self, voter_sid: str, target_sid: str) -> bool:
         """Votes for player identified by session ID.
 
@@ -560,16 +583,23 @@ class Game(object):
 
         end_timestamp_ms = 0
         remaining_time_ms = 0
+        remaining_vote_time_ms = 0
         if self.start_time:
             end_time = self.start_time + timedelta(seconds=self.timer)
             end_timestamp_ms = int(time.mktime(end_time.timetuple()) * 1e3)
-            remaining_time_ms = end_timestamp_ms - int(time.time() * 1000)
+            if not self.is_voting():
+                remaining_time_ms = end_timestamp_ms - int(time.time() * 1e3)
+            else:
+                remaining_vote_time_ms = (self.end_vote_timestamp_ms -
+                                          int(time.time() * 1e3))
 
         game_status = {
             'game_state': self.game_state.name,
             'timer': self.timer,
             'end_timestamp_ms': end_timestamp_ms,
             'remaining_time_ms': remaining_time_ms,
+            'remaining_vote_time_ms': remaining_vote_time_ms,
+            'end_vote_timestamp_ms': self.end_vote_timestamp_ms,
             'game_id': game_id,
             'mayor': self.mayor,
             'admin': self.admin,
