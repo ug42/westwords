@@ -63,7 +63,7 @@ class Game(object):
         admin: A string player session ID of the admin for the game
     """
 
-    def __init__(self, timer=10, player_sids=[]):
+    def __init__(self, timer=360, player_sids=[]):
         self.timer = timer
         self.vote_timer = 60
         self.end_vote_timestamp_ms = 0
@@ -284,6 +284,7 @@ class Game(object):
 
     def reset(self):
         self.admin = self._get_next_admin()
+        self.end_vote_timestamp_ms = 0
         self.game_state = GameState.SETUP
         self.killed_players = []
         self.last_answered = None
@@ -487,22 +488,24 @@ class Game(object):
                     self.winner = Affiliation.WEREWOLF
             return True
         else:
+            # Default state of game is Werewolf win when word is not guessed
+            self.winner = Affiliation.WEREWOLF
             # Outputs sorted list of highest voted player
             voted_player_sids_sorted = sorted(
                 vote_count,
                 reverse=True,
                 key=lambda x: vote_count[x])
-            self.killed_players = [voted_player_sids_sorted[0]]
-            for player_sid in vote_count:
-                if vote_count[player_sid] >= vote_count[self.killed_players[0]]:
-                    if player_sid not in self.killed_players:
-                        self.killed_players.append(player_sid)
+            if voted_player_sids_sorted:
+                self.killed_players = [voted_player_sids_sorted[0]]
+                for player_sid in vote_count:
+                    if vote_count[player_sid] >= vote_count[self.killed_players[0]]:
+                        if player_sid not in self.killed_players:
+                            self.killed_players.append(player_sid)
+                if vote_count[voted_player_sids_sorted[0]] == 1:
+                    return True
 
-            self.winner = Affiliation.WEREWOLF
             # Explicitly check if the most voted player has one vote. If so,
             # then all players have one vote and werewolfs win.
-            if vote_count[voted_player_sids_sorted[0]] == 1:
-                return True
             for player_sid in self.killed_players:
                 role = self.player_sids[player_sid]
                 if (role.team_loses_if_killed and
@@ -825,6 +828,8 @@ class Game(object):
         Returns:
             Str error, if present, or None otherwise.
         """
+        if not self.is_started():
+            return 'Unable to answer questions after voting has started.'
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
                 return 'Question is already answered.'

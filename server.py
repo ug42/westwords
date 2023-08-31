@@ -47,18 +47,45 @@ socketio = SocketIO(app)
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
-# TODO: Add ability for game to complete with all votes (votes timed out)
 # TODO: Add pause for game timer NOT vote timer
-# TODO: Fix it so correct word guessing/out of tokens means timer actually stops
 
 # UI elements
-# TODO: Build custom set of questions
-# TODO: Add a frequent set of questions.
-# TODO: Increase font
-# TODO: Add button to refusing to answer question
-# TODO: Add GDPR cookie notice
 # TODO: Add mayor pop-up to answer questions
+# TODO: Add button to refusing to answer question
 
+
+COMMON_QUESTIONS = [
+    'Can it fly?',
+    'Can you control it?',
+    'Can you own more than one?',
+    'Can you own one?',
+    'Can you purchase it?',
+    'Can you see it?',
+    'Can you touch it?',
+    'Do you have more than one?',
+    'Do you have one?',
+    'Does it have feelings?',
+    'Has it ever been alive?',
+    'Is it a concept?',
+    'Is it a plant?',
+    'Is it a proper noun?',
+    'Is it a tool?',
+    'Is it alive?',
+    'Is it bigger than a bread box?',
+    'Is it bigger than a planet?',
+    'Is it considered expensive?',
+    'Is it edible?',
+    'Is it food?',
+    'Is it found in a house?',
+    'Is it found on Earth?',
+    'Is it larger than a house?',
+    'Is it mechanical?',
+    'Is it something that is used daily?',
+    'Is it taught in elementary school?',
+    'Is it taught in high school?',
+    'Is the person alive?',
+    'Would you find it in a garage?',
+]
 
 SOCKET_MAP = {}
 # TODO: move this off to a backing store.
@@ -337,6 +364,7 @@ def game_index(game_id: str, spectate: str = None):
         player_is_admin=game_state['player_is_admin'],
         role=game_state['role'],
         game_id=game_id,
+        common_questions=COMMON_QUESTIONS,
         # Remove this when done poking at things. :P
         DEBUG=app.config['DEBUG'],
     )
@@ -603,7 +631,7 @@ def undo(game_id: str):
 
 @socketio.on('start_vote')
 def start_vote(game_id: str):
-    app.logger.debug(f'Attempting to start vote from {PLAYERS[session["sid"].name]}.')
+    app.logger.debug(f'Attempting to start vote from {PLAYERS[session["sid"]].name}.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
 
@@ -969,9 +997,8 @@ def delete_question(game_id: str, question_id: int):
 def finish_vote(game_id: str):
     if game_id in GAMES:
         if session['sid'] == GAMES[game_id].mayor:
-            app.logger.debug(f'Got call to finish the game from {PLAYERS[session["sid"]].name}')
-            GAMES[game_id].finish_game()
-            mark_new_update(game_id)
+            if GAMES[game_id].finish_game():
+                mark_new_update(game_id)
 
 
 @socketio.on('get_footer')

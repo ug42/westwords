@@ -55,6 +55,7 @@ function send_start_req() {
 }
 function send_reset_req() {
     socket.emit('game_reset', local_game_state.game_id);
+
 }
 function set_player_target(game_id, target) {
     socket.emit('set_player_target', game_id, target);
@@ -68,23 +69,6 @@ function vote_player(game_id, candidate) {
 function finish_vote(game_id) {
     socket.emit('finish_vote', game_id);
 }
-// function username_change(username) {
-//     socket.emit('username_change', username, (response) => {
-//         if (response.status === 'OK') {
-//             usernames = document.getElementsByClassName('username');
-//             for (let i = 0; i < usernames.length; i++) {
-//                 usernames[i].innerText = username;
-//             }
-//             username_input = document.getElementsByClassName('username');
-//             for (let i = 0; i < usernames.length; i++) {
-//                 username_input[i].value = username;
-//             }  
-//             console.log('Changed username to ' + username);
-//         } else {
-//             console.info('Failed to change username.');
-//         }
-//     });
-// }
 
 function game_started_buttons() {
     // timer.start();
@@ -105,10 +89,6 @@ function game_setup_buttons() {
     game_start_btn.hidden = false;
     let game_reset_btn = document.getElementById('game_reset');
     game_reset_btn.hidden = true;
-    let proper_noun_btn = document.getElementById('proper_noun');
-    proper_noun_btn.hidden = true;
-    let breadbox_btn = document.getElementById('breadbox');
-    breadbox_btn.hidden = true;
     let mayor_display = document.getElementById('mayor_display');
     mayor_display.hidden = true;
     let mayor_controls = document.getElementById('mayor_controls');
@@ -150,10 +130,7 @@ function stop_timer() {
     game_timer.innerHTML = '00:00';
 }
 
-function pause_timer() {
-    // TODO: Make a pause timer, I guess.
-}
-
+// TODO: Factor out the two timer functions to a single timer function
 function start_timer() {
     // Set the date we're counting down to
     let game_timer = document.getElementById('game_timer');
@@ -255,10 +232,6 @@ function refresh_game_state(g) {
 
     let question_input = document.getElementById('question_input');
     question_input.hidden = true;
-    let proper_noun_btn = document.getElementById('proper_noun');
-    proper_noun_btn.hidden = true;
-    let breadbox_btn = document.getElementById('breadbox');
-    breadbox_btn.hidden = true;
     let dialog_box = document.getElementById('dialog-box');
     dialog_box.hidden = true;
     let controls = document.getElementById('controls');
@@ -331,8 +304,6 @@ function refresh_game_state(g) {
         refresh_questions(local_game_state.game_id);
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
-            proper_noun_btn.hidden = false;
-            breadbox_btn.hidden = false;
         }
     }
     if (local_game_state.game_state === 'VOTING') {

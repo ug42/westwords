@@ -40,12 +40,25 @@ body {
   box-shadow: 5px 10px 8px #888888;
 }
 
+.question-box {
+  width: 60%;
+}
+
 .voted-dead {
   color: rgb(216, 68, 68);
 }
 
+.common-font {
+  font-size: 14pt;
+}
+
+.werewolf {
+  color: rgb(216, 68, 68);
+}
+
 .footer {
-  height: 30px;
+  background-color: #222222;
+  height: 50px;
   width: 100%;
   background-image: none;
   background-repeat: repeat;
@@ -54,12 +67,29 @@ body {
   position: fixed;
   bottom: 0pt;
   left: 0pt;
+}
 
+.footer-contents {
+  height: 40px;
+  width: 100%;
+  font-size: 18pt;
+  /* font-weight:bold; */
+  background-image: none;
+  background-repeat: repeat;
+  background-attachment: scroll;
+  background-position: 0% 0%;
+  position: fixed;
+  bottom: 0pt;
+  left: 0pt;
 }   
 
+.questions {
+  font-size: 14pt;
+}  
+
 .footer_contents {
-  width: 350px;
-  height:30px;
+  /* width: 350px; */
+  height:50px;
   margin:auto;
   display: inline;
 }
@@ -67,7 +97,7 @@ body {
 .mdl-layout__content {
   margin-left: 20px;
   margin-top: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 50px;
 }
 
 .mdl-dialog {

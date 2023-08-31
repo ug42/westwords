@@ -18,22 +18,19 @@
     </div>
     <div style="display:inline;" id="controls" hidden>
         <!-- These two controls should be gated -->
-        <!-- so break them into a if game is started thing. -->
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="proper_noun" onclick="ask_question('{{ game_id }}', 'Is it a proper noun?')" hidden>Is it a proper
-            noun?</button>
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="breadbox" onclick="ask_question('{{ game_id }}', 'Is it bigger than a breadbox?')" hidden>Is it
-            bigger than a breadbox?</button>
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
             id="nominate_for_mayor">Run for Mayor!</button>
         <button onclick="window.location.href='/join/{{ game_id }}'"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="join_game"
             hidden>Join Game</button>
         <div id="question_input" hidden>
-            Question: <input type="text" id="question" autocomplete="on">
-            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-                id="question_submit">Submit question</button>
+                <input id="question" class="question-box" type="search" list="questions" placeholder="Ask a question...">
+                <datalist id="questions">
+                {% for q in common_questions %}
+                <option value="{{ q }}" />
+                {% endfor %}
+                </datalist>
+                <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
         </div>
     </div>
     <div id="mayor_display" style="display: inline;" hidden>
@@ -46,7 +43,7 @@
     </div>
     <div hidden=true id="dialog-box" class="box-shadow-fuzz pad-right">
     </div>
-    <div id="questions_div">
+    <div class="questions" id="questions_div">
     </div>
 </div>
 <footer id="footer_role_information" class="footer">

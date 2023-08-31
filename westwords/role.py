@@ -242,7 +242,28 @@ class Intern(Role):
             self.add_known_role(mayor, str(player_roles[mayor]))
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
-
+# FIXME: ERROR on single-word words. had beholder, intern, fortune teller, seer
+#
+#
+#   File "/usr/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
+#     self.run()
+#   File "/usr/lib/python3.10/threading.py", line 953, in run
+#     self._target(*self._args, **self._kwargs)
+#   File "/home/matt/.local/lib/python3.10/site-packages/socketio/server.py", line 730, in _handle_event_internal
+#     r = server._trigger_event(data[0], namespace, sid, *data[1:])
+#   File "/home/matt/.local/lib/python3.10/site-packages/socketio/server.py", line 755, in _trigger_event
+#     return self.handlers[namespace][event](*args)
+#   File "/home/matt/.local/lib/python3.10/site-packages/flask_socketio/__init__.py", line 282, in _handler
+#     return self._handle_event(handler, message, namespace, sid,
+#   File "/home/matt/.local/lib/python3.10/site-packages/flask_socketio/__init__.py", line 826, in _handle_event
+#     ret = handler(*args)
+#   File "/mnt/c/Users/Matt/vscode/westwords/server.py", line 1001, in get_footer
+#     known_word, players = GAMES[game_id].get_player_revealed_information(
+#   File "/mnt/c/Users/Matt/vscode/westwords/westwords/game.py", line 175, in get_player_revealed_information
+#     return self.player_sids[player_sid].get_night_action_info(
+#   File "/mnt/c/Users/Matt/vscode/westwords/westwords/role.py", line 267, in get_night_action_info
+#     for sub_word in word.split():
+# AttributeError: 'NoneType' object has no attribute 'split'
 class FortuneTeller(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
@@ -389,10 +410,22 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     ],
     '4':
     [
-        Villager(),
-        Villager(),
+        # Villager(),
+        # Villager(),
+        # Seer(),
+        # Werewolf()
+        # Mason(),
+        # Mason(),
+        Intern(),
         Seer(),
-        Werewolf()
+        # Minion(),
+        # Werewolf(),
+        # Werewolf(),
+        # Werewolf(),
+        FortuneTeller(),
+        Beholder(),
+        # Esper(),
+        # Doppelganger()
     ],
     '5':
     [

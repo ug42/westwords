@@ -1,13 +1,15 @@
 {% if footer_mode %}
 {# Footer display #}
+<div class="footer-contents">
 {% if known_word is not none %}Word: <u>{{ known_word }}</u> &emsp;{%- endif -%}
 {% for p in known_players %}
 Player: <b>{{ p.name }} {% if p.name == mayor %} (Mayor) {% endif %}</b> ({{ p.role }}) &emsp;
 {%- endfor -%}
+</div>
 
 {% else %}
 {# Main dialog display for role/info reveal #}
-<div>
+<div class="common-font">
     <h5>
         Your role is {{player_role}}
     </h5>
