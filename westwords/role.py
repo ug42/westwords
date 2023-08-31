@@ -410,22 +410,10 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     ],
     '4':
     [
-        # Villager(),
-        # Villager(),
-        # Seer(),
-        # Werewolf()
-        # Mason(),
-        # Mason(),
-        Intern(),
+        Villager(),
+        Villager(),
         Seer(),
-        # Minion(),
-        # Werewolf(),
-        # Werewolf(),
-        # Werewolf(),
-        FortuneTeller(),
-        Beholder(),
-        # Esper(),
-        # Doppelganger()
+        Werewolf()
     ],
     '5':
     [
