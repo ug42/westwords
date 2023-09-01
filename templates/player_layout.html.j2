@@ -2,54 +2,66 @@
     {%- for player in players -%}
     <tr class="player-table">
         <td id="voted" width=30>
-        {% if player.voted %}
-        <img src="{{ url_for('static', filename='img/voting-white.png') }}"width="24" height="24">
-        {% endif %}
+            {% if player.voted %}
+            <img src="{{ url_for('static', filename='img/voting-white.png') }}" width="24" height="24">
+            {% endif %}
         </td>
         <td class="player-table">
-        <span>
-            <span class="username">
-                {{ player.name }}
-            </span>
+            <span>
+                <span class="username">
+                    {{ player.name }}
+                </span>
 
-            {% if player.admin %} (admin){% endif %}
-            {% if player.mayor %} (mayor){% endif %}
-        </span>
+                {% if player.admin %} (admin){% endif %}
+                {% if player.mayor %} (mayor){% endif %}
+            </span>
         </td>
         {%- if player.mayor -%}
         <td class="player-table"></td>
         {%- for t in mayor_token_count -%}
+        {%- if t.token.token_text == 'Yes/No' or t.token.token_text == 'Maybe' %}
         <td class="player-table">
-            {# {%- if t.count > 0 -%} #}
             <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
                 title="{{t.token.token_text}}">
                 {{ t.token.token_icon }}
             </span>
-            {# {%- endif -%} #}
         </td>
+        {%- elif t.count > 0 -%}
+        <td class="player-table">
+            <span class="material-icons mdl-badge mdl-badge--overlap" title="{{t.token.token_text}}">
+                {{ t.token.token_icon }}
+            </span>
+        </td>
+        {%- endif -%}
         {%- endfor -%}
         {% else %}
         {%- for t in player.token_count -%}
+        {%- if t.token.token_text == 'Yes' or t.token.token_text == 'No' or t.token.token_text == 'Maybe' %}
         <td class="player-table">
-            {# {%- if t.count > 0 -%} #}
             <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
                 title="{{t.token.token_text}}">
                 {{ t.token.token_icon }}
             </span>
-            {# {%- endif -%} #}
         </td>
+        {%- elif t.count > 0 -%}
+        <td class="player-table">
+            <span class="material-icons mdl-badge mdl-badge--overlap" title="{{t.token.token_text}}">
+                {{ t.token.token_icon }}
+            </span>
+        </td>
+        {%- endif -%}
         {%- endfor -%}
         {%- endif -%}
     </tr>
     {%- endfor -%}
 </table>
 <table>
-{%- for spectator in spectators -%}
-<tr>
-<td width=30></td>
-<td>
-{{ spectator }} (Spectator)
-</td>
-</tr>
-{%- endfor -%}
+    {%- for spectator in spectators -%}
+    <tr>
+        <td width=30></td>
+        <td>
+            {{ spectator }} (Spectator)
+        </td>
+    </tr>
+    {%- endfor -%}
 </table>

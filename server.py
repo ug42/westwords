@@ -40,7 +40,6 @@ socketio = SocketIO(app)
 # TODO: Add auto-destroy of game after some period of no updates.
 
 # Game mechanics
-# TODO: Add ability of question asker to remove question if not answered
 # TODO: Add ability to kick players
 # TODO: Add ability to make others admin
 # TODO: Add ability for people to join mid-game.
@@ -48,10 +47,7 @@ socketio = SocketIO(app)
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
 # TODO: Add pause for game timer NOT vote timer
-
-# UI elements
-# TODO: Add mayor pop-up to answer questions
-# TODO: Add button to refusing to answer question
+# TODO: Add Game log to disk (implement the log_game_state(game_id) functions)
 
 
 COMMON_QUESTIONS = [
@@ -65,6 +61,7 @@ COMMON_QUESTIONS = [
     'Do you have more than one?',
     'Do you have one?',
     'Does it have feelings?',
+    'Does it have opposable digits?',
     'Has it ever been alive?',
     'Is it a concept?',
     'Is it a plant?',
@@ -183,21 +180,26 @@ def refresh_players(game_id: str) -> None:
         socketio.emit('refresh_players', game_id)
 
 
-def get_question_info(question: westwords.Question, id: int):
+def get_question_info(question: westwords.Question, id: int) -> dict[str, any]:
     return {
         'id': id,
         'question': question.question_text,
         'player': PLAYERS[question.player_sid].name,
         'answer': question.get_answer(),
+        'skipped': question.skipped,
     }
 
 
-def username_taken(username: str, user_sid: str):
+def username_taken(username: str, user_sid: str) -> bool:
     for player in PLAYERS:
         if (PLAYERS[player].name.upper() == username.upper() and
                 player != user_sid):
             return True
     return False
+
+
+def log_game_state(game_id: str) -> None:
+    pass
 
 
 def check_session_config() -> str:
@@ -221,9 +223,8 @@ def check_session_config() -> str:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
 
     PLAYERS[session['sid']].name = session['username']
-    
+
     return ''
-    
 
 
 @app.route('/')
@@ -466,13 +467,14 @@ def disconnect():
 def add_question(game_id: str, question_text: str):
     if game_id in GAMES:
         try:
-            success, _ = GAMES[game_id].add_question(
+            success, question_id = GAMES[game_id].add_question(
                 session['sid'], question_text)
         except GameError as e:
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')
             return False
         if success:
+            # pose_mayor_question(question_id, game_id)
             mark_new_update(game_id)
             return True
 
@@ -503,6 +505,30 @@ def get_questions(game_id: str):
             'questions_html': questions_html,
         }
     return {'status': 'FAILED', 'question': ''}
+
+
+@socketio.on('get_next_unanswered_question')
+def get_mayor_question(game_id: str) -> None:
+    if game_id in GAMES:
+        if session['sid'] != GAMES[game_id].mayor:
+            return {'status': 'NONE', 'question_html': ''}
+        questions = GAMES[game_id].get_questions()
+        tokens = []
+        for token in GAMES[game_id].tokens:
+            if GAMES[game_id].tokens[token] > 0:
+                tokens.append(token)
+        for id, question in enumerate(questions):
+            if not question.get_answer() and not question.is_skipped():
+                question_info = get_question_info(question, id)
+                return {'status': 'OK',
+                        'question_html': render_template(
+                            'mayor_question_layout.html.j2',
+                            game_id=game_id,
+                            question_object=question_info,
+                            question_id=id,
+                            tokens=tokens,),
+                        }
+    return {'status': 'NO_UNANSWERED_QUESTIONS', 'question_html': ''}
 
 
 @socketio.on('get_players')
@@ -623,7 +649,7 @@ def game_status(game_id: str, timestamp: int):
 # Mayor functions
 @socketio.on('undo')
 def undo(game_id: str):
-    app.logger.debug(f'Attempting to undo something for {game_id}')
+    app.logger.debug(f'Attempting to undo answer for {game_id}')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         GAMES[game_id].undo_answer()
         mark_new_update(game_id)
@@ -631,16 +657,12 @@ def undo(game_id: str):
 
 @socketio.on('start_vote')
 def start_vote(game_id: str):
-    app.logger.debug(f'Attempting to start vote from {PLAYERS[session["sid"]].name}.')
+    app.logger.debug(
+        f'Attempting to start vote from {PLAYERS[session["sid"]].name}.')
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         success = GAMES[game_id].start_vote()
-
-        if not success:
-            socketio.emit('mayor_error',
-                          f'Unable to finish game and start vote.',
-                          room=game_id)
-            return
-        mark_new_update(game_id)
+        if success:
+            mark_new_update(game_id)
 
 
 @socketio.on('username_change')
@@ -998,6 +1020,7 @@ def finish_vote(game_id: str):
     if game_id in GAMES:
         if session['sid'] == GAMES[game_id].mayor:
             if GAMES[game_id].finish_game():
+                log_game_state(game_id)
                 mark_new_update(game_id)
 
 
@@ -1027,6 +1050,15 @@ def get_footer(game_id: str):
                 ),
             }
     return {'status': 'NO_DATA', 'reveal_html': None}
+
+
+@socketio.on('skip_question')
+def skip_question(game_id: str, question_id: int) -> None:
+    app.logger.debug('Attempting to skip question')
+    if game_id in GAMES:
+        if GAMES[game_id].skip_question(game_id, question_id):
+            app.logger.debug(f'question {question_id} skipped')
+            mark_new_update(game_id)
 
 
 if __name__ == '__main__':

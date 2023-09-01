@@ -1,0 +1,14 @@
+<div>
+    {{ question_object.player }}: {{ question_object.question }}
+    <br>
+    {% for token in tokens %}
+    <button onclick="answer('{{ game_id }}', {{ question_object.id }}, '{{ token.value }}')" class="material-icons"
+        title="{{ token.token_text }}">
+        {{ token.token_icon }}
+    </button> &nbsp {{ token.token_text }} <br>
+    {% endfor %}
+    <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" class="material-symbols-outlined"
+        title="Skip">
+        stat_minus_3
+    </button> &nbsp Skip <br>
+</div>

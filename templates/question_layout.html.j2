@@ -1,15 +1,6 @@
 <div>
     <span>
-        {% if own_question and not question_object.answer %}
-        <div style="display: inline;">
-            <button style="border: 0; background: none; -webkit-appearance: none;"
-                onclick="delete_question('{{ game_id }}', {{ question_object.id }})">
-                <span class="material-icons" title="Delete question">close</span>
-            </button>
-        </div>
-        {% endif %}
-
-        {% if player_is_mayor and not question_object.answer -%}
+        {% if player_is_mayor and not question_object.answer and not question_object.skipped -%}
         <div style="display: inline">
             {% for token in tokens %}
             <button onclick="answer('{{ game_id }}', {{ question_object.id }}, '{{ token.value }}')"
@@ -17,13 +8,28 @@
                 {{ token.token_icon }}
             </button>
             {% endfor %}
+            <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" class="material-symbols-outlined"
+                title="Skip">
+                stat_minus_3
+            </button>
         </div>
         {% endif %}
     </span>
     {{ question_object.player }}: {{ question_object.question }}
     {% if question_object.answer %}
-    <span class="material-icons" title="{{ question_object.answer.token_text}}">
+    <span class="material-icons" style="font-size: 18px;" title="{{ question_object.answer.token_text}}">
         {{ question_object.answer.token_icon }}
     </span>
+    {% endif %}
+    {% if question_object.skipped %}
+    <span class="material-symbols-outlined" title="Skipped">stat_minus_3</span>
+    {% endif %}
+    {% if own_question and not question_object.answer %}
+    <div style="display: inline;">
+        <button style="border: 0; background: none; -webkit-appearance: none;"
+            onclick="delete_question('{{ game_id }}', {{ question_object.id }})">
+            <span class="material-icons" style="font-size: 14px;" title="Delete question">close</span>
+        </button>
+    </div>
     {% endif %}
 </div>

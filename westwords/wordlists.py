@@ -165,7 +165,6 @@ WORDLISTS = {
         hard=[],
         impossible=[],
     ),
-
     'locations': WordList(
         short_name='Locations',
         description="""
@@ -3385,9 +3384,7 @@ WORDLISTS = {
             'Sucrose (Genshin Impact)',
             'Venti (Genshin Impact)',
             'Solid Snake',
-
-        ]
-    ),
+        ]),
     'actors': WordList(
         short_name='Actors/Actresses',
         description='Actors and Actresses from Movies',
@@ -3484,4 +3481,4 @@ WORDLISTS = {
             'Uncharted 2: Among Thieves',
             'World of Goo',
         ]),
-},
+}

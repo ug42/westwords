@@ -9,12 +9,12 @@
     </div>
     <!-- TODO: Move out of the material design bits or improve ugly buttons -->
     <div style="display:inline;" id="admin_controls" hidden>
-        <button onclick="send_start_req()"
+        <button onclick="send_start_req('{{ game_id }}')"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
-        <button onclick="send_reset_req()"
+        <button onclick="send_reset_req('{{ game_id }}')"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="game_reset">Reset game</button>
+            id="game_reset" hidden>Reset game</button>
     </div>
     <div style="display:inline;" id="controls" hidden>
         <!-- These two controls should be gated -->
@@ -33,13 +33,12 @@
                 <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
         </div>
     </div>
-    <div id="mayor_display" style="display: inline;" hidden>
-        <span hidden id="mayor_controls">
-            <b>Mayor controls</b>
-            <button onclick="undo_answer('{{ game_id }}')" class="mdl-button" id="undo">Undo last answer</button>
-            <button onclick="start_vote('{{ game_id }}')" class="mdl-button" id="finish" hidden>Finish Game/Start
-                Vote</button>
-        </span>
+    <div id="mayor_display" class="mayor_controls" style="display: inline;" hidden>
+        <div hidden class="mayor_controls"  id="mayor_controls">
+            <button onclick="undo_answer('{{ game_id }}')" class="material-symbols-outlined">undo</button>Undo last answer<br>
+        </div>
+        <div hidden class="mayor_controls" id="mayor_question">
+        </div>
     </div>
     <div hidden=true id="dialog-box" class="box-shadow-fuzz pad-right">
     </div>

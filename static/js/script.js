@@ -42,6 +42,9 @@ function ack_reveal() {
 function ask_question(game_id, question) {
     socket.emit('question', game_id, question);
 }
+function skip_question(game_id, question_id) {
+    socket.emit('skip_question', game_id, question_id);
+}
 function undo_answer(game_id) {
     socket.emit('undo', game_id);
     close_dialog();
@@ -50,11 +53,11 @@ function start_vote(game_id) {
     socket.emit('start_vote', game_id);
     close_dialog();
 }
-function send_start_req() {
-    socket.emit('game_start', local_game_state.game_id);
+function send_start_req(game_id) {
+    socket.emit('game_start', game_id);
 }
-function send_reset_req() {
-    socket.emit('game_reset', local_game_state.game_id);
+function send_reset_req(game_id) {
+    socket.emit('game_reset', game_id);
 
 }
 function set_player_target(game_id, target) {
@@ -74,8 +77,6 @@ function game_started_buttons() {
     // timer.start();
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = true;
-    let game_reset_btn = document.getElementById('game_reset');
-    game_reset_btn.hidden = false;
     let join_game_btn = document.getElementById('join_game');
     join_game_btn.hidden = true;
     let mayor_display = document.getElementById('mayor_display');
@@ -87,8 +88,6 @@ function game_started_buttons() {
 function game_setup_buttons() {
     let game_start_btn = document.getElementById('game_start');
     game_start_btn.hidden = false;
-    let game_reset_btn = document.getElementById('game_reset');
-    game_reset_btn.hidden = true;
     let mayor_display = document.getElementById('mayor_display');
     mayor_display.hidden = true;
     let mayor_controls = document.getElementById('mayor_controls');
@@ -344,13 +343,34 @@ function refresh_game_state(g) {
     if (local_game_state.player_is_admin) {
         let admin_controls = document.getElementById('admin_controls');
         admin_controls.hidden = false;
+        let nav_reset_game_btn = document.getElementById('nav_game_reset');
+        nav_reset_game_btn.hidden = false;
+        let reset_game_btn = document.getElementById('game_reset');
+        if (local_game_state.game_state === 'FINISHED') {
+            reset_game_btn.hidden = false;
+        } else {
+            reset_game_btn.hidden = true;
+        }
+
+
     }
     if (local_game_state.player_is_mayor) {
-        let finish_btn = document.getElementById('finish');
         let mayor_controls = document.getElementById('mayor_controls');
+        let mayor_question = document.getElementById('mayor_question');
         if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
             mayor_controls.hidden = false;
-            finish_btn.hidden = true;
+            socket.emit(
+                'get_next_unanswered_question',
+                local_game_state.game_id,
+                (response) => {
+                    if (response.status === 'OK') {
+                        mayor_question.hidden = false;
+                        mayor_question.innerHTML = response.question_html;
+                    } else {
+                        mayor_question.innerHTML = '';
+                        mayor_question.hidden = true;
+                    }
+                });
         }
         if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE') {
             socket.emit('get_words', local_game_state.game_id, (response) => {
@@ -360,6 +380,10 @@ function refresh_game_state(g) {
                     dialog.showModal();
                 }
             });
+        }
+        if (local_game_state.game_state == 'VOTING') {
+            mayor_question.innerHTML = '';
+            mayor_question.hidden = true;
         }
     }
 };
@@ -403,10 +427,23 @@ ready(function () {
             dialog.showModal();
         }
     });
+    socket.on('mayor_question', function (data) {
+        if (local_game_state.player_is_mayor === true) {
+            let dialog = document.querySelector('dialog');
+            html = data;
+            html += '<br><button type="button" class="mdl-button close"';
+            html += ' onclick="close_dialog()">OK</button>';
+            dialog.innerHTML = html;
+            dialog.showModal();
+        }
+    });
     socket.on('admin_error', function (data) {
         if (local_game_state.player_is_admin === true) {
             let dialog = document.querySelector('dialog');
-            dialog.innerHTML = data;
+            html = data;
+            html += '<br><button type="button" class="mdl-button close"';
+            html += ' onclick="close_dialog()">OK</button>';
+            dialog.innerHTML = html;
             dialog.showModal();
         }
     });

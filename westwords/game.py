@@ -6,7 +6,7 @@ from collections import UserDict, UserList
 from copy import deepcopy
 from datetime import datetime, timedelta
 from random import choice, choices, shuffle
-from typing import Any
+from typing import Any, List
 
 from westwords.enums import AnswerToken
 from westwords.question import Question, QuestionError
@@ -293,7 +293,7 @@ class Game(object):
         self.night_actions_required = []
         self.player_token_count = {}
         self.reveal_ack_required = []
-        self.questions = []
+        self.questions:List[Question] = []
         self.required_voters = []
         self.selected_roles = []
         self.start_time = None
@@ -315,6 +315,8 @@ class Game(object):
         Returns:
             True if voting state successfully; False otherwise.
         """
+        if self.game_state == GameState.VOTING:
+            return False
         self.word_guessed = self._tokens[AnswerToken.CORRECT] < 1
         self.out_of_tokens = (self._tokens[AnswerToken.YES] <= 0 or
                               self._tokens[AnswerToken.NO] <= 0)
@@ -378,8 +380,6 @@ class Game(object):
             if not self.word_choices:
                 all_words = []
                 for word_list in WORDLISTS:
-                    # TODO: Add ability to select word difficulties
-                    # words = WORDLISTS[word_list].get_all_words(level=self.word_difficulty)
                     words = WORDLISTS[word_list].get_all_words()
                     all_words += words
                 self.word_choices = choices(
@@ -817,6 +817,13 @@ class Game(object):
 
     def _get_next_question_id(self):
         return len(self.questions)
+    
+    def skip_question(self, game_id: str, question_id: int):
+        if not self.is_started():
+            return False
+        if question_id < len(self.questions):
+            self.questions[question_id].skip_question()
+            return True
 
     def answer_question(self, question_id: int, answer: AnswerToken):
         """Answer a question for the given id.
@@ -898,15 +905,8 @@ class Game(object):
             if token in [AnswerToken.NO, AnswerToken.YES]:
                 self._tokens[AnswerToken.NO] -= 1
                 self._tokens[AnswerToken.YES] -= 1
-                if self._tokens[token] < 1:
-                    self.game_state = GameState.VOTING
-                    return True
-
             else:
                 self._tokens[token] -= 1
-                if token == AnswerToken.CORRECT:
-                    self.game_state = GameState.VOTING
-                    return True
             return True
 
         return False
