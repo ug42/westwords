@@ -27,6 +27,10 @@ function set_timer(game_id, timer_seconds) {
 function answer(game_id, id, answer) {
     socket.emit('answer_question', game_id, id, answer);
 }
+function boot_player(game_id, player_sid) {
+    console.log('Attempting to boot player: ' + game_id + ': ' + player_sid)
+    socket.emit('boot_player', game_id, player_sid)
+}
 function delete_question(game_id, question_id) {
     socket.emit('delete_question', game_id, question_id);
 }
@@ -351,6 +355,23 @@ function refresh_game_state(g) {
         } else {
             reset_game_btn.hidden = true;
         }
+        let boot_players = document.getElementById('boot_players');
+        if (boot_players !== null) {
+            boot_players.addEventListener("click", function () {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                socket.emit('get_bootable_players', local_game_state.game_id, (response) => {
+                    if (response.status === 'OK') {
+                        content.innerHTML = response.html;
+                    }
+                });
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
 
 
     }
@@ -430,20 +451,14 @@ ready(function () {
     socket.on('mayor_question', function (data) {
         if (local_game_state.player_is_mayor === true) {
             let dialog = document.querySelector('dialog');
-            html = data;
-            html += '<br><button type="button" class="mdl-button close"';
-            html += ' onclick="close_dialog()">OK</button>';
-            dialog.innerHTML = html;
+            dialog.innerHTML = data;
             dialog.showModal();
         }
     });
     socket.on('admin_error', function (data) {
         if (local_game_state.player_is_admin === true) {
             let dialog = document.querySelector('dialog');
-            html = data;
-            html += '<br><button type="button" class="mdl-button close"';
-            html += ' onclick="close_dialog()">OK</button>';
-            dialog.innerHTML = html;
+            dialog.innerHTML = data;
             dialog.showModal();
         }
     });

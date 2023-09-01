@@ -41,7 +41,6 @@ socketio = SocketIO(app)
 
 # Game mechanics
 # TODO: Add ability to kick players
-# TODO: Add ability to make others admin
 # TODO: Add ability for people to join mid-game.
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
@@ -624,7 +623,9 @@ def answer_question(game_id: str, question_id: int, answer: str):
                                            answer_token)
     if error:
         socketio.emit('mayor_error',
-                      error,
+                      (error +
+                       '<br><button type="button" class="mdl-button close"'
+                       ' onclick="close_dialog()">OK</button>'),
                       room=game_id)
         return False
 
@@ -700,7 +701,9 @@ def set_word_choice_count(game_id: str, word_count: int):
         mark_new_update(game_id)
 
     socketio.emit('admin_error',
-                  f'Unable to set word count to {word_count}.',
+                  (f'Unable to set word count to {word_count}.'
+                   '<br><button type="button" class="mdl-button close"'
+                   ' onclick="close_dialog()">OK</button>'),
                   room=game_id)
 
 
@@ -890,7 +893,9 @@ def get_voting_information(game_id: str):
         )
         if not voter_sids:
             socketio.emit('mayor_error',
-                          f'No voting players found for game {game_id}')
+                          (f'No voting players found for game {game_id}'
+                           '<br><button type="button" class="mdl-button close"'
+                           ' onclick="close_dialog()">OK</button>'),)
             return {'status': 'ERROR', 'voting_html': None}
         voters = []
         for voter_sid in voter_sids:
@@ -989,12 +994,18 @@ def set_word(game_id: str, word: str):
             game.
     """
     if game_id not in GAMES:
-        socketio.emit('mayor_error', f'Unable to set word for game {game_id}.')
+        socketio.emit('mayor_error',
+                      (f'Unable to set word for game {game_id}.'
+                       '<br><button type="button" class="mdl-button close"'
+                       ' onclick="close_dialog()">OK</button>'),
+                      )
         return
 
     if session['sid'] != GAMES[game_id].mayor:
         socketio.emit('mayor_error',
-                      f'Word set attempt failed. User is not mayor.')
+                      (f'Word set attempt failed. User is not mayor.'
+                       '<br><button type="button" class="mdl-button close"'
+                       ' onclick="close_dialog()">OK</button>'),)
         return
 
     GAMES[game_id].set_word(word)
@@ -1059,6 +1070,35 @@ def skip_question(game_id: str, question_id: int) -> None:
         if GAMES[game_id].skip_question(game_id, question_id):
             app.logger.debug(f'question {question_id} skipped')
             mark_new_update(game_id)
+
+
+@socketio.on('get_bootable_players')
+def get_bootable_players(game_id: str) -> None:
+    if game_id in GAMES:
+        if session['sid'] == GAMES[game_id].admin:
+            player_sids = GAMES[game_id].get_players()
+            players = []
+            for player_sid in player_sids:
+                players.append(
+                    {'sid': player_sid, 'name': PLAYERS[player_sid].name})
+            return {'status': 'OK',
+                    'html': render_template('boot_player.html.j2',
+                                          players=players,
+                                          game_id=game_id),
+                    }
+    return {'status': 'NO_DATA', 'html': ''}
+
+
+@socketio.on('boot_player')
+def boot_player(game_id: str, player_sid: str):
+    app.logger.debug(f'Attempting to boot player: {PLAYERS[player_sid].name}')
+
+    if game_id in GAMES:
+        if (session['sid'] == GAMES[game_id].admin and
+            player_sid in GAMES[game_id].get_players()):
+            GAMES[game_id].remove_player(player_sid)
+            GAMES[game_id].add_spectator(player_sid)
+            # mark_new_update(game_id)
 
 
 if __name__ == '__main__':
