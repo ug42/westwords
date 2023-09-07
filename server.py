@@ -23,7 +23,7 @@ from uuid import uuid4
 
 from flask import (Flask, flash, make_response, redirect, render_template,
                    request, send_from_directory, session, url_for)
-from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
+from flask_socketio import SocketIO, emit, join_room, rooms
 
 import westwords
 from westwords.enums import AnswerToken
@@ -40,13 +40,23 @@ socketio = SocketIO(app)
 # TODO: Add auto-destroy of game after some period of no updates.
 
 # Game mechanics
-# TODO: Add ability to kick players
 # TODO: Add ability for people to join mid-game.
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
 # TODO: Add pause for game timer NOT vote timer
 # TODO: Add Game log to disk (implement the log_game_state(game_id) functions)
+
+# UI mechanics
+# TODO: Make autocomplete question form non-default and switchable by setting
+# TODO: Make autocomplete not bounce locations or use another auto-complete mechanism
+# TODO: Add player roles (and actions) to vote details/ change to game summary page
+# TODO: Show role before choosing a word
+# TODO: bigger voting icon
+# TODO: Issue with questions not showing up?
+# TODO: Race condition with deleting a question and answering it; deleted
+# question consumes an answer token and can't undelete
+# TODO: Fix set_timer js call. does nothing currently.
 
 
 COMMON_QUESTIONS = [
@@ -205,6 +215,8 @@ def check_session_config() -> str:
     if 'sid' not in session:
         app.logger.debug('adding SID')
         session['sid'] = str(uuid4())
+    if 'autocomplete_enabled' not in session:
+        session['autocomplete_enabled'] = False
     if 'username' not in session:
         app.logger.debug('adding username')
         u = f'Not_a_wolf_{randint(1000,9999)}'
@@ -330,7 +342,7 @@ def spectate_game(game_id: str):
 
 
 @app.route('/game/<game_id>', strict_slashes=False)
-def game_index(game_id: str, spectate: str = None):
+def game_index(game_id: str):
     redirect_url = check_session_config()
     if redirect_url:
         return redirect(redirect_url)
@@ -355,16 +367,22 @@ def game_index(game_id: str, spectate: str = None):
     else:
         game_state = parse_game_state(None, session['sid'])
 
+    if 'autocomplete_enabled' not in session:
+        autocomplete_enabled = False
+    else:
+        autocomplete_enabled = session['autocomplete_enabled']
+
     return render_template(
         'game.html.j2',
-        game_name=game_state['game_id'],
+        game_id=game_id,
         game_state=game_state['game_state'],
+        game_timer=game_state['timer'],
         mayor=game_state['mayor'],
         player_is_mayor=game_state['player_is_mayor'],
         player_is_admin=game_state['player_is_admin'],
         role=game_state['role'],
-        game_id=game_id,
         common_questions=COMMON_QUESTIONS,
+        autocomplete_enabled=autocomplete_enabled,
         # Remove this when done poking at things. :P
         DEBUG=app.config['DEBUG'],
     )
@@ -408,6 +426,27 @@ def create_game(game_id: str = None):
         GAMES[game_id] = westwords.Game(player_sids=[session['sid']])
 
     return redirect(f'/join/{game_id}')
+
+@app.route('/toggle_autocomplete', methods=['POST'])
+def toggle_autocomplete():
+    check_session_config()
+    session['autocomplete_enabled'] = not session['autocomplete_enabled']
+    request.form.get('')
+    if request.form.get('requesting_url') and 'requesting_url' not in session:
+        session['requesting_url'] = request.form.get("requesting_url")
+
+    if 'requesting_url' in session:
+        return redirect(session.pop('requesting_url'))
+    return redirect('/')
+
+
+@app.route('/settings', methods=['GET'])
+def settings(setting: str=None):
+    redirect_url = check_session_config()
+    if redirect_url:
+        return redirect(redirect_url)
+    return render_template('settings.html.j2',
+                           autocomplete_enabled=session['autocomplete_enabled'])
 
 
 @app.route('/login')
@@ -666,26 +705,6 @@ def start_vote(game_id: str):
             mark_new_update(game_id)
 
 
-@socketio.on('username_change')
-def username_change(username: str):
-    app.logger.debug(f'Attempting to change username to {username}')
-    if username_taken(username, session['sid']):
-        socketio.emit('user_info',
-                      f'Username {username} taken.',
-                      to=SOCKET_MAP[session['sid']])
-        return {'status': 'FAILED', 'new_username': None}
-    if re.search(r'mayor', username.casefold()):
-        socketio.emit('Cute, smartass.',
-                      f'Username {username} taken.',
-                      to=SOCKET_MAP[session['sid']])
-        return {'status': 'FAILED', 'new_username': None}
-
-    session['username'] = username
-    PLAYERS[session['sid']].name = session['username']
-    update_all_games_for_player(session['sid'])
-    return {'status': 'OK', 'new_username': username}
-
-
 @socketio.on('nominate_for_mayor')
 def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
@@ -760,8 +779,9 @@ def acknowledge_revealed_info(game_id: str):
 @socketio.on('set_timer')
 def set_timer(game_id: str, timer_seconds: int):
     if game_id in GAMES:
-        GAMES[game_id].set_timer(timer_seconds)
-        mark_new_update(game_id)
+        if GAMES[game_id].mayor == session['sid']:
+            GAMES[game_id].set_timer(int(timer_seconds))
+            mark_new_update(game_id)
 
 
 @socketio.on('set_vote_timer')
@@ -1083,8 +1103,8 @@ def get_bootable_players(game_id: str) -> None:
                     {'sid': player_sid, 'name': PLAYERS[player_sid].name})
             return {'status': 'OK',
                     'html': render_template('boot_player.html.j2',
-                                          players=players,
-                                          game_id=game_id),
+                                            players=players,
+                                            game_id=game_id),
                     }
     return {'status': 'NO_DATA', 'html': ''}
 
@@ -1095,7 +1115,7 @@ def boot_player(game_id: str, player_sid: str):
 
     if game_id in GAMES:
         if (session['sid'] == GAMES[game_id].admin and
-            player_sid in GAMES[game_id].get_players()):
+                player_sid in GAMES[game_id].get_players()):
             GAMES[game_id].remove_player(player_sid)
             GAMES[game_id].add_spectator(player_sid)
             # mark_new_update(game_id)

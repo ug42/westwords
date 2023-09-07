@@ -3,7 +3,17 @@
 
 
 <div class="main">
-    <br><div id="game_timer" class="game_timer" hidden></div>
+    <br>
+    <div class="game_timer">
+    <div style="display: inline;" id="game_timer" class="game_timer" hidden></div>
+    <div id="game_timer_settings" class="material-icons game_timer game_timer_settings" hidden
+    onclick="let d = document.getElementById('timer_controls'); if (d.style.display === 'none') { d.style.display = 'block'; } else { d.style.display = 'none'; }">
+    settings</div>
+    </div>
+    <div style="text-align: center; display: none;" id="timer_controls">
+    <input style="width: 70px;" text="{{ game_timer }}" id="game_timer_input">
+    <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value); document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
+    </div><br>
     <div id="player_info" hidden>
         <div id="players"></div>
     </div>
@@ -13,8 +23,8 @@
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
             id="game_start">Start game</button>
         <button onclick="send_reset_req('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="game_reset" hidden>Reset game</button>
+            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="game_reset"
+            hidden>Reset game</button>
     </div>
     <div style="display:inline;" id="controls" hidden>
         <!-- These two controls should be gated -->
@@ -23,19 +33,21 @@
         <button onclick="window.location.href='/join/{{ game_id }}'"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="join_game"
             hidden>Join Game</button>
-        <div id="question_input" hidden>
-                <input id="question" class="question-box" type="search" list="questions" placeholder="Ask a question...">
-                <datalist id="questions">
-                {% for q in common_questions %}
-                <option value="{{ q }}" />
-                {% endfor %}
-                </datalist>
-                <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
+        <div id="question_input" class="autocomplete" hidden>
+            <input id="question" autocomplete="off" class="question-box autocomplete" type="search"
+                placeholder="Ask a question...">
+            <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
+            {% if autocomplete_enabled is true %}
+            <script>
+                autocomplete(document.getElementById("question"), canned_questions);
+            </script>
+            {% endif %}
         </div>
     </div>
     <div id="mayor_display" class="mayor_controls" style="display: inline;" hidden>
-        <div hidden class="mayor_controls"  id="mayor_controls">
-            <button onclick="undo_answer('{{ game_id }}')" class="material-symbols-outlined">undo</button>Undo last answer<br>
+        <div hidden class="mayor_controls" id="mayor_controls">
+            <button onclick="undo_answer('{{ game_id }}')" class="material-symbols-outlined">undo</button>Undo last
+            answer<br>
         </div>
         <div hidden class="mayor_controls" id="mayor_question">
         </div>

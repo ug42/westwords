@@ -1,0 +1,26 @@
+{% extends "_layout.html.j2" %}
+{% block body %}
+<form action="/toggle_autocomplete" id="toggle_autocomplete" method="POST">
+<label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="autocomplete">
+    <input hidden id="requesting_url" name="requesting_url" value="/settings" />
+    <input onclick="document.getElementById('toggle_autocomplete').submit();" type="checkbox" id="autocomplete" class="mdl-checkbox__input"{% if autocomplete_enabled %} checked{% endif %}    >
+    <span class="mdl-checkbox__label">Autocomplete</span>
+</label>
+Game timer: <input type="text" name="game_timer" id="game_timer" value="{{ game_timer }}">
+<button hidden class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+    onclick="document.getElementById('toggle_autocomplete').submit();">Save</button>
+</form>
+<p>
+<form action="/username" id="username_change" method="POST">
+    <input hidden id="requesting_url" name="requesting_url" value="/settings" />
+    Username: <input type="text" name="username" id="username" value="{{ session.username }}">
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+        onclick="document.getElementById('username_change').submit();">Change username</button>
+</form>
+</p>
+<p>
+    <a href="/">
+        <button class="mdl-button mdl-js-button mdl-button--raised">Home</button>
+    </a>
+</p>
+{% endblock %}

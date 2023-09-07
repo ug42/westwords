@@ -31,7 +31,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 <script src="{{ url_for('static', filename='js/dist/dialog-polyfill.js') }}"></script>
-<script src="{{ url_for('static', filename='js/easytimer.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 {% if game_id|length %}
 <script>
@@ -72,33 +71,40 @@
         Username: <input type="text" name="username" id="username" value="{{ session.username }}">
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
           onclick="document.getElementById('username_change').submit()">Change username</button>
-        </p>
-        <p>
-          {% if game_id|length %}
-          <button type="button" onclick="location.href='/spectate/{{ game_id }}'"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="spectate"
-            hidden>Spectate</button>
-        </p>
-        <p>
-          <button type="button" onclick="location.href='/leave/{{ game_id }}'"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-            id="leave_game">Quit Game</button>
-        </p>
-        <div id="nav_game_reset" hidden>
-          <button onclick="send_reset_req('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored">Reset
-            game</button>
-        </div>
-        <button type="button" class="collapsible" id="boot_players">Boot Players</button>
-        <div id="boot_players_content" class="content">
-        </div>
-        {% endif %}
-
-        <p>
-          <a href="/privacy_policy">Privacy Policy</a>
-        </p>
-
       </form>
+      </p>
+      <p>
+        {% if game_id|length %}
+        <button type="button" onclick="location.href='/spectate/{{ game_id }}'"
+          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="spectate"
+          hidden>Spectate</button>
+      </p>
+      <p>
+        <button type="button" onclick="location.href='/leave/{{ game_id }}'"
+          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+          id="leave_game">Quit Game</button>
+      </p>
+      <div id="nav_game_reset" hidden>
+        <button onclick="send_reset_req('{{ game_id }}')"
+          class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored">Reset
+          game</button>
+      </div>
+      <button type="button" class="collapsible" id="boot_players">Boot Players</button>
+      <div id="boot_players_content" class="content">
+      </div>
+      {% endif %}
+      <a href="/settings">
+        <button class="mdl-button mdl-js-button mdl-button--raised">Settings</button>
+      </a>
+
+      <p>
+        <a href="/privacy_policy">
+          <button class="mdl-button mdl-js-button mdl-button--raised">
+            Privacy Policy
+          </button>
+        </a>
+      </p>
+
     </nav>
   </div>
   <main class="mdl-layout__content">

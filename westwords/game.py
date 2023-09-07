@@ -72,7 +72,7 @@ class Game(object):
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
         self.spectators = []
-        self.word_choice_count = 5
+        self.word_choice_count = 8
         self.word_difficulty = 'medium'
         self.token_defaults = {
             # YES and NO share the same token count
