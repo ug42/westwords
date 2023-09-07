@@ -56,7 +56,6 @@ socketio = SocketIO(app)
 # TODO: Issue with questions not showing up?
 # TODO: Race condition with deleting a question and answering it; deleted
 # question consumes an answer token and can't undelete
-# TODO: Fix set_timer js call. does nothing currently.
 
 
 COMMON_QUESTIONS = [
@@ -427,6 +426,7 @@ def create_game(game_id: str = None):
 
     return redirect(f'/join/{game_id}')
 
+
 @app.route('/toggle_autocomplete', methods=['POST'])
 def toggle_autocomplete():
     check_session_config()
@@ -441,7 +441,7 @@ def toggle_autocomplete():
 
 
 @app.route('/settings', methods=['GET'])
-def settings(setting: str=None):
+def settings(setting: str = None):
     redirect_url = check_session_config()
     if redirect_url:
         return redirect(redirect_url)
@@ -779,7 +779,7 @@ def acknowledge_revealed_info(game_id: str):
 @socketio.on('set_timer')
 def set_timer(game_id: str, timer_seconds: int):
     if game_id in GAMES:
-        if GAMES[game_id].mayor == session['sid']:
+        if GAMES[game_id].admin == session['sid']:
             GAMES[game_id].set_timer(int(timer_seconds))
             mark_new_update(game_id)
 

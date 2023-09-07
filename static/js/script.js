@@ -644,5 +644,16 @@ ready(function () {
             }
         });
     }
-
+    var game_timer_input = document.getElementById('game_timer_input');
+    var timer_controls = document.getElementById('timer_controls');
+    if (game_timer_input !== null) {
+        game_timer_input.addEventListener('keypress', function (event) {
+            if (event.key === "Enter") {
+                set_timer(local_game_state.game_id, game_timer_input.value);
+                if (timer_controls !== null) {
+                    timer_controls.style.display = 'none';
+                }
+            }
+        });
+    }
 });

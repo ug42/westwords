@@ -525,7 +525,7 @@ class Game(object):
             return None
         return (self.winner, self.killed_players, self.votes)
 
-    def set_timer(self, time_in_seconds) -> None:
+    def set_timer(self, time_in_seconds: int) -> None:
         """Set the timer amount in seconds.
 
         Args:

@@ -11,7 +11,7 @@
     settings</div>
     </div>
     <div style="text-align: center; display: none;" id="timer_controls">
-    <input style="width: 70px;" text="{{ game_timer }}" id="game_timer_input">
+    <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input">
     <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value); document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
     </div><br>
     <div id="player_info" hidden>
