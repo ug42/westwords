@@ -1,41 +1,53 @@
 <h4>{{winner}} team won!</h4>
 <div class="common-font">
-{% if player_won is sameas true %}
-You won as a {{role}}.
-{% elif player_won is sameas false%}
-You lost as a {{role}}.
-{% endif %}
-<p>
-{% for vote in vote_count %}
-<strong>
-{% if vote.killed %}
-<div class="voted-dead">
-{{vote.name}}: {{vote.count}}
-</div>
-{% else %}
-<div>
-{{vote.name}}: {{vote.count}}
-</div>
-{% endif %}
-</strong>
-{% endfor %}
-</p>
+    {% if player_won is sameas true %}
+    You won as a {{role}}.
+    {% elif player_won is sameas false%}
+    You lost as a {{role}}.
+    {% endif %}
+    <p>
+        {% for vote in vote_count %}
+        <strong>
+            {% if vote.killed %}
+            <div class="voted-dead">
+                {{vote.name}}: {{vote.count}}
+            </div>
+            {% else %}
+            <div>
+                {{vote.name}}: {{vote.count}}
+            </div>
+            {% endif %}
+        </strong>
+        {% endfor %}
+    </p>
 </div>
 <button type="button" class="collapsible" id="vote_details">Vote Details</button>
 <div class="content">
     <table width="100%">
-    <tr>
-    <thead><td width="50%">Player</td><td>Vote</td></thead>
-    </tr>
-    {% for v in vote_information %}
-    <tr>
-    <td>
-    {{ v.voter }} ({{ v.voter_role }})
-    </td>
-    <td>
-    {{ v.target }} ({{ v.target_role }})
-    </td>
-    </tr>
-    {%endfor%}
+        <tr>
+            <thead>
+                <td width="50%">Player</td>
+                <td>Vote</td>
+            </thead>
+        </tr>
+        {% for v in vote_information %}
+        <tr>
+            <td>
+                {{ v.voter }} ({{ v.voter_role }})
+            </td>
+            <td>
+                {{ v.target }} ({{ v.target_role }})
+            </td>
+        </tr>
+        {%endfor%}
+        {% for p in non_voting_players %}
+        <tr>
+            <td>
+                {{ p.player }} ({{ p.role }})
+            </td>
+            <td>
+            </td>
+        </tr>
+        {% endfor %}
     </table>
 </div>

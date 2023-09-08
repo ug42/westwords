@@ -65,7 +65,6 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertTrue(
             self.game.set_doppelganger_target('doppelganger', 'esper'))
 
-
         # Do the targetting roles
         self.assertEqual(self.game.game_state,
                          GameState.NIGHT_PHASE_TARGETTING)
@@ -90,37 +89,49 @@ class testWestwordsFunctional(unittest.TestCase):
             'werewolf1', acknowledge=True)
         self.assertEqual(word, selected_word)
         self.assertEqual(roles, {'werewolf2': 'Werewolf'})
-        word, roles = self.game.get_player_revealed_information('seer', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'seer', acknowledge=True)
         self.assertEqual(word, selected_word)
         self.assertEqual(roles, {'esper': 'Esper'})
-        word, roles = self.game.get_player_revealed_information('doppelganger', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'doppelganger', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(roles, {'esper': 'Esper'})
-        word, roles = self.game.get_player_revealed_information('mason1', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'mason1', acknowledge=True)
         self.assertEqual(word, selected_word)
         self.assertEqual(roles, {'mason2': 'Mason'})
-        word, roles = self.game.get_player_revealed_information('mason2', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'mason2', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(roles, {'mason1': 'Mason'})
-        word, roles = self.game.get_player_revealed_information('werewolf2', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'werewolf2', acknowledge=True)
         self.assertEqual(word, selected_word)
-        self.assertEqual(roles, {'doppelganger': 'Esper (Doppelganger)', 'werewolf1': 'Werewolf'})
-        word, roles = self.game.get_player_revealed_information('fortuneteller', acknowledge=True)
+        self.assertEqual(
+            roles, {'doppelganger': 'Esper (Doppelganger)', 'werewolf1': 'Werewolf'})
+        word, roles = self.game.get_player_revealed_information(
+            'fortuneteller', acknowledge=True)
         self.assertRegexpMatches(word, r'(.\*+){1,}$')
         self.assertEqual(roles, {})
-        word, roles = self.game.get_player_revealed_information('intern', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'intern', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(roles, {})
-        word, roles = self.game.get_player_revealed_information('esper', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'esper', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(roles, {})
-        word, roles = self.game.get_player_revealed_information('beholder', acknowledge=True)
+        word, roles = self.game.get_player_revealed_information(
+            'beholder', acknowledge=True)
         self.assertEqual(word, None)
-        self.assertEqual(roles, {'seer': '???', 'fortuneteller': '???', 'intern': '???'})
+        self.assertEqual(
+            roles, {'seer': '???', 'fortuneteller': '???', 'intern': '???'})
         self.assertFalse(self.game.acknowledge_revealed_info('werewolf2'))
         word, roles = self.game.get_player_revealed_information('minion')
         self.assertEqual(word, None)
-        self.assertEqual(roles, {'werewolf1': 'Werewolf', 'werewolf2': 'Werewolf'})
+        self.assertEqual(
+            roles, {'werewolf1': 'Werewolf', 'werewolf2': 'Werewolf'})
         self.game.acknowledge_revealed_info('minion')
 
         # After ack of all roles, it should automatically start day phase.
@@ -149,19 +160,21 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(id, 2)
         error = self.game.answer_question(id, AnswerToken.CORRECT)
-        self.assertTrue(success)
+        self.assertIsNone(error)
 
-        self.assertTrue(self.game.start_vote())
         self.assertEqual(self.game.game_state, GameState.VOTING)
         self.assertEqual(self.game.get_required_voters(),
                          ['werewolf1', 'werewolf2'])
 
         self.assertTrue(self.game.vote('werewolf1', 'villager'))
         self.assertTrue(self.game.vote('werewolf2', 'mason2'))
-        self.assertEqual(self.game.get_results(),
-                         (Affiliation.VILLAGE,
-                          ['villager', 'mason2'],
-                          {'werewolf1': 'villager', 'werewolf2': 'mason2'}))
+        self.assertEqual(self.game.game_state, GameState.FINISHED)
+        winner, killed_players, votes, players = self.game.get_results()
+        self.assertEqual(winner, Affiliation.VILLAGE)
+        self.assertEqual(killed_players, ['villager', 'mason2'])
+        self.assertEqual(
+            votes, {'werewolf1': 'villager', 'werewolf2': 'mason2'})
+        self.assertCountEqual(players, self.player_sid_list)
 
 
 if __name__ == '__main__':

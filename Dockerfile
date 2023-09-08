@@ -15,9 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Run as non-root
 RUN adduser --system --group --no-create-home app
-RUN chown -R app:app /app
+RUN chown -R app:app /app 
 USER app
 
+EXPOSE 8000/tcp
 EXPOSE 80/tcp
 EXPOSE 443/tcp
 

@@ -1,3 +1,14 @@
+<span class="mdl-dialog__content">
+    <span>
+    <b>
+    Your role is {{player_role}}
+    </b>
+    </span>
+    <span>
+    {% if image|length %}<img src="{{ url_for('static', filename='img/' + image) }}"
+            title="{{role_description}}" width="24" height="24"><br> {% endif %}
+    </span>
+</span>
 <div class="mdl-dialog__content">
     Select a word:
 </div>

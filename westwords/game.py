@@ -40,10 +40,6 @@ ROLES = RoleDict({
 })
 
 
-def logging_func(e: str):
-    print(e)
-
-
 class GameError(Exception):
 
     def __init__(self, message):
@@ -98,6 +94,13 @@ class Game(object):
     def tokens(self) -> dict[AnswerToken, int]:
         return self._tokens
 
+    def log(self, log_entry: str):
+        if log_entry:
+            self._log.append(f'{str(datetime.now())} : {log_entry}')
+
+    def print_log(self) -> str:
+        return '\n'.join(self._log)
+
     # Game state functions
     def start_night_phase_word_choice(self):
         """Start the night phase of game.
@@ -106,7 +109,7 @@ class Game(object):
             True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            logging_func(f'Game not in SETUP state: {self.game_state}')
+            self.log(f'Game not in SETUP state: {self.game_state}')
             return False
         # TODO: Remove this in favor of choosing roles
         try:
@@ -241,7 +244,7 @@ class Game(object):
 
     def get_players_needing_to_target(self):
         return self.night_actions_required
-    
+
     def get_players_needing_to_ack(self):
         """Returns a list of player SIDs needing to ack the reveal info."""
         if self.game_state != GameState.NIGHT_PHASE_REVEAL:
@@ -263,7 +266,7 @@ class Game(object):
 
     def get_spectators(self):
         return [s for s in self.spectators if s not in self.player_sids]
-    
+
     def get_mayor_nominees(self):
         return self.mayor_nominees
 
@@ -288,12 +291,13 @@ class Game(object):
         self.game_state = GameState.SETUP
         self.killed_players = []
         self.last_answered = None
+        self._log = []
         self.mayor = None
         self.mayor_nominees = []
         self.night_actions_required = []
         self.player_token_count = {}
         self.reveal_ack_required = []
-        self.questions:List[Question] = []
+        self.questions: List[Question] = []
         self.required_voters = []
         self.selected_roles = []
         self.start_time = None
@@ -327,10 +331,9 @@ class Game(object):
                     self.game_state = GameState.VOTING
             if (self.out_of_tokens or self.word_guessed):
                 self.game_state = GameState.VOTING
-                
 
         if self.game_state != GameState.VOTING:
-            logging_func(
+            self.log(
                 'End of game conditions not met.\n'
                 f'Word guessed: {self.word_guessed}\n'
                 f'Elapsed sec: {(datetime.now() - self.start_time).seconds}'
@@ -346,7 +349,7 @@ class Game(object):
             # Drop all player_sids into required voters since everyone can vote
             # including Werewolfs and Minions during this state.
             self.required_voters = list(self.player_sids)
-        
+
         # Set the voting end time stamp.
         self.end_vote_timestamp_ms = int(time.time() + self.vote_timer) * 1e3
 
@@ -364,7 +367,7 @@ class Game(object):
 
     def is_voting(self) -> bool:
         return self.game_state == GameState.VOTING
-    
+
     def is_finished(self) -> bool:
         return self.game_state == GameState.FINISHED
 
@@ -413,7 +416,7 @@ class Game(object):
         """
         if self.game_state == GameState.NIGHT_PHASE_WORD_CHOICE:
             if word not in self.word_choices:
-                logging_func(
+                self.log(
                     f'Unable to set {word}. Word not in: {self.word_choices}')
                 return False
             self.word = word
@@ -518,12 +521,12 @@ class Game(object):
 
         Returns:
             A tuple Affilition enum for winner, list of str killed player sids,
-            and a dict of votes for each player.
+            a dict of votes for each player, and all players and roles.
         """
         if self.game_state != GameState.FINISHED:
-            logging_func(f'Game not finished, no results to give.')
+            self.log(f'Game not finished, no results to give.')
             return None
-        return (self.winner, self.killed_players, self.votes)
+        return (self.winner, self.killed_players, self.votes, self.player_sids)
 
     def set_timer(self, time_in_seconds: int) -> None:
         """Set the timer amount in seconds.
@@ -532,7 +535,6 @@ class Game(object):
             time_in_seconds: Integer time. in. seconds.
         """
         if time_in_seconds > 0:
-            logging_func(f'Setting time to {time_in_seconds}')
             self.timer = time_in_seconds
 
     def set_vote_timer(self, time_in_seconds) -> None:
@@ -542,9 +544,7 @@ class Game(object):
             time_in_seconds: Integer time. in. seconds.
         """
         if time_in_seconds > 0:
-            logging_func(f'Setting time to {time_in_seconds}')
             self.vote_timer = time_in_seconds
-
 
     def vote(self, voter_sid: str, target_sid: str) -> bool:
         """Votes for player identified by session ID.
@@ -626,7 +626,7 @@ class Game(object):
     def nominate_for_mayor(self, sid: str):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
-            logging_func(f'Adding {sid} to mayor nominees')
+            self.log(f'Adding {sid} to mayor nominees')
 
     def add_player(self, sid: str):
         """Add player to game.
@@ -635,7 +635,7 @@ class Game(object):
             True if successful; False otherwise.
         """
         if self.game_state != GameState.SETUP:
-            logging_func(
+            self.log(
                 f'Player unable to join. Game in progress. Spectating.')
             self.add_spectator(sid)
             return False
@@ -647,7 +647,7 @@ class Game(object):
                 self.admin = self._get_next_admin()
             return True
         else:
-            logging_func(f'ADD: User {sid} already in game')
+            self.log(f'ADD: User {sid} already in game')
             return False
 
     def add_spectator(self, sid: str) -> bool:
@@ -660,7 +660,7 @@ class Game(object):
             self.spectators.append(sid)
             return True
         else:
-            logging_func(f'User {sid} already spectating game.')
+            self.log(f'User {sid} already spectating game.')
             return False
 
     def remove_player(self, sid: str) -> None:
@@ -669,16 +669,15 @@ class Game(object):
             if self.admin not in self.player_sids:
                 self.admin = self._get_next_admin()
         else:
-            logging_func(f'DELETE: User {sid} not in game')
+            self.log(f'DELETE: User {sid} not in game')
 
     def remove_spectator(self, sid: str) -> None:
         if sid in self.spectators:
             self.spectators.remove(sid)
         else:
-            logging_func(f'DELETE: User {sid} not spectating game')
+            self.log(f'DELETE: User {sid} not spectating game')
 
     def is_player_in_game(self, sid: str) -> bool:
-        logging_func(f'Attempting to verify player {sid}')
         return sid in self.player_sids
 
     def _current_role_instances(self, role: str) -> int:
@@ -706,10 +705,10 @@ class Game(object):
             return False
 
         if self._current_role_instances(role) >= role.get_max_instances():
-            logging_func(f'Unable to add {role}: too many of that role.')
+            self.log(f'Unable to add {role}: too many of that role.')
             return False
         if len(self.player_sids) < role.get_required_players():
-            logging_func(f'Unable to add {role}: too few players.')
+            self.log(f'Unable to add {role}: too few players.')
             return False
 
         self.selected_roles.append(role)
@@ -728,17 +727,16 @@ class Game(object):
             return False
 
         if role.is_required() and self._current_role_instances(role) == 1:
-            logging_func(f'Unable to remove {role} as it is required.')
+            self.log(f'Unable to remove {role} as it is required.')
             return False
         if self._current_role_instances(role) < 1:
-            logging_func(
+            self.log(
                 f'Unable to remove role {role} as it is not selected.')
             return False
 
         for i in range(len(self.selected_roles)):
             if self.selected_roles[i] == role:
                 removed_role = self.selected_roles[i].pop()
-                logging_func(f'Removed role: {removed_role}')
                 return True
 
         # In case I missed something :)
@@ -817,7 +815,7 @@ class Game(object):
 
     def _get_next_question_id(self):
         return len(self.questions)
-    
+
     def skip_question(self, game_id: str, question_id: int):
         if not self.is_started():
             return False
@@ -840,6 +838,8 @@ class Game(object):
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
                 return 'Question is already answered.'
+            elif self.questions[question_id].is_deleted():
+                return 'Question is deleted.'
 
             success = self._remove_token(answer)
             if not success:
@@ -869,7 +869,7 @@ class Game(object):
     def undo_answer(self):
         try:
             if self.last_answered is not None and self.last_answered < len(self.questions):
-                logging_func(
+                self.log(
                     f'Undoing answer for question id {self.last_answered}')
                 question = self.questions[self.last_answered]
                 token = question.clear_answer()
@@ -879,8 +879,8 @@ class Game(object):
                 self.game_state = GameState.DAY_PHASE_QUESTIONS
                 return True
         except (TypeError, KeyError) as e:
-            logging_func(f'Encountered error: {e}')
-        logging_func(
+            self.log(f'Encountered error: {e}')
+        self.log(
             f'No answer to undo for question id: {self.last_answered}')
         return False
 

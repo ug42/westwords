@@ -5,14 +5,15 @@
 <div class="main">
     <br>
     <div class="game_timer">
-    <div style="display: inline;" id="game_timer" class="game_timer" hidden></div>
-    <div id="game_timer_settings" class="material-icons game_timer game_timer_settings" hidden
-    onclick="let d = document.getElementById('timer_controls'); if (d.style.display === 'none') { d.style.display = 'block'; } else { d.style.display = 'none'; }">
-    settings</div>
+        <div style="display: inline;" id="game_timer" class="game_timer" hidden></div>
+        <div id="game_timer_settings" class="material-icons game_timer game_timer_settings" hidden
+            onclick="let d = document.getElementById('timer_controls'); if (d.style.display === 'none') { d.style.display = 'block'; } else { d.style.display = 'none'; }">
+            settings</div>
     </div>
     <div style="text-align: center; display: none;" id="timer_controls">
-    <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input">
-    <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value); document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
+        <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input">
+        <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value);
+            document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
     </div><br>
     <div id="player_info" hidden>
         <div id="players"></div>

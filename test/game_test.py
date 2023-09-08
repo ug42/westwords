@@ -100,7 +100,7 @@ class testGameFunctions(unittest.TestCase):
         self.game.votes = {'werewolf': 'villager'}
         self.game.game_state = GameState.FINISHED
         self.assertEqual(self.game.get_results(),
-                         ('Werewolf', 'villager', {'werewolf': 'villager'}))
+                         ('Werewolf', 'villager', {'werewolf': 'villager'}, {}))
 
     def testVote(self):
         with self.assertRaises(GameError):
@@ -335,7 +335,7 @@ class testQuestionFunctions(unittest.TestCase):
         with self.assertRaises(GameError):
             self.game.add_question('foo', 'Am I wrong?')
         error = self.game.answer_question(2, AnswerToken.YES)
-        self.assertEqual(error, 'Unknown question or other error encountered.')
+        self.assertEqual(error, 'Unable to answer questions after voting has started.')
         self.assertEqual(self.game.game_state, GameState.VOTING)
 
     def testUndoAnswer(self):
@@ -355,7 +355,7 @@ class testWestwordsInteraction(unittest.TestCase):
         self.game = GameClass(timer=300, player_sids=self.player_sids)
         self.game.set_timer(1)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
-        self.game.game_state = GameState.VOTING
+        self.game.game_state = GameState.DAY_PHASE_QUESTIONS
         self.game.player_sids['foo'] = Villager()
         self.game.player_sids['bar'] = Villager()
         self.game.player_sids['baz'] = Seer()
@@ -368,7 +368,7 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertTrue(self.game.vote('foo', 'bar'))
         self.assertTrue(self.game.vote('baz', 'bar'))
         self.assertTrue(self.game.vote('bar', 'xxx'))
-        winner, killed_players, votes = self.game.get_results()
+        winner, killed_players, votes, players = self.game.get_results()
         self.assertEqual(winner, Affiliation.WEREWOLF)
         self.assertCountEqual(killed_players, ['bar'])
         expected_votes = {
@@ -378,6 +378,7 @@ class testWestwordsInteraction(unittest.TestCase):
             'bar': 'xxx',
         }
         self.assertEqual(expected_votes, votes)
+        self.assertCountEqual(players, self.player_sids)
 
     def testVillageWinWordNotGuessed(self):
         self.assertTrue(self.game.start_vote())
@@ -386,7 +387,7 @@ class testWestwordsInteraction(unittest.TestCase):
         self.assertTrue(self.game.vote('foo', 'xxx'))
         self.assertTrue(self.game.vote('baz', 'bar'))
         self.assertTrue(self.game.vote('bar', 'xxx'))
-        winner, killed_players, votes = self.game.get_results()
+        winner, killed_players, votes, players = self.game.get_results()
         self.assertEqual(winner, Affiliation.VILLAGE)
         self.assertCountEqual(killed_players, ['bar', 'xxx'])
         expected_votes = {
@@ -396,26 +397,29 @@ class testWestwordsInteraction(unittest.TestCase):
             'bar': 'xxx',
         }
         self.assertEqual(expected_votes, votes)
+        self.assertCountEqual(players, self.player_sids)
 
     def testWerewolfWinWordGuessed(self):
         self.game._remove_token(AnswerToken.CORRECT)
         self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'baz'))
-        winner, killed, votes = self.game.get_results()
+        winner, killed_players, votes, players = self.game.get_results()
         self.assertEqual(winner, Affiliation.WEREWOLF)
-        self.assertEqual(killed, ['baz'])
+        self.assertEqual(killed_players, ['baz'])
         self.assertEqual(votes, {'xxx': 'baz'})
+        self.assertCountEqual(players, self.player_sids)
 
     def testVillageWinWordGuessed(self):
         self.game._remove_token(AnswerToken.CORRECT)
         self.assertTrue(self.game.start_vote())
         self.assertCountEqual(self.game.get_required_voters(), ['xxx'])
         self.assertTrue(self.game.vote('xxx', 'bar'))
-        winner, killed, votes = self.game.get_results()
+        winner, killed_players, votes, players = self.game.get_results()
         self.assertEqual(winner, Affiliation.VILLAGE)
-        self.assertEqual(killed, ['bar'])
+        self.assertEqual(killed_players, ['bar'])
         self.assertEqual(votes, {'xxx': 'bar'})
+        self.assertCountEqual(players, self.player_sids)
 
 
 if __name__ == '__main__':

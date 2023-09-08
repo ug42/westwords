@@ -19,7 +19,7 @@ class Question(object):
         self.skipped = False
 
     def __str__(self):
-        return f'Question: {self.question_text} -- player: {self.player_sid}'
+        return f'{self.question_text}'
 
     def __repr__(self):
         return f'Question({self.player_sid}, {self.question_text})'
