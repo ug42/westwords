@@ -1,0 +1,16 @@
+{% for role in roles %}
+<span>
+    {% if role.image|length %}<img src="{{ url_for('static', filename='img/' + role.image) }}"
+        title="{{role.role_description}}" width="24" height="24">{% endif %}
+</span>
+<span>
+    <b>
+        {{ role.role }}
+    </b>
+</span>
+<span>
+    <button onclick="remove_role('{{ game_id }}', '{{ role.role }}')">−</button>
+    <span id="role_count_{{role.role}}">{{ role.current_instances }}</span>
+    <button onclick="add_role('{{ game_id }}', '{{ role.role }}')">+</button>
+</span><br>
+{% endfor %}

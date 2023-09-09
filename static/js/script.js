@@ -113,6 +113,12 @@ function finish_vote(game_id) {
 function toggle_question_autocomplete() {
     socket.emit('toggle_question_autocomplete');
 }
+function add_role(game_id, role) {
+    socket.emit('add_role', game_id, role);
+}
+function remove_role(game_id, role) {
+    socket.emit('remove_role', game_id, role);
+}
 
 function game_started_buttons() {
     // timer.start();
@@ -177,11 +183,11 @@ function autocomplete(inp, arr) {
     }
 
     var currentFocus;
-    inp.addEventListener("input", function(e) {
+    inp.addEventListener("input", function (e) {
         var a, b, i, val = this.value;
         /*close any already open lists of autocompleted values*/
         closeAllLists();
-        if (!val) { return false;}
+        if (!val) { return false; }
         currentFocus = -1;
         /*create a DIV element that will contain the items (values):*/
         a = document.createElement("DIV");
@@ -191,86 +197,87 @@ function autocomplete(inp, arr) {
         this.parentNode.appendChild(a);
         /*for each item in the array...*/
         for (i = 0; i < arr.length; i++) {
-          /*check if the item starts with the same letters as the text field value:*/
-          if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
-            /*create a DIV element for each matching element:*/
-            b = document.createElement("DIV");
-            /*make the matching letters bold:*/
-            b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
-            b.innerHTML += arr[i].substr(val.length);
-            /*insert a input field that will hold the current array item's value:*/
-            b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
-            /*execute a function when someone clicks on the item value (DIV element):*/
-                b.addEventListener("click", function(e) {
-                /*insert the value for the autocomplete text field:*/
-                inp.value = this.getElementsByTagName("input")[0].value;
-                if (inp.value != "") {
-                    socket.emit('question', local_game_state.game_id, inp.value);
-                    inp.value = "";
-                }
-                /*close the list of autocompleted values,
-                (or any other open lists of autocompleted values:*/
-                closeAllLists();
-            });
-            a.appendChild(b);
-          }
+            /*check if the item starts with the same letters as the text field value:*/
+            if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                /*create a DIV element for each matching element:*/
+                b = document.createElement("DIV");
+                /*make the matching letters bold:*/
+                b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+                b.innerHTML += arr[i].substr(val.length);
+                /*insert a input field that will hold the current array item's value:*/
+                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                /*execute a function when someone clicks on the item value (DIV element):*/
+                b.addEventListener("click", function (e) {
+                    /*insert the value for the autocomplete text field:*/
+                    inp.value = this.getElementsByTagName("input")[0].value;
+                    if (inp.value != "") {
+                        socket.emit('question', local_game_state.game_id, inp.value);
+                        inp.value = "";
+                    }
+                    /*close the list of autocompleted values,
+                    (or any other open lists of autocompleted values:*/
+                    closeAllLists();
+                });
+                a.appendChild(b);
+            }
         }
     });
     /*execute a function presses a key on the keyboard:*/
-    inp.addEventListener("keydown", function(e) {
+    inp.addEventListener("keydown", function (e) {
         var x = document.getElementById(this.id + "autocomplete-list");
         if (x) x = x.getElementsByTagName("div");
         if (e.keyCode == 40) {
-          /*If the arrow DOWN key is pressed,
-          increase the currentFocus variable:*/
-          currentFocus++;
-          /*and and make the current item more visible:*/
-          addActive(x);
+            /*If the arrow DOWN key is pressed,
+            increase the currentFocus variable:*/
+            currentFocus++;
+            /*and and make the current item more visible:*/
+            addActive(x);
         } else if (e.keyCode == 38) { //up
-          /*If the arrow UP key is pressed,
-          decrease the currentFocus variable:*/
-          currentFocus--;
-          /*and and make the current item more visible:*/
-          addActive(x);
+            /*If the arrow UP key is pressed,
+            decrease the currentFocus variable:*/
+            currentFocus--;
+            /*and and make the current item more visible:*/
+            addActive(x);
         } else if (e.keyCode == 13) {
-          /*If the ENTER key is pressed, prevent the form from being submitted,*/
-          e.preventDefault();
-          if (currentFocus > -1) {
-            /*and simulate a click on the "active" item:*/
-            if (x) x[currentFocus].click();
-          }
+            /*If the ENTER key is pressed, prevent the form from being submitted,*/
+            e.preventDefault();
+            if (currentFocus > -1) {
+                /*and simulate a click on the "active" item:*/
+                if (x) x[currentFocus].click();
+            }
+            // TODO: Add the ability to enter to submit.
         }
     });
     function addActive(x) {
-      /*a function to classify an item as "active":*/
-      if (!x) return false;
-      /*start by removing the "active" class on all items:*/
-      removeActive(x);
-      if (currentFocus >= x.length) currentFocus = 0;
-      if (currentFocus < 0) currentFocus = (x.length - 1);
-      /*add class "autocomplete-active":*/
-      x[currentFocus].classList.add("autocomplete-active");
+        /*a function to classify an item as "active":*/
+        if (!x) return false;
+        /*start by removing the "active" class on all items:*/
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (x.length - 1);
+        /*add class "autocomplete-active":*/
+        x[currentFocus].classList.add("autocomplete-active");
     }
     function removeActive(x) {
-      /*a function to remove the "active" class from all autocomplete items:*/
-      for (var i = 0; i < x.length; i++) {
-        x[i].classList.remove("autocomplete-active");
-      }
+        /*a function to remove the "active" class from all autocomplete items:*/
+        for (var i = 0; i < x.length; i++) {
+            x[i].classList.remove("autocomplete-active");
+        }
     }
     function closeAllLists(elmnt) {
-      /*close all autocomplete lists in the document,
-      except the one passed as an argument:*/
-      var x = document.getElementsByClassName("autocomplete-items");
-      for (var i = 0; i < x.length; i++) {
-        if (elmnt != x[i] && elmnt != inp) {
-        x[i].parentNode.removeChild(x[i]);
-      }
+        /*close all autocomplete lists in the document,
+        except the one passed as an argument:*/
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+            if (elmnt != x[i] && elmnt != inp) {
+                x[i].parentNode.removeChild(x[i]);
+            }
+        }
     }
-  }
-  /*execute a function when someone clicks in the document:*/
-  document.addEventListener("click", function (e) {
-      closeAllLists(e.target);
-  });
+    /*execute a function when someone clicks in the document:*/
+    document.addEventListener("click", function (e) {
+        closeAllLists(e.target);
+    });
 }
 
 // TODO: Factor out the two timer functions to a single timer function
@@ -355,7 +362,6 @@ function refresh_questions(game_id) {
     };
 })();
 
-// TODO: Decouple player, questions and game state.
 function refresh_game_state(g) {
     console.log('Attempting to refresh game state')
     local_game_state = g;
@@ -382,6 +388,7 @@ function refresh_game_state(g) {
     let dialog = document.querySelector('dialog');
 
 
+    let roles_div = document.getElementById('roles')
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
     if (local_game_state.mayor !== null) {
         nominate_for_mayor_btn.hidden = true;
@@ -401,8 +408,15 @@ function refresh_game_state(g) {
         game_setup_buttons();
         refresh_questions(local_game_state.game_id);
         game_timer.innerHTML = format_time(local_game_state.timer * 1000)
+        socket.emit('get_role_page', local_game_state.game_id, (response) => {
+            if (response.status === 'OK') {
+                roles_div.hidden = false;
+                roles_div.innerHTML = response.role_html;
+            }
+        });
     } else {
         game_started_buttons();
+        roles_div.hidden = true;
     }
 
     let title_bar_role = document.getElementById('title-bar-role');
@@ -617,6 +631,16 @@ ready(function () {
     socket.on('refresh_players', function (data) {
         console.log(data);
         refresh_players(data);
+    });
+    socket.on('role_update', function (data) {
+        if (local_game_state.game_id === data.game_id) {
+            let role_count = document.getElementById('role_count_' + data.role);
+            socket.emit('get_role_count', game_id, role, (response) => function () {
+                if (response.status === 'OK') {
+                    role_count.innerHTML = response.count;
+                }
+            });
+        }
     });
 
     var question = document.getElementById('question');

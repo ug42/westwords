@@ -692,7 +692,7 @@ class Game(object):
         return len([
             r for r in self.selected_roles if str(r) == role.capitalize()])
 
-    def add_role(self, role: Role):
+    def add_role(self, role: str):
         """Add the selected role to game.
 
         Args:
@@ -704,17 +704,20 @@ class Game(object):
         if self.game_state.name != GameState.SETUP:
             return False
 
-        if self._current_role_instances(role) >= role.get_max_instances():
+        if role not in ROLES:
+            return False
+        
+        if self._current_role_instances(role) >= ROLES[role].get_max_instances():
             self.log(f'Unable to add {role}: too many of that role.')
             return False
-        if len(self.player_sids) < role.get_required_players():
+        if len(self.player_sids) < ROLES[role].get_required_players():
             self.log(f'Unable to add {role}: too few players.')
             return False
 
         self.selected_roles.append(role)
         return True
 
-    def remove_role(self, role):
+    def remove_role(self, role: Role):
         """Remove the provided role from the game.
 
         Args:
@@ -725,8 +728,11 @@ class Game(object):
         """
         if self.game_state.name != GameState.SETUP:
             return False
+        
+        if role not in ROLES:
+            return False
 
-        if role.is_required() and self._current_role_instances(role) == 1:
+        if ROLES[role].is_required() and self._current_role_instances(role) == 1:
             self.log(f'Unable to remove {role} as it is required.')
             return False
         if self._current_role_instances(role) < 1:
@@ -735,32 +741,48 @@ class Game(object):
             return False
 
         for i in range(len(self.selected_roles)):
-            if self.selected_roles[i] == role:
-                removed_role = self.selected_roles[i].pop()
+            if isinstance(self.selected_roles[i], ROLES[role]):
+                _ = self.selected_roles[i].pop()
                 return True
 
         # In case I missed something :)
         return False
 
-    def get_selected_roles(self):
+    def get_roles(self):
         """Gets the list of roles that are currently selected.
 
         Returns:
             A list of strings representing each role's name in the amount of """
 
-        return sorted(self.selected_roles)
+        role_counts = {}
+        for role in self.selected_roles:
+            if str(role) not in role_counts:
+                role_counts[str(role)] = 0
+            role_counts[str(role)] += 1
+        
 
-    def get_possible_roles(self):
-        """Get all possible roles for this game.
-
-        Returns a list of strings enumerating each possible role invocation.
-        """
         roles = []
         for role in ROLES:
-            if ROLES[role].get_required_players() <= len(self.player_sids):
-                for _ in range(ROLES[role].get_max_instances()):
-                    roles.append(deepcopy(ROLES[role]))
+            role_string = str(role)
+            
+            role_count = 0
+            if role_string in role_counts:
+                role_count = role_counts[role_string]
+
+            roles.append({
+                'role': role_string,
+                'image': ROLES[role_string].get_image_name(),
+                'role_description': ROLES[role_string].get_role_description(),
+                'min_players': ROLES[role_string].get_required_players(),
+                'max_instances': ROLES[role_string].get_max_instances(),
+                'current_instances': role_count,
+            })
+            
         return roles
+
+    def get_role_count(self, role: str) -> int:
+        return self._current_role_instances(role)
+    
 
     # Question functions
     def add_question(self, sid, question_text):

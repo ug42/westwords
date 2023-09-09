@@ -280,14 +280,14 @@ class testRoleSelectionFunctions(unittest.TestCase):
                               player_sids=['foo', 'bar', 'baz', 'xxx'])
 
     def testAddRole(self):
-        self.assertListEqual(self.game.get_selected_roles(), [])
+        self.assertListEqual(self.game.get_roles(), [])
         roles = self.game.get_possible_roles()
         self.assertEqual(len(roles), 13)
         # TODO: Add more in-depth tests to ensures Roles are being returned with
         # the right numbers.
         for role in roles:
             self.assertGreaterEqual(len(self.game.get_players()),
-                                    role.get_required_players())
+                                    role.get_roles())
 
         for role in roles:
             self.game.add_role(role)

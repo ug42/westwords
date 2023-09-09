@@ -45,14 +45,14 @@ socketio = SocketIO(app)
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
-# TODO: Add pause for game timer NOT vote timer
+# Add UI element to show selected roles
 
 # UI mechanics
 # TODO: Add role selection mechanics
 # TODO: Add ability to add own questions
 
-SOCKET_MAP = {}
 # TODO: move this off to a backing store.
+SOCKET_MAP = {}
 
 
 class PlayerDict(UserDict):
@@ -65,7 +65,6 @@ class GamesDict(UserDict):
         return super().__getitem__(key)
 
 
-# TODO: move this off to a backing store.
 PLAYERS = PlayerDict()
 GAMES = GamesDict()
 
@@ -140,6 +139,10 @@ def mark_new_update(game_id: str) -> None:
         socketio.emit('game_state_update',
                       {'game_id': game_id, 'timestamp': new_timestamp},
                       room=game_id)
+
+def mark_new_role_count(game_id: str, role: str) -> None:
+    if game_id in GAMES:
+        socketio.emit('role_update', str(role), room=game_id)
 
 
 def refresh_players(game_id: str) -> None:
@@ -351,7 +354,6 @@ def game_index(game_id: str):
     )
 
 
-# TODO: Move this to use Flask rooms, if useful above current setup
 @app.route('/create', methods=['POST', 'GET'], strict_slashes=False)
 @app.route('/create/<game_id>', methods=['GET'], strict_slashes=False)
 def create_game(game_id: str = None):
@@ -428,7 +430,6 @@ def logout():
 def connect(auth: str):
     if 'sid' not in session:
         session['sid'] = str(uuid4())
-    # TODO: Fix username KeyError on initial connect
     if session['sid'] not in PLAYERS:
         PLAYERS[session['sid']] = westwords.Player(session['username'])
     SOCKET_MAP[session['sid']] = request.sid
@@ -1027,8 +1028,8 @@ def set_word(game_id: str, word: str):
                        ' onclick="close_dialog()">OK</button>'),)
         return
 
+    words = GAMES[game_id].get_words()
     if GAMES[game_id].set_word(word):
-        words = GAMES[game_id].get_words()
         GAMES[game_id].log(f'Mayor {PLAYERS[session["sid"]].name} chose word '
                            f'"{word}". Possible options are {words}')
         mark_new_update(game_id)
@@ -1128,7 +1129,50 @@ def boot_player(game_id: str, player_sid: str):
             GAMES[game_id].log(
                 f'{PLAYERS[session["sid"]].name} booted '
                 f'{PLAYERS[player_sid].name}')
+            
 
+@socketio.on('get_role_page')
+def get_roles(game_id: str):
+    if game_id in GAMES:
+        player_is_admin = session['sid'] == GAMES[game_id].admin
+        roles = GAMES[game_id].get_roles()
+        return {
+            'status': 'OK',
+            'role_html': render_template('role_layout.html.j2',
+                                         game_id=game_id,
+                                         roles=roles,
+                                         player_is_admin=player_is_admin,                                         
+                                         )
+        }
+
+
+@socketio.on('add_role')
+def add_role(game_id: str, role:str):
+    app.logger.debug(f'Got request to add role: {role}')
+    if game_id in GAMES:
+        if GAMES[game_id].add_role(role):
+            mark_new_role_count(game_id, role)
+
+
+@socketio.on('remove_role')
+def remove_role(game_id: str, role: str):
+    app.logger.debug(f'Got request to remove role: {role}')
+    if game_id in GAMES:
+        if GAMES[game_id].remove_role(role):
+            mark_new_role_count(game_id, role)
+
+
+@socketio.on('get_role_count')
+def get_role_count(game_id: str, role: str):
+    if game_id in GAMES:
+        count = GAMES[game_id].get_role_count(role)
+        if count:
+            return {
+                'status': 'OK',
+                'count': count,
+            }
+    return {'status': 'FAILED', 'count': '',}
+    
 
 if __name__ == '__main__':
     socketio.run(app)
