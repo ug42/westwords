@@ -50,9 +50,56 @@ socketio = SocketIO(app)
 # UI mechanics
 # TODO: Add role selection mechanics
 # TODO: Add ability to add own questions
+# TODO: Figure out delete vs answer vs mayor prompt
+#   Set delete and answer to be gated as close to state change as possible now.
+#   Not mutex locking, so still possible.
+#   Mayor questions on deleted questions should be updated.
+# TODO: Add role to players killed page
+# TODO: Fix how the refresh timer function interval gets reinitialize many times
+#   whenever states refreshes/questions asked, etc.
+# TODO: SHow current game state so people know why we're waiting for people.
+# TODO: Add a timer to the reveal section or do away with the ACK part
+# TODO: Remove question from autocomplete if already asked.
+# TODO: Remove gap above skip icon (Decrease size of icon maybe?)
+# TODO: Allow ability to undo skipped question
+# TODO: Add roles to the logged function
 
 # TODO: move this off to a backing store.
 SOCKET_MAP = {}
+COMMON_QUESTIONS = [
+    'Can it fly?',
+    'Can you control it?',
+    'Can you own more than one?',
+    'Can you own one?',
+    'Can you purchase it?',
+    'Can you see it?',
+    'Can you touch it?',
+    'Do you have more than one?',
+    'Do you have one?',
+    'Does it have feelings?',
+    'Does it have opposable digits?',
+    'Has it ever been alive?',
+    'Is it a concept?',
+    'Is it a plant?',
+    'Is it a proper noun?',
+    'Is it a tool?',
+    'Is it an action?',
+    'Is it alive?',
+    'Is it bigger than a bread box?',
+    'Is it bigger than a planet?',
+    'Is it considered expensive?',
+    'Is it edible?',
+    'Is it food?',
+    'Is it found in a house?',
+    'Is it found on Earth?',
+    'Is it larger than a house?',
+    'Is it mechanical?',
+    'Is it something that is used daily?',
+    'Is it taught in elementary school?',
+    'Is it taught in high school?',
+    'Is the person alive?',
+    'Would you find it in a garage?',
+]
 
 
 class PlayerDict(UserDict):
@@ -349,6 +396,7 @@ def game_index(game_id: str):
         player_is_admin=game_state['player_is_admin'],
         role=game_state['role'],
         autocomplete_enabled=autocomplete_enabled,
+        common_questions=COMMON_QUESTIONS,
         # Remove this when done poking at things. :P
         DEBUG=app.config['DEBUG'],
     )
@@ -491,7 +539,7 @@ def get_questions(game_id: str):
             'status': 'OK',
             'questions_html': questions_html,
         }
-    return {'status': 'FAILED', 'question': ''}
+    return {'status': 'ERROR', 'question': ''}
 
 
 @socketio.on('get_next_unanswered_question')
@@ -505,7 +553,8 @@ def get_mayor_question(game_id: str) -> None:
             if GAMES[game_id].tokens[token] > 0:
                 tokens.append(token)
         for id, question in enumerate(questions):
-            if not question.get_answer() and not question.is_skipped():
+            if not question.get_answer() and not (
+                question.is_skipped() or question.is_deleted()):
                 question_info = get_question_info(question, id)
                 return {'status': 'OK',
                         'question_html': render_template(
@@ -515,7 +564,7 @@ def get_mayor_question(game_id: str) -> None:
                             question_id=id,
                             tokens=tokens,),
                         }
-    return {'status': 'NO_UNANSWERED_QUESTIONS', 'question_html': ''}
+    return {'status': 'NO_DATA', 'question_html': ''}
 
 
 @socketio.on('get_players')
@@ -568,7 +617,7 @@ def get_players(game_id: str):
             'status': 'OK',
             'players_html': players_html,
         }
-    return {'status': 'FAILED', 'question': ''}
+    return {'status': 'ERROR', 'question': ''}
 
 
 @socketio.on('answer_question')
@@ -636,7 +685,7 @@ def game_status(game_id: str, timestamp: int):
             'status': 'OK',
             'game_state': parse_game_state(game_id, session['sid']),
         }
-    return {'status': 'FAILED', 'game_state': ''}
+    return {'status': 'ERROR', 'game_state': ''}
 
 
 # Mayor functions
@@ -662,15 +711,18 @@ def start_vote(game_id: str):
         if success:
             GAMES[game_id].log('Voting is started.')
             mark_new_update(game_id)
+            return {'status': 'OK'}
+    return {'status': 'ERROR'}
 
 
 @socketio.on('nominate_for_mayor')
 def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
-        GAMES[game_id].nominate_for_mayor(session['sid'])
-        GAMES[game_id].log(f'{PLAYERS[session["sid"]].name} runs for mayor')
-        socketio.emit('user_info', f"You are running for mayor.",
-                      to=SOCKET_MAP[session['sid']])
+        if GAMES[game_id].nominate_for_mayor(session['sid']):
+            app.logger.debug(f'{PLAYERS[session["sid"]].name} ran for mayor')
+            GAMES[game_id].log(f'{PLAYERS[session["sid"]].name} runs for mayor')
+            return {'status': 'OK'}
+    return {'status': 'ERROR'}
 
 
 @socketio.on('set_word_choice_count')
@@ -693,7 +745,7 @@ def set_word_choice_count(game_id: str, word_count: int):
 def get_words(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         if GAMES[game_id].word:
-            return {'status': 'FAILED'}
+            return {'status': 'ERROR'}
         words = GAMES[game_id].get_words()
         role = GAMES[game_id].get_player_role(session['sid'])
         if words and GAMES[game_id].mayor == session['sid']:
@@ -875,7 +927,7 @@ def get_results(game_id: str):
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
             ),
         }
-    return {'status': 'BAD', 'results_html': None}
+    return {'status': 'ERROR', 'results_html': None}
 
 
 @socketio.on('get_player_revealed_information')
@@ -903,7 +955,7 @@ def get_player_revealed_information(game_id: str):
                 footer_mode=False,
             ),
         }
-    return {'status': 'BAD', 'reveal_html': None}
+    return {'status': 'ERROR', 'reveal_html': None}
 
 
 @socketio.on('get_voting_page')
@@ -1001,7 +1053,7 @@ def get_night_action_page(game_id: str):
                 night_action_text=night_action_description,
             ),
         }
-    return {'status': False, 'night_action_html': None}
+    return {'status': 'ERROR', 'night_action_html': None}
 
 
 @socketio.on('set_word')
@@ -1171,7 +1223,7 @@ def get_role_count(game_id: str, role: str):
                 'status': 'OK',
                 'count': count,
             }
-    return {'status': 'FAILED', 'count': '',}
+    return {'status': 'ERROR', 'count': '',}
     
 
 if __name__ == '__main__':
