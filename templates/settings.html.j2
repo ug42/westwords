@@ -6,9 +6,6 @@
     <input onclick="document.getElementById('toggle_autocomplete').submit();" type="checkbox" id="autocomplete" class="mdl-checkbox__input"{% if autocomplete_enabled %} checked{% endif %}    >
     <span class="mdl-checkbox__label">Autocomplete</span>
 </label>
-Game timer: <input type="text" name="game_timer" id="game_timer" value="{{ game_timer }}">
-<button hidden class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-    onclick="document.getElementById('toggle_autocomplete').submit();">Save</button>
 </form>
 <p>
 <form action="/username" id="username_change" method="POST">

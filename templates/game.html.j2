@@ -34,7 +34,20 @@
         <button onclick="window.location.href='/join/{{ game_id }}'"
             class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="join_game"
             hidden>Join Game</button>
-        <div id="question_input" class="autocomplete" hidden>
+
+        <div id="question_input" hidden>
+                <input id="question" autocomplete="off" class="question-box" type="search" list="questions" placeholder="Ask a question...">
+                {%  if autocomplete_enabled is true %}
+                <datalist id="questions">
+                {% for q in common_questions %}
+                <option value="{{ q }}" />
+                {% endfor %}
+                </datalist>
+                {% endif %}
+                <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
+
+
+        {# <div id="question_input" class="autocomplete" hidden>
             <input id="question" autocomplete="off" class="question-box autocomplete" type="search"
                 placeholder="Ask a question...">
             <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
@@ -42,7 +55,7 @@
             <script>
                 autocomplete(document.getElementById("question"), canned_questions);
             </script>
-            {% endif %}
+            {% endif %} #}
         </div>
     </div>
     <div id="roles" hidden></div>

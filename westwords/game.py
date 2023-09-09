@@ -1,6 +1,5 @@
 # Game and player-related classes
 import logging
-import math
 import time
 from collections import UserDict, UserList
 from copy import deepcopy
@@ -626,7 +625,8 @@ class Game(object):
     def nominate_for_mayor(self, sid: str):
         if sid in self.player_sids and sid not in self.mayor_nominees:
             self.mayor_nominees.append(sid)
-            self.log(f'Adding {sid} to mayor nominees')
+            return True
+        return False
 
     def add_player(self, sid: str):
         """Add player to game.
@@ -860,7 +860,7 @@ class Game(object):
         if question_id < len(self.questions):
             if self.questions[question_id].get_answer():
                 return 'Question is already answered.'
-            elif self.questions[question_id].is_deleted():
+            if self.questions[question_id].is_deleted():
                 return 'Question is deleted.'
 
             success = self._remove_token(answer)
@@ -868,7 +868,8 @@ class Game(object):
                 return f"Out of {answer.name} tokens"
 
             asking_player_sid = self.questions[question_id].player_sid
-            self.questions[question_id].answer_question(answer)
+            if not self.questions[question_id].answer_question(answer):
+                return f'Unable to answer question.'
             self.last_answered = question_id
             if asking_player_sid not in self.player_token_count:
                 self.player_token_count[asking_player_sid] = {
@@ -895,8 +896,9 @@ class Game(object):
                     f'Undoing answer for question id {self.last_answered}')
                 question = self.questions[self.last_answered]
                 token = question.clear_answer()
-                self._add_token(token)
-                self.player_token_count[question.player_sid][token] -= 1
+                if token:
+                    self._add_token(token)
+                    self.player_token_count[question.player_sid][token] -= 1
                 self.last_answered = None
                 self.game_state = GameState.DAY_PHASE_QUESTIONS
                 return True

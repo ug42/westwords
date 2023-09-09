@@ -1,40 +1,6 @@
 var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
 var local_time_skew = 0;
-var canned_questions = [
-    'Can it fly?',
-    'Can you control it?',
-    'Can you own more than one?',
-    'Can you own one?',
-    'Can you purchase it?',
-    'Can you see it?',
-    'Can you touch it?',
-    'Do you have more than one?',
-    'Do you have one?',
-    'Does it have feelings?',
-    'Does it have opposable digits?',
-    'Has it ever been alive?',
-    'Is it a concept?',
-    'Is it a plant?',
-    'Is it a proper noun?',
-    'Is it a tool?',
-    'Is it an action?',
-    'Is it alive?',
-    'Is it bigger than a bread box?',
-    'Is it bigger than a planet?',
-    'Is it considered expensive?',
-    'Is it edible?',
-    'Is it food?',
-    'Is it found in a house?',
-    'Is it found on Earth?',
-    'Is it larger than a house?',
-    'Is it mechanical?',
-    'Is it something that is used daily?',
-    'Is it taught in elementary school?',
-    'Is it taught in high school?',
-    'Is the person alive?',
-    'Would you find it in a garage?',
-];
 function get_game_state(game_id) {
     if (JSON.stringify(local_game_state) === '{}') {
         timestamp = 0;
@@ -85,10 +51,6 @@ function skip_question(game_id, question_id) {
 }
 function undo_answer(game_id) {
     socket.emit('undo', game_id);
-    close_dialog();
-}
-function start_vote(game_id) {
-    socket.emit('start_vote', game_id);
     close_dialog();
 }
 function send_start_req(game_id) {
@@ -176,129 +138,41 @@ function stop_timer() {
     game_timer.innerHTML = '00:00';
 }
 
-// Stolen wholesale from https://www.w3schools.com/howto/howto_js_autocomplete.asp
-function autocomplete(inp, arr) {
-    if (inp === null) {
-        return
-    }
-
-    var currentFocus;
-    inp.addEventListener("input", function (e) {
-        var a, b, i, val = this.value;
-        /*close any already open lists of autocompleted values*/
-        closeAllLists();
-        if (!val) { return false; }
-        currentFocus = -1;
-        /*create a DIV element that will contain the items (values):*/
-        a = document.createElement("DIV");
-        a.setAttribute("id", this.id + "autocomplete-list");
-        a.setAttribute("class", "autocomplete-items");
-        /*append the DIV element as a child of the autocomplete container:*/
-        this.parentNode.appendChild(a);
-        /*for each item in the array...*/
-        for (i = 0; i < arr.length; i++) {
-            /*check if the item starts with the same letters as the text field value:*/
-            if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
-                /*create a DIV element for each matching element:*/
-                b = document.createElement("DIV");
-                /*make the matching letters bold:*/
-                b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
-                b.innerHTML += arr[i].substr(val.length);
-                /*insert a input field that will hold the current array item's value:*/
-                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
-                /*execute a function when someone clicks on the item value (DIV element):*/
-                b.addEventListener("click", function (e) {
-                    /*insert the value for the autocomplete text field:*/
-                    inp.value = this.getElementsByTagName("input")[0].value;
-                    if (inp.value != "") {
-                        socket.emit('question', local_game_state.game_id, inp.value);
-                        inp.value = "";
-                    }
-                    /*close the list of autocompleted values,
-                    (or any other open lists of autocompleted values:*/
-                    closeAllLists();
-                });
-                a.appendChild(b);
-            }
-        }
-    });
-    /*execute a function presses a key on the keyboard:*/
-    inp.addEventListener("keydown", function (e) {
-        var x = document.getElementById(this.id + "autocomplete-list");
-        if (x) x = x.getElementsByTagName("div");
-        if (e.keyCode == 40) {
-            /*If the arrow DOWN key is pressed,
-            increase the currentFocus variable:*/
-            currentFocus++;
-            /*and and make the current item more visible:*/
-            addActive(x);
-        } else if (e.keyCode == 38) { //up
-            /*If the arrow UP key is pressed,
-            decrease the currentFocus variable:*/
-            currentFocus--;
-            /*and and make the current item more visible:*/
-            addActive(x);
-        } else if (e.keyCode == 13) {
-            /*If the ENTER key is pressed, prevent the form from being submitted,*/
-            e.preventDefault();
-            if (currentFocus > -1) {
-                /*and simulate a click on the "active" item:*/
-                if (x) x[currentFocus].click();
-            }
-            // TODO: Add the ability to enter to submit.
-        }
-    });
-    function addActive(x) {
-        /*a function to classify an item as "active":*/
-        if (!x) return false;
-        /*start by removing the "active" class on all items:*/
-        removeActive(x);
-        if (currentFocus >= x.length) currentFocus = 0;
-        if (currentFocus < 0) currentFocus = (x.length - 1);
-        /*add class "autocomplete-active":*/
-        x[currentFocus].classList.add("autocomplete-active");
-    }
-    function removeActive(x) {
-        /*a function to remove the "active" class from all autocomplete items:*/
-        for (var i = 0; i < x.length; i++) {
-            x[i].classList.remove("autocomplete-active");
-        }
-    }
-    function closeAllLists(elmnt) {
-        /*close all autocomplete lists in the document,
-        except the one passed as an argument:*/
-        var x = document.getElementsByClassName("autocomplete-items");
-        for (var i = 0; i < x.length; i++) {
-            if (elmnt != x[i] && elmnt != inp) {
-                x[i].parentNode.removeChild(x[i]);
-            }
-        }
-    }
-    /*execute a function when someone clicks in the document:*/
-    document.addEventListener("click", function (e) {
-        closeAllLists(e.target);
-    });
-}
-
 // TODO: Factor out the two timer functions to a single timer function
 function start_timer() {
     // Set the date we're counting down to
     let game_timer = document.getElementById('game_timer');
 
+    console.log('refresh: ' + typeof refresh_timer)
+    if (typeof refresh_timer !== 'undefined') {
+        console.log('attempting to clear refresh timer')
+        clearInterval(refresh_timer);
+    }
+
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS' &&
         typeof refresh_timer === 'undefined') {
         local_game_state.end_timestamp_ms = Date.now() + local_game_state.remaining_time_ms;
         // Update the count down every 1 second
-        var refresh_timer = setInterval(function () {
+        const refresh_timer = setInterval(function () {
             local_game_state.remaining_time_ms = local_game_state.end_timestamp_ms - Date.now();
+            console.log('Refresh for game timer should only happen 1/sec: ' + Date.now())
 
             // If the count down is over, write some text 
-            if (local_game_state.remaining_time_ms <= 0 ||
-                local_game_state.game_state === 'VOTING') {
+            if (local_game_state.game_state === 'VOTING') {
                 clearInterval(refresh_timer);
-                game_timer.innerHTML = "00:00";
+                game_timer.innerHTML = '00:00';
+                
+            }
+            if (local_game_state.remaining_time_ms <= 0) {
+                clearInterval(refresh_timer);
                 if (local_game_state.player_is_mayor) {
-                    start_vote(local_game_state.game_id);
+                    const start_vote_promise = new Promise(resolve => {
+                        socket.emit('start_vote', local_game_state.game_id, (response) => {
+                            if (response.status === 'OK') {
+                                resolve('Voting started');
+                            }
+                        });
+                    })
                 }
             }
             if (local_game_state.remaining_time_ms > 0) {
@@ -399,8 +273,28 @@ function refresh_game_state(g) {
         } else {
             nominate_for_mayor_btn.hidden = false;
             nominate_for_mayor_btn.addEventListener('click', function () {
-                socket.emit('nominate_for_mayor', local_game_state.game_id)
-                nominate_for_mayor_btn.hidden = true;
+                const nominate_promise = new Promise((resolve, reject) => {
+                    socket.emit('nominate_for_mayor', local_game_state.game_id, (response) => {
+                        if (response.status === 'OK') {
+                            resolve(true);
+                        } else {
+                            reject('Unable to nominate: ' + response.status);
+                        }
+                    });
+                })
+                nominate_promise.then(
+                    (resolve, reject) => {
+                        if (resolve === true) {
+                            console.log('Successfully nominated')
+                            nominate_for_mayor_btn.hidden = true;
+                        } else {
+                            if (reject !== null) {
+                                console.log('Reject reason: ' + reject)
+                            }
+                            console.log('Not so successful response')
+                        }
+                    }
+                )
             });
         }
     }
@@ -458,7 +352,9 @@ function refresh_game_state(g) {
         });
     }
     if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS') {
-        start_timer();
+        if (typeof refresh_timer === 'undefined') {
+            start_timer();
+        }
         refresh_questions(local_game_state.game_id);
         if (!local_game_state.spectating && !local_game_state.player_is_mayor) {
             question_input.hidden = false;
@@ -467,7 +363,9 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'VOTING') {
         refresh_questions(local_game_state.game_id);
         stop_timer();
-        start_vote_timer();
+        if (typeof refresh_vote_timer === 'undefined') {
+            start_vote_timer();
+        }
         socket.emit('get_voting_page', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
                 dialog_box.innerHTML = response.voting_html;
@@ -601,11 +499,7 @@ ready(function () {
     socket.on('mayor_error', function (data) {
         if (local_game_state.player_is_mayor === true) {
             let dialog = document.querySelector('dialog');
-            html = data;
-            html += '<br><button type="button" class="mdl-button close"';
-            html += ' onclick="close_dialog()">OK</button>';
-            dialog.innerHTML = html;
-
+            dialog.innerHTML = data;
             dialog.showModal();
         }
     });
