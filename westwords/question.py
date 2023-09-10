@@ -107,10 +107,12 @@ class Question(object):
     def is_skipped(self) -> bool:
         return self.skipped
 
-    def answer_question(self, answer: AnswerToken) -> None:
+    def answer_question(self, answer: AnswerToken) -> bool:
         """Sets the answer for this question."""
         if not self.deleted:
             self.answer = answer
+            return True
+        return False
 
     def skip_question(self) -> None:
         if not self.deleted:

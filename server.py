@@ -57,12 +57,19 @@ socketio = SocketIO(app)
 # TODO: Add role to players killed page
 # TODO: Fix how the refresh timer function interval gets reinitialize many times
 #   whenever states refreshes/questions asked, etc.
-# TODO: SHow current game state so people know why we're waiting for people.
+# TODO: Show current game state so people know why we're waiting for people.
 # TODO: Add a timer to the reveal section or do away with the ACK part
 # TODO: Remove question from autocomplete if already asked.
 # TODO: Remove gap above skip icon (Decrease size of icon maybe?)
 # TODO: Allow ability to undo skipped question
 # TODO: Add roles to the logged function
+# TODO: Fix occasional reported failures (via Promise in js) for nominate action
+# TODO: Reported unable to answer question but still marks question.
+#   Also reports success. Possibly getting multiple handlers registered?
+#   Could be tied to the multiple timer updaters on game state/question updates
+#   Yes, it's sending multiple requests.
+# TODO: Move most javascript listeners off to be gated by control vars (set a
+# secondary variable to true while running sort of thing.)
 
 # TODO: move this off to a backing store.
 SOCKET_MAP = {}
