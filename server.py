@@ -63,7 +63,6 @@ socketio = SocketIO(app)
 # TODO: Remove gap above skip icon (Decrease size of icon maybe?)
 # TODO: Allow ability to undo skipped question
 # TODO: Add roles to the logged function
-# TODO: Fix occasional reported failures (via Promise in js) for nominate action
 # TODO: Reported unable to answer question but still marks question.
 #   Also reports success. Possibly getting multiple handlers registered?
 #   Could be tied to the multiple timer updaters on game state/question updates
@@ -194,9 +193,12 @@ def mark_new_update(game_id: str) -> None:
                       {'game_id': game_id, 'timestamp': new_timestamp},
                       room=game_id)
 
+
 def mark_new_role_count(game_id: str, role: str) -> None:
     if game_id in GAMES:
-        socketio.emit('role_update', str(role), room=game_id)
+        socketio.emit('role_update',
+                      {'game_id': game_id, 'role': role},
+                      room=game_id)
 
 
 def refresh_players(game_id: str) -> None:
@@ -561,7 +563,7 @@ def get_mayor_question(game_id: str) -> None:
                 tokens.append(token)
         for id, question in enumerate(questions):
             if not question.get_answer() and not (
-                question.is_skipped() or question.is_deleted()):
+                    question.is_skipped() or question.is_deleted()):
                 question_info = get_question_info(question, id)
                 return {'status': 'OK',
                         'question_html': render_template(
@@ -727,7 +729,8 @@ def nominate_for_mayor(game_id: str):
     if game_id in GAMES and GAMES[game_id].is_player_in_game(session['sid']):
         if GAMES[game_id].nominate_for_mayor(session['sid']):
             app.logger.debug(f'{PLAYERS[session["sid"]].name} ran for mayor')
-            GAMES[game_id].log(f'{PLAYERS[session["sid"]].name} runs for mayor')
+            GAMES[game_id].log(
+                f'{PLAYERS[session["sid"]].name} runs for mayor')
             return {'status': 'OK'}
     return {'status': 'ERROR'}
 
@@ -915,6 +918,7 @@ def get_results(game_id: str):
         vote_count = []
         for target in v:
             vote_count.append({'name': PLAYERS[target].name,
+                               'role': str(player_sids[target]),
                                'count': v[target],
                                'killed': target in killed_sids})
 
@@ -947,7 +951,6 @@ def get_player_revealed_information(game_id: str):
         for player in players:
             known_players.append(
                 {'name': PLAYERS[player].name, 'role': players[player], })
-        app.logger.debug(f'Info: {known_word} players: {known_players}')
         role = GAMES[game_id].get_player_role(session['sid'])
         return {
             'status': 'OK',
@@ -1188,7 +1191,8 @@ def boot_player(game_id: str, player_sid: str):
             GAMES[game_id].log(
                 f'{PLAYERS[session["sid"]].name} booted '
                 f'{PLAYERS[player_sid].name}')
-            
+            mark_new_update(game_id)
+
 
 @socketio.on('get_role_page')
 def get_roles(game_id: str):
@@ -1200,38 +1204,37 @@ def get_roles(game_id: str):
             'role_html': render_template('role_layout.html.j2',
                                          game_id=game_id,
                                          roles=roles,
-                                         player_is_admin=player_is_admin,                                         
+                                         player_is_admin=player_is_admin,
                                          )
         }
 
 
 @socketio.on('add_role')
-def add_role(game_id: str, role:str):
-    app.logger.debug(f'Got request to add role: {role}')
+def add_role(game_id: str, role: str):
     if game_id in GAMES:
         if GAMES[game_id].add_role(role):
+            GAMES[game_id].log(f'Added {role} to game.')
             mark_new_role_count(game_id, role)
 
 
 @socketio.on('remove_role')
 def remove_role(game_id: str, role: str):
-    app.logger.debug(f'Got request to remove role: {role}')
     if game_id in GAMES:
         if GAMES[game_id].remove_role(role):
+            GAMES[game_id].log(f'Removed {role} to game.')
             mark_new_role_count(game_id, role)
 
 
 @socketio.on('get_role_count')
 def get_role_count(game_id: str, role: str):
     if game_id in GAMES:
-        count = GAMES[game_id].get_role_count(role)
-        if count:
-            return {
-                'status': 'OK',
-                'count': count,
-            }
-    return {'status': 'ERROR', 'count': '',}
-    
+        return {
+            'status': 'OK',
+            'count': GAMES[game_id].get_role_count(role),
+            'element_id': GAMES[game_id].get_role_element_id(role),
+        }
+    return {'status': 'ERROR', 'count': '', 'element_id': ''}
+
 
 if __name__ == '__main__':
     socketio.run(app)

@@ -50,6 +50,9 @@ class Role(object):
 
     def get_max_instances(self):
         return self.max_instances
+    
+    def get_string_id(self):
+        return type(self).__name__.casefold().replace(' ', '')
 
     def is_required(self):
         return self.required
@@ -194,7 +197,7 @@ class Seer(Role):
         execute you or other word-seeing roles to steal the win.
         """
         self.image_name = 'seer.png'
-        self.required = True
+        self.required = False
         self.required_players = 0
         self.team_loses_if_killed = True
 
@@ -242,28 +245,7 @@ class Intern(Role):
             self.add_known_role(mayor, str(player_roles[mayor]))
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
-# FIXME: ERROR on single-word words. had beholder, intern, fortune teller, seer
-#
-#
-#   File "/usr/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
-#     self.run()
-#   File "/usr/lib/python3.10/threading.py", line 953, in run
-#     self._target(*self._args, **self._kwargs)
-#   File "/home/matt/.local/lib/python3.10/site-packages/socketio/server.py", line 730, in _handle_event_internal
-#     r = server._trigger_event(data[0], namespace, sid, *data[1:])
-#   File "/home/matt/.local/lib/python3.10/site-packages/socketio/server.py", line 755, in _trigger_event
-#     return self.handlers[namespace][event](*args)
-#   File "/home/matt/.local/lib/python3.10/site-packages/flask_socketio/__init__.py", line 282, in _handler
-#     return self._handle_event(handler, message, namespace, sid,
-#   File "/home/matt/.local/lib/python3.10/site-packages/flask_socketio/__init__.py", line 826, in _handle_event
-#     ret = handler(*args)
-#   File "/mnt/c/Users/Matt/vscode/westwords/server.py", line 1001, in get_footer
-#     known_word, players = GAMES[game_id].get_player_revealed_information(
-#   File "/mnt/c/Users/Matt/vscode/westwords/westwords/game.py", line 175, in get_player_revealed_information
-#     return self.player_sids[player_sid].get_night_action_info(
-#   File "/mnt/c/Users/Matt/vscode/westwords/westwords/role.py", line 267, in get_night_action_info
-#     for sub_word in word.split():
-# AttributeError: 'NoneType' object has no attribute 'split'
+
 class FortuneTeller(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
@@ -285,9 +267,11 @@ class FortuneTeller(Role):
 
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         sub_words = []
-        for sub_word in word.split():
-            sub_words.append(f'{sub_word[0]}{"*" * (len(sub_word) - 1)}')
-        self.known_word = ' '.join(sub_words)
+        # The footer requests this information before it's set by mayor
+        if word:
+            for sub_word in word.split():
+                sub_words.append(f'{sub_word[0]}{"*" * (len(sub_word) - 1)}')
+            self.known_word = ' '.join(sub_words)
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
 
@@ -405,21 +389,21 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     '3':
     [
         Villager(),
-        Seer(),
+        FortuneTeller(),
         Werewolf()
     ],
     '4':
     [
         Villager(),
-        Villager(),
-        Seer(),
+        Intern(),
+        FortuneTeller(),
         Werewolf()
     ],
     '5':
     [
         Villager(),
         Villager(),
-        Villager(),
+        Intern(),
         Seer(),
         Werewolf()
     ],
@@ -428,7 +412,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Villager(),
-        Villager(),
+        Intern(),
         Seer(),
         Werewolf()
     ],

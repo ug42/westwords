@@ -10,11 +10,11 @@
         <strong>
             {% if vote.killed %}
             <div class="voted-dead">
-                {{vote.name}}: {{vote.count}}
+                {{vote.name}} ({{vote.role}}): {{vote.count}}
             </div>
             {% else %}
             <div>
-                {{vote.name}}: {{vote.count}}
+                {{vote.name}} ({{vote.role}}): {{vote.count}}
             </div>
             {% endif %}
         </strong>

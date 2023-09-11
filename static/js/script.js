@@ -504,10 +504,9 @@ ready(function () {
     });
     socket.on('role_update', function (data) {
         if (local_game_state.game_id === data.game_id) {
-            let role_count = document.getElementById('role_count_' + data.role);
-            socket.emit('get_role_count', game_id, role, (response) => function () {
+            socket.emit('get_role_count', data.game_id, data.role, (response) => {
                 if (response.status === 'OK') {
-                    role_count.innerHTML = response.count;
+                    document.getElementById(response.element_id).innerHTML = response.count;
                 }
             });
         }

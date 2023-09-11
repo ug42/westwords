@@ -169,7 +169,7 @@ class testWestwordsRoles(unittest.TestCase):
         self.assertEqual(
             self.player_sids['seer'].get_required_players(), 0)
         self.assertEqual(self.player_sids['seer'].get_max_instances(), 1)
-        self.assertTrue(self.player_sids['seer'].is_required())
+        self.assertFalse(self.player_sids['seer'].is_required())
         # Is the mayor
         self.assertEqual(
             self.player_sids['seer'].get_night_action_info(
@@ -204,7 +204,7 @@ class testWestwordsRoles(unittest.TestCase):
                 word="Bardily's Best +fraging"),
             ("Bardily's Best +fraging", {'doppelseer': 'Seer (Doppelganger)'}))
 
-    def testFortunTellerRoleMayor(self):
+    def testFortuneTellerRoleMayor(self):
         self.assertFalse(self.player_sids['fortuneteller'].target_player(
             'fortuneteller', 'esper', self.player_sids))
         self.assertEqual(
