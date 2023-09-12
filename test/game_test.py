@@ -5,7 +5,7 @@ from westwords import (Affiliation, AnswerToken, Beholder, Doppelganger, Esper,
                        FortuneTeller)
 from westwords import Game as GameClass
 from westwords import GameError as GameError
-from westwords import GameState, Intern, Mason, Minion
+from westwords import GameState, Apprentice, Mason, Minion
 from westwords import Question as QuestionClass
 from westwords import Seer, Villager, Werewolf
 
@@ -15,7 +15,7 @@ class testGameControlFunctions(unittest.TestCase):
     def setUp(self):
         self.player_sids = ['foo', 'bar', 'baz', 'xxx']
         self.game = GameClass(timer=300, player_sids=self.player_sids)
-        self.game.add_role('Intern')
+        self.game.add_role('Apprentice')
 
     def testReset(self):
         self.game.nominate_for_mayor('baz')
@@ -127,7 +127,7 @@ class testEndOfGameFunctions(unittest.TestCase):
             timer=300,
             player_sids=['villager', 'werewolf1', 'seer', 'doppelganger',
                          'mason1', 'mason2', 'werewolf2', 'fortuneteller',
-                         'intern', 'esper', 'beholder', 'minion', ])
+                         'apprentice', 'esper', 'beholder', 'minion', ])
         self.game.set_timer(1)
         self.game.start_time = datetime.now() - timedelta(seconds=2)
         self.game.player_sids['villager'] = Villager()
@@ -138,7 +138,7 @@ class testEndOfGameFunctions(unittest.TestCase):
         self.game.player_sids['mason2'] = Mason()
         self.game.player_sids['werewolf2'] = Werewolf()
         self.game.player_sids['fortuneteller'] = FortuneTeller()
-        self.game.player_sids['intern'] = Intern()
+        self.game.player_sids['apprentice'] = Apprentice()
         self.game.player_sids['esper'] = Esper()
         self.game.player_sids['beholder'] = Beholder()
         self.game.player_sids['minion'] = Minion()
@@ -185,7 +185,7 @@ class testEndOfGameFunctions(unittest.TestCase):
             'mason2': 'seer',
             'werewolf2': 'werewolf1',
             'fortuneteller': 'esper',
-            'intern': 'seer',
+            'apprentice': 'seer',
             'esper': 'werewolf2',
             'beholder': 'esper',
             'minion': 'esper',
@@ -204,7 +204,7 @@ class testEndOfGameFunctions(unittest.TestCase):
             'mason2': 'seer',
             'werewolf2': 'werewolf1',
             'fortuneteller': 'werewolf1',
-            'intern': 'seer',
+            'apprentice': 'seer',
             'esper': 'werewolf2',
             'beholder': 'esper',
             'minion': 'esper',

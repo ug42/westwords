@@ -45,7 +45,7 @@ socketio = SocketIO(app)
 # TODO: Add known_info text when adding known_players to role this should be
 #   like "Esper communicated with you during the night, or Mayor is the Seer,
 #   so you are the Seer now."
-# Add UI element to show selected roles
+# TODO: Add UI element to show selected roles mid-game
 
 # UI mechanics
 # TODO: Add ability to add own questions
@@ -53,13 +53,8 @@ socketio = SocketIO(app)
 #   Set delete and answer to be gated as close to state change as possible now.
 #   Not mutex locking, so still possible.
 #   Mayor questions on deleted questions should be updated.
-# TODO: Fix how the refresh timer function interval gets reinitialize many times
-#   whenever states refreshes/questions asked, etc.
-# TODO: Show current game state so people know why we're waiting for people.
 # TODO: Add a timer to the reveal section or do away with the ACK part
 # TODO: Remove question from autocomplete if already asked.
-# TODO: Remove gap above skip icon (Decrease size of icon maybe?)
-# TODO: Allow ability to undo skipped question
 # TODO: Add roles to the logged function
 # TODO: Reported unable to answer question but still marks question.
 #   Also reports success. Possibly getting multiple handlers registered?
@@ -1052,7 +1047,7 @@ def get_voting_information(game_id: str):
                      'name': PLAYERS[candidate_sid].name})
 
         if word_guessed:
-            voting_text = ('Werewolf team! find the Seer, Intern or Fortune '
+            voting_text = ('Werewolf team! find the Seer, Apprentice or Fortune '
                            'Teller!')
         else:
             voting_text = ('Everyone! Find a Werewolf or Minion!')

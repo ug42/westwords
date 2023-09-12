@@ -126,13 +126,17 @@ class Doppelganger(Role):
         Choose a player to mimic. You will become a copy of their role.
         """
         self.image_name = 'doppelganger.png'
-        self.affiliation = Affiliation.UNKNOWN
+        self.affiliation = Affiliation.VILLAGE
         self.required_players = 6
+        self.max_instances = 6
         # Doppelganger is special cased to not target during normal phase.
         self.targetting_role = True
 
     def __str__(self):
-        return "Doppelganger"
+        role_str = "Doppelganger"
+        if self.doppelganger:
+            role_str += " (Doppelganger)"
+        return role_str
 
 
 class Werewolf(Role):
@@ -142,7 +146,7 @@ class Werewolf(Role):
         You are a werewolf. Not really evil, just misunderstood. You'll try to
         lead guesses away from the word, as you will have seen the word and
         other werewolves, but not minion. If Village team guesses the word,
-        Werewolves have a chance to win by finding and executing the Seer/Intern
+        Werewolves have a chance to win by finding and executing the Seer/Apprentice
         Seer or Fortune Teller.
         """
         self.image_name = 'werewolf.png'
@@ -216,7 +220,7 @@ class Seer(Role):
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
 
-class Intern(Role):
+class Apprentice(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         # Will only see word if Mayor is Seer
@@ -226,14 +230,14 @@ class Intern(Role):
         is no longer the Werewolves' target; you are. (and maybe a Fortune
         Teller)
         """
-        self.image_name = 'intern.png'
+        self.image_name = 'apprentice.png'
         self.sees_word = False
         self.required_players = 5
         # This will be set to true if Mayor is the Seer.
         self.team_loses_if_killed = False
 
     def __str__(self):
-        role_str = "Intern"
+        role_str = "Apprentice"
         if self.doppelganger:
             role_str += " (Doppelganger)"
         return role_str
@@ -252,7 +256,7 @@ class FortuneTeller(Role):
         self.description = """
         You're the Fortune Teller. Probably not a great one seeing as you only
         get to see the first letter of each word. You align with the Village
-        team. Werewolf team wins if they find you, the Seer, or Intern Seer.
+        team. Werewolf team wins if they find you, the Seer, or Apprentice Seer.
         """
         self.image_name = 'fortune_teller.png'
         self.sees_word = False
@@ -308,7 +312,7 @@ class Beholder(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        A villager who knows the players with the Intern, Seer and Fortune
+        A villager who knows the players with the Apprentice, Seer and Fortune
         Teller roles, but not who has which role. Does not lose on being
         targeted by Werewolves.
         """
@@ -324,7 +328,7 @@ class Beholder(Role):
     def get_night_action_info(self, player_sid, player_roles, mayor, word):
         for p in player_roles:
             if isinstance(player_roles[p],
-                          (Intern, Seer, FortuneTeller)):
+                          (Apprentice, Seer, FortuneTeller)):
                 self.known_players[p] = "???"
         return super().get_night_action_info(player_sid, player_roles, mayor, word)
 
@@ -395,7 +399,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     '4':
     [
         Villager(),
-        Intern(),
+        Apprentice(),
         FortuneTeller(),
         Werewolf()
     ],
@@ -403,7 +407,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
     [
         Villager(),
         Villager(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf()
     ],
@@ -412,7 +416,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Villager(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf()
     ],
@@ -422,7 +426,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Villager(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf()
     ],
@@ -432,7 +436,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Villager(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf()
@@ -444,7 +448,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Esper(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf()
@@ -457,7 +461,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Esper(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf()
@@ -470,7 +474,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Beholder(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -485,7 +489,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Villager(),
         Beholder(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -501,7 +505,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -518,7 +522,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -535,7 +539,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -553,7 +557,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -572,7 +576,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -593,7 +597,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Werewolf(),
         Werewolf(),
@@ -614,7 +618,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Minion(),
         Werewolf(),
@@ -636,7 +640,7 @@ DEFAULT_ROLES_BY_PLAYER_COUNT = {
         Villager(),
         Mason(),
         Mason(),
-        Intern(),
+        Apprentice(),
         Seer(),
         Minion(),
         Werewolf(),

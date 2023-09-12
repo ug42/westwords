@@ -6,7 +6,7 @@ from westwords import GameError as GameError
 from westwords import Question as QuestionClass
 from westwords import AnswerToken, GameState, Affiliation
 from westwords import (Doppelganger, Mason, Werewolf, Villager, Seer,
-                       FortuneTeller, Intern, Esper, Beholder, Minion)
+                       FortuneTeller, Apprentice, Esper, Beholder, Minion)
 
 
 def add_roles(game: GameClass):
@@ -16,7 +16,7 @@ def add_roles(game: GameClass):
     game.add_role('Mason')
     game.add_role('Werewolf')
     game.add_role('FortuneTeller')
-    game.add_role('Intern')
+    game.add_role('Apprentice')
     game.add_role('Esper')
     game.add_role('Beholder')
     game.add_role('Minion')
@@ -24,7 +24,7 @@ def add_roles(game: GameClass):
 class testWestwordsFunctional(unittest.TestCase):
     def setUp(self):
         self.player_sid_list = ['villager', 'werewolf1', 'seer', 'doppelganger',
-                                'mason1', 'mason2', 'werewolf2', 'fortuneteller', 'intern', 'esper',
+                                'mason1', 'mason2', 'werewolf2', 'fortuneteller', 'apprentice', 'esper',
                                 'beholder', 'minion', ]
         self.game = GameClass(timer=300, player_sids=self.player_sid_list)
         self.game.set_timer(1)
@@ -39,7 +39,7 @@ class testWestwordsFunctional(unittest.TestCase):
         self.player_sids['mason2'] = Mason()
         self.player_sids['werewolf2'] = Werewolf()
         self.player_sids['fortuneteller'] = FortuneTeller()
-        self.player_sids['intern'] = Intern()
+        self.player_sids['apprentice'] = Apprentice()
         self.player_sids['esper'] = Esper()
         self.player_sids['beholder'] = Beholder()
         self.player_sids['minion'] = Minion()
@@ -130,7 +130,7 @@ class testWestwordsFunctional(unittest.TestCase):
         self.assertRegexpMatches(word, r'(.\*+){1,}$')
         self.assertEqual(roles, {})
         word, roles = self.game.get_player_revealed_information(
-            'intern', acknowledge=True)
+            'apprentice', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(roles, {})
         word, roles = self.game.get_player_revealed_information(
@@ -141,7 +141,7 @@ class testWestwordsFunctional(unittest.TestCase):
             'beholder', acknowledge=True)
         self.assertEqual(word, None)
         self.assertEqual(
-            roles, {'seer': '???', 'fortuneteller': '???', 'intern': '???'})
+            roles, {'seer': '???', 'fortuneteller': '???', 'apprentice': '???'})
         self.assertFalse(self.game.acknowledge_revealed_info('werewolf2'))
         word, roles = self.game.get_player_revealed_information('minion')
         self.assertEqual(word, None)

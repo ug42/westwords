@@ -2,7 +2,7 @@
 
 from .game import Game, GameError
 from .role import (Role, Doppelganger, Mason,
-                   Werewolf, Villager, Seer, FortuneTeller, Intern, Esper,
+                   Werewolf, Villager, Seer, FortuneTeller, Apprentice, Esper,
                    Beholder, Minion, DEFAULT_ROLES_BY_PLAYER_COUNT)
 from .wordlists import WordList, WORDLISTS
 from .player import Player

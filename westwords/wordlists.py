@@ -1303,7 +1303,7 @@ WORDLISTS = {
             'hatch',
             'highway',
             'humidifier',
-            'intern',
+            'apprentice',
             'laundry basket',
             'lollipop',
             'mascot',

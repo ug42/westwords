@@ -9,6 +9,7 @@ body {
 
 body {
   background: rgb(75, 75, 75);
+  align-self: center;
   padding: 0;
   margin: 0;
 }
@@ -158,7 +159,7 @@ body {
     'FILL' 0,
     'wght' 400,
     'GRAD' 0,
-    'opsz' 24
+    'opsz' 24;
 }
 
 /* Footer placement and style for box and contents */
@@ -178,17 +179,18 @@ body {
 .role_count_name {
   text-align: center;
   grid-area: role_name;
-  /* padding-left: 3px; */
-  /* display: inline; */
+  padding-left: 3px;
 }
 
 .role_count {
-  font-size: 14px;
+  font-size: 20px;
+  font-weight: bold;
   width: 22px;
-  height: 22px;
+  height: 18px;
   grid-area: role_count;
   text-align: center;
-  /* vertical-align: center; */
+  vertical-align: center;
+  padding: 1px 1px 1px 1px;
 }
 
 .role_count_plus {
@@ -219,7 +221,7 @@ body {
   border-radius: 15%;
 }
 
-.role_count_image {
+.role_image {
   border-radius: 50%;
 }
 

@@ -2,7 +2,7 @@
     {% for role in roles %}
     <div class="role_selection_item">
         <span class="role_count_image_container">
-            {%- if role.image|length -%}<img class="role_count_image"
+            {%- if role.image|length -%}<img class="role_image"
                 src="{{ url_for('static', filename='img/' + role.image) }}"
                 title="{{role.role_description}}" width="66" height="66">{% endif %}
         </span>
@@ -11,7 +11,7 @@
                 <button class="role_button" onclick="add_role('{{ game_id }}', '{{ role.role }}')">+</button>
             </div>
             <div class="role_count" id="{{role.role_element_id}}">
-                {{ role.current_instances}}
+                {{role.current_instances}}
             </div>
             <div class="role_count_minus">
                 <button class="role_button" onclick="remove_role('{{ game_id }}', '{{ role.role }}')">−</button>

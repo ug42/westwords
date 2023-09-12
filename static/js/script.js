@@ -1,6 +1,7 @@
 var socket = io.connect({ autoconnect: true });
 var local_game_state = {};
-var local_time_skew = 0;
+var timer_running = false;
+
 function get_game_state(game_id) {
     if (JSON.stringify(local_game_state) === '{}') {
         timestamp = 0;
@@ -62,9 +63,11 @@ function send_reset_req(game_id) {
 }
 function set_player_target(game_id, target) {
     socket.emit('set_player_target', game_id, target);
+    close_dialog();
 }
 function set_doppelganger_target(game_id, target) {
     socket.emit('set_player_target', game_id, target);
+    close_dialog();
 }
 function vote_player(game_id, candidate) {
     socket.emit('vote', game_id, candidate);
@@ -136,23 +139,22 @@ function stop_timer() {
     local_game_state.end_timestamp_ms = Date.now();
     let game_timer = document.getElementById('game_timer');
     game_timer.innerHTML = '00:00';
+    timer_running = false;
 }
 
 // TODO: Factor out the two timer functions to a single timer function
 function start_timer() {
-    // Set the date we're counting down to
-    if (typeof game_timer_registered === 'undefined') {
-        var game_timer_registered = true;
+    if (timer_running === false) {
+        timer_running = true;
         let game_timer = document.getElementById('game_timer');
         console.log('refresh: ' + typeof refresh_timer)
-
+        
         if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS' &&
             typeof refresh_timer === 'undefined') {
             local_game_state.end_timestamp_ms = Date.now() + local_game_state.remaining_time_ms;
             // Update the count down every 1 second
             const refresh_timer = setInterval(function () {
                 local_game_state.remaining_time_ms = local_game_state.end_timestamp_ms - Date.now();
-                console.log('Refresh for game timer should only happen 1/sec: ' + Date.now())
 
                 // If the count down is over, write some text 
                 if (local_game_state.game_state === 'VOTING') {
@@ -183,8 +185,8 @@ function start_timer() {
 }
 
 function start_vote_timer() {
-    if (typeof vote_timer_registered === 'undefined') {
-        var vote_timer_registered = true;
+    if (timer_running === false) {
+        timer_running = true;
 
         // Set the date we're counting down to
         let game_timer = document.getElementById('game_timer');
@@ -230,6 +232,9 @@ function refresh_questions(game_id) {
         }
     });
 }
+
+// TODO: Fix this. This should force a reload if someone is hitting the back
+// button, but it's not working.
 (function () {
     window.onpageshow = function (event) {
         if (event.persisted) {

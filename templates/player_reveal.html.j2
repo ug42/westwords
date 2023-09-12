@@ -1,13 +1,16 @@
 <div class="common-font">
-    <h5>
+    {# <h5> #}
         Your role is {{player_role}}
-    </h5>
+    {# </h5> #}
     {% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5><br> {% endif %}
-    {% if image is not none %}<center><img src="{{ url_for('static', filename='img/' + image) }}"
+    {% if image is not none %}<center><img class="role_image" src="{{ url_for('static', filename='img/' + image) }}"
             title="{{role_description}}" width="200" height="200"></center><br> {% endif %}
 
+    {% if known_players|length %}
+    <p>Players who revealed themselves to you in the night:
     {% for p in known_players %}
-    <br>Player: <b>{{ p.name }} {% if p.name == mayor %} (Mayor) {% endif %}</b> role: <b>{{ p.role }}</b><br>
+    <br><b>{{ p.name }} {% if p.name == mayor %}, the Mayor, {% endif %} is </b> role: <b>{{ p.role }}</b><br>
     {% endfor %}
-    <button type="button" class="mdl-button close" onclick="ack_reveal()">OK</button>
+    {% endif %}
+    <button type="button" class="mdl-button mdl-button--raised mdl-button--accent close" onclick="ack_reveal()">OK</button>
 </div>

@@ -13,7 +13,7 @@ from westwords.role import Role
 
 from .enums import Affiliation, AnswerToken, GameState
 from .role import (DEFAULT_ROLES_BY_PLAYER_COUNT, Beholder, Doppelganger,
-                   Esper, FortuneTeller, Intern, Mason, Minion, Seer, Villager,
+                   Esper, FortuneTeller, Apprentice, Mason, Minion, Seer, Villager,
                    Werewolf)
 from .wordlists import WORDLISTS
 
@@ -26,7 +26,7 @@ class RoleDict(UserDict):
 
 
 ROLES = RoleDict({
-    'intern': Intern(),
+    'apprentice': Apprentice(),
     'beholder': Beholder(),
     'doppelganger': Doppelganger(),
     'fortuneteller': FortuneTeller(),
@@ -67,6 +67,7 @@ class Game(object):
         self.player_sids = RoleDict()
         for player_sid in player_sids:
             self.player_sids[player_sid] = None
+        self.selected_roles = []    
         self.spectators = []
         self.word_choice_count = 8
         self.word_difficulty = 'medium'
@@ -307,7 +308,8 @@ class Game(object):
         self.reveal_ack_required = []
         self.questions: List[Question] = []
         self.required_voters = []
-        self.selected_roles = [Villager(), Werewolf(), FortuneTeller()]
+        if not self.selected_roles:
+            self.selected_roles = [Villager(), Werewolf(), FortuneTeller()]
         self.start_time = None
         self._tokens = {}
         for token in AnswerToken:
@@ -886,6 +888,7 @@ class Game(object):
             return False
         if question_id < len(self.questions):
             self.questions[question_id].skip_question()
+            self.last_answered = question_id
             return True
 
     def answer_question(self, question_id: int, answer: AnswerToken):
