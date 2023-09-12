@@ -962,7 +962,6 @@ def get_player_revealed_information(game_id: str):
                 known_word=known_word,
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
                 role_description=role.get_role_description().strip(),
-                footer_mode=False,
             ),
         }
     return {'status': 'ERROR', 'reveal_html': None}
@@ -1128,27 +1127,32 @@ def get_footer(game_id: str):
     if game_id in GAMES:
         known_word, players = GAMES[game_id].get_player_revealed_information(
             session['sid'])
-        if players or known_word:
-            known_players = []
-            if players:
-                for player in players:
-                    known_players.append(
-                        {'name': PLAYERS[player].name, 'role': players[player], })
-            role = GAMES[game_id].get_player_role(session['sid'])
-            return {
-                'status': 'OK',
-                'reveal_html': render_template(
-                    'player_reveal.html.j2',
-                    player_role=str(role),
-                    image=None,
-                    known_players=known_players,
-                    known_word=known_word,
-                    mayor=PLAYERS[GAMES[game_id].mayor].name,
-                    role_description=role.get_role_description().strip(),
-                    footer_mode=True,
-                ),
-            }
-    return {'status': 'NO_DATA', 'reveal_html': None}
+        known_players = []
+        if players:
+            for player in players:
+                known_players.append(
+                    {'name': PLAYERS[player].name, 'role': players[player], })
+        role = GAMES[game_id].get_player_role(session['sid'])
+        game_state = GAMES[game_id].game_state.name
+        mayor = ''
+        if GAMES[game_id].mayor:
+            mayor = PLAYERS[GAMES[game_id].mayor].name
+        voters = []
+        for voter in GAMES[game_id].get_players_needing_to_vote():
+            voters.append(PLAYERS[voter].name)
+        return {
+            'status': 'OK',
+            'footer_html': render_template(
+                'footer.html.j2',
+                game_state=game_state,
+                player_role=str(role),
+                known_players=known_players,
+                known_word=known_word,
+                mayor=mayor,
+                admin=PLAYERS[GAMES[game_id].admin].name,
+            ),
+        }
+    return {'status': 'NO_DATA', 'footer_html': None}
 
 
 @socketio.on('skip_question')

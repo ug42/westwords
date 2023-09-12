@@ -1,0 +1,21 @@
+<div class="footer-contents">
+{%- if game_state == 'SETUP' -%}
+Waiting for {{ admin }} to setup and start game...
+{%- elif game_state == 'NIGHT_PHASE_WORD_CHOICE' -%}
+Waiting for {{ mayor }} to choose word...
+{%- elif game_state == 'NIGHT_PHASE_DOPPELGANGER' -%}
+Waiting for the doppelganger...
+{%- elif game_state == 'NIGHT_PHASE_TARGETTING' -%}
+Waiting for night phase targetting roles...
+{%- elif game_state == 'NIGHT_PHASE_REVEAL' -%}
+Waiting for players to OK their roles
+{%- elif game_state == 'VOTING' -%}
+Waiting for players to vote
+{%- else -%}
+
+{%- if known_word is not none -%}Word: <u>{{ known_word }}</u> &emsp;{%- endif -%}
+{%- for p in known_players -%}
+Player: <b>{{ p.name }} {%- if p.name == mayor -%} (Mayor) {%- endif -%}</b> ({{ p.role }}) &emsp;
+{%- endfor -%}
+{%- endif -%}
+</div>
