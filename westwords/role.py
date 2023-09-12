@@ -50,7 +50,7 @@ class Role(object):
 
     def get_max_instances(self):
         return self.max_instances
-    
+
     def get_string_id(self):
         return type(self).__name__.casefold().replace(' ', '')
 
@@ -86,10 +86,10 @@ class Role(object):
         if self.targetting_role:
             return self.night_action_description
         return None
-    
+
     def get_role_description(self) -> str:
         return self.description
-        
+
     def get_image_name(self) -> str:
         if self.image_name:
             return self.image_name
@@ -143,11 +143,11 @@ class Werewolf(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You are a werewolf. Not really evil, just misunderstood. You'll try to
-        lead guesses away from the word, as you will have seen the word and
-        other werewolves, but not minion. If Village team guesses the word,
-        Werewolves have a chance to win by finding and executing the Seer/Apprentice
-        Seer or Fortune Teller.
+        A werewolf. Not really evil, just misunderstood. You'll try to lead
+        guesses away from the word, as you will have seen the word and other
+        werewolves, but not minion. If Village team guesses the word, Werewolves
+        have a chance to win by finding and executing the Seer/Apprentice Seer
+        or Fortune Teller.
         """
         self.image_name = 'werewolf.png'
         self.max_instances = 4
@@ -195,10 +195,10 @@ class Seer(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You are the Seer. As in you've seen things, and that is generally a bad
-        idea. You're aligned with Village and see the word. If the Village team
+        The Seer. As in they've seen things, and that is generally a bad idea.
+        They're aligned with Village and see the word. If the Village team
         guesses the word, the Werewolves team will have a chance to find and
-        execute you or other word-seeing roles to steal the win.
+        execute the Seer or other word-seeing roles to steal the win.
         """
         self.image_name = 'seer.png'
         self.required = False
@@ -225,10 +225,9 @@ class Apprentice(Role):
         super().__init__(doppelganger=doppelganger)
         # Will only see word if Mayor is Seer
         self.description = """
-        You're just an ordinary villager unless the Mayor is a Seer, in which
-        case, you become take the Seer mantle, with all that entails. The mayor
-        is no longer the Werewolves' target; you are. (and maybe a Fortune
-        Teller)
+        An ordinary villager unless the Mayor is a Seer, in which case, they
+        become the Seer, with all that entails. The mayor is no longer the
+        Werewolves' target; the Apprentice is. (and maybe a Fortune Teller)
         """
         self.image_name = 'apprentice.png'
         self.sees_word = False
@@ -254,9 +253,9 @@ class FortuneTeller(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You're the Fortune Teller. Probably not a great one seeing as you only
-        get to see the first letter of each word. You align with the Village
-        team. Werewolf team wins if they find you, the Seer, or Apprentice Seer.
+        The Fortune Teller. Probably not a great one seeing as they only get to
+        see the first letter of each word. They align with the Village team.
+        Werewolf team wins if they find them, the Seer, or an Apprentice Seer.
         """
         self.image_name = 'fortune_teller.png'
         self.sees_word = False
@@ -283,10 +282,10 @@ class Minion(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You are a minion. I know. I always wanted to be one, too. You align with
-        the Werewolf team, but they don't see you. Typical. Village team still
-        wins if executing the Minion, but you don't get to vote. It's like High
-        School again. All risk, no reward.
+        A minion. You align with the Werewolf team, but they don't see the
+        minion. (typical...) Village team still wins if executing the Minion,
+        but you don't get to vote. It's like High School again. All risk, very
+        little reward.
         """
         self.image_name = 'minion.png'
         self.required_players = 7
@@ -312,9 +311,9 @@ class Beholder(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        A villager who knows the players with the Apprentice, Seer and Fortune
-        Teller roles, but not who has which role. Does not lose on being
-        targeted by Werewolves.
+        The beholder is a villager who knows the players with the Apprentice,
+        Seer and Fortune Teller roles, but not who has which role. Village team
+        does not lose if Werewolves kill a Beholder.
         """
         self.image_name = 'beholder.png'
         self.required_players = 5
@@ -337,8 +336,7 @@ class Mason(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You are a Mason. A villager. One of many... or two. You get to know the
-        other Masons.
+        A Mason. A villager who knows the other Masons.
         """
         self.image_name = 'mason.png'
         self.required_players = 8
@@ -364,11 +362,8 @@ class Esper(Role):
     def __init__(self, doppelganger=False):
         super().__init__(doppelganger=doppelganger)
         self.description = """
-        You are the Esper. Like most Espers, you end up trying to train
-        telekenesis only to end up leaving vague feelings of discomfort in your
-        targets. Unfortunately, your targets know exactly where this discomfort
-        originates, so you might as well lean into that. (i.e., the target upon
-        whom you infringed their psyche will know you as an Esper.)
+        The Esper. You can let someone know you're the esper without knowing
+        their role. They'll see you and your role during the night phase.
         """
         self.image_name = 'esper.png'
         self.required_players = 5
@@ -388,7 +383,7 @@ class Esper(Role):
         if target_sid in player_roles:
             player_roles[target_sid].add_known_role(player_sid, str(self))
 
-            
+
 DEFAULT_ROLES_BY_PLAYER_COUNT = {
     '3':
     [

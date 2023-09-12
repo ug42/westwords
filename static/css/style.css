@@ -223,6 +223,12 @@ body {
 
 .role_image {
   border-radius: 50%;
+  filter: grayscale(1);
+}
+
+img.role_image:hover {
+  transition: 0.2s;
+  filter: grayscale(0);
 }
 
 .role_button {
