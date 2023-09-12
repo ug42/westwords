@@ -783,11 +783,12 @@ class Game(object):
         return False
 
     def get_roles(self) -> dict[str: any]:
-        """Gets the list of roles that are currently selected.
+        """Gets the list of all roles and selected roles with role information.
 
         Returns:
-            A dict of strings mapping to role name, image, description, max
-            players, max number of this role, and current number of this role.
+            A dict of strings mapping to role name, image, description, minimum
+            players, maximum players, the HTML element for the count of this
+            role, max instances of this role, and current number of this role.
         """
 
         role_counts = {}
@@ -809,8 +810,9 @@ class Game(object):
                 'image': role.get_image_name(),
                 'role_description': role.get_role_description(),
                 'min_players': role.get_required_players(),
-                'max_instances': role.get_max_instances(),
+                'is_required': role.is_required(),
                 'role_element_id': self.get_role_element_id(role_string),
+                'max_instances': role.get_max_instances(),
                 'current_instances': role_count,
             })
 

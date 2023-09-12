@@ -15,9 +15,9 @@ class testGameControlFunctions(unittest.TestCase):
     def setUp(self):
         self.player_sids = ['foo', 'bar', 'baz', 'xxx']
         self.game = GameClass(timer=300, player_sids=self.player_sids)
+        self.game.add_role('Intern')
 
     def testReset(self):
-        self.game = GameClass(player_sids=['foo', 'bar', 'baz', 'xxx'])
         self.game.nominate_for_mayor('baz')
         self.game.start_night_phase_word_choice()
         self.assertEqual(self.game.mayor, 'baz')
@@ -280,18 +280,28 @@ class testRoleSelectionFunctions(unittest.TestCase):
                               player_sids=['foo', 'bar', 'baz', 'xxx'])
 
     def testAddRole(self):
-        self.assertListEqual(self.game.get_roles(), [])
-        roles = self.game.get_possible_roles()
-        self.assertEqual(len(roles), 13)
-        # TODO: Add more in-depth tests to ensures Roles are being returned with
-        # the right numbers.
-        for role in roles:
-            self.assertGreaterEqual(len(self.game.get_players()),
-                                    role.get_roles())
+        roles = self.game.get_roles()
+        self.assertEqual(len(roles), 10)
 
         for role in roles:
-            self.game.add_role(role)
-            self.game.remove_role(role)
+            if role['max_instances'] == role['current_instances']:
+                self.assertFalse(self.game.add_role(role['role']))
+            else:
+                self.assertTrue(self.game.add_role(role['role']))
+                self.assertTrue(self.game.remove_role(role['role']))
+            
+            if role['is_required'] and role['current_instances'] <= 1:
+                self.assertFalse(self.game.remove_role(role['role']))
+            
+            if role['max_instances'] > 1:
+                while self.game.get_role_count(role['role']) < role['max_instances']:
+                    self.assertTrue(self.game.add_role(role['role']))
+                # Then have it fail at that boundary
+                self.assertFalse(self.game.add_role(role['role']))
+        
+            self.assertIsNotNone(role['image'])
+            self.assertIsNotNone(role['role_description'])
+
 
 class testQuestionFunctions(unittest.TestCase):
 

@@ -303,13 +303,10 @@ function refresh_game_state(g) {
     }
     let footer_role_information = document.getElementById('footer_role_information');
     if (footer_role_information !== null) {
-        console.log('attempting to set footer');
         socket.emit('get_footer', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
-                console.log('Got footer response: ' + response.footer_html);
                 footer_role_information.innerHTML = response.footer_html;
             } else {
-                console.log('Bad response: ' + response.status)
                 footer_role_information.innerHTML = '';
             }
         });

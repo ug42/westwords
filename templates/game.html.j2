@@ -45,17 +45,6 @@
                 </datalist>
                 {% endif %}
                 <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
-
-
-        {# <div id="question_input" class="autocomplete" hidden>
-            <input id="question" autocomplete="off" class="question-box autocomplete" type="search"
-                placeholder="Ask a question...">
-            <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
-            {% if autocomplete_enabled is true %}
-            <script>
-                autocomplete(document.getElementById("question"), canned_questions);
-            </script>
-            {% endif %} #}
         </div>
     </div>
     <div id="roles" hidden></div>

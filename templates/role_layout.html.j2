@@ -1,8 +1,9 @@
 <div class="outer_role_grid">
     {% for role in roles %}
     <div class="role_selection_item">
-        <span class="role_count_image">
-            {%- if role.image|length -%}<img src="{{ url_for('static', filename='img/' + role.image) }}"
+        <span class="role_count_image_container">
+            {%- if role.image|length -%}<img class="role_count_image"
+                src="{{ url_for('static', filename='img/' + role.image) }}"
                 title="{{role.role_description}}" width="66" height="66">{% endif %}
         </span>
         <span>

@@ -9,6 +9,18 @@ from westwords import (Doppelganger, Mason, Werewolf, Villager, Seer,
                        FortuneTeller, Intern, Esper, Beholder, Minion)
 
 
+def add_roles(game: GameClass):
+    game.add_role('Seer')
+    game.add_role('Doppelganger')
+    game.add_role('Mason')
+    game.add_role('Mason')
+    game.add_role('Werewolf')
+    game.add_role('FortuneTeller')
+    game.add_role('Intern')
+    game.add_role('Esper')
+    game.add_role('Beholder')
+    game.add_role('Minion')
+
 class testWestwordsFunctional(unittest.TestCase):
     def setUp(self):
         self.player_sid_list = ['villager', 'werewolf1', 'seer', 'doppelganger',
@@ -32,12 +44,15 @@ class testWestwordsFunctional(unittest.TestCase):
         self.player_sids['beholder'] = Beholder()
         self.player_sids['minion'] = Minion()
 
+        add_roles(self.game)
+
     def testFullGameWorkflow(self):
         word_list_length = 10
         self.game.nominate_for_mayor('villager')
         self.game.start_night_phase_word_choice()
         self.assertEqual(self.game.mayor, 'villager')
         self.game.reset()
+        add_roles(self.game)
         self.assertIsNone(self.game.mayor)
         self.game.nominate_for_mayor('mason1')
         self.assertTrue(self.game.set_word_choice_count(word_list_length))

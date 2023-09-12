@@ -178,6 +178,7 @@ body {
 .role_count_name {
   text-align: center;
   grid-area: role_name;
+  /* padding-left: 3px; */
   /* display: inline; */
 }
 
@@ -209,12 +210,17 @@ body {
   vertical-align: center;
 }
 
-.role_count_image {
+.role_count_image_container {
   display: inline-block;
-  background: white;
+  /* background: white; */
   grid-area: role_image;
   width: 66px;
   height: 66px;
+  border-radius: 15%;
+}
+
+.role_count_image {
+  border-radius: 50%;
 }
 
 .role_button {
@@ -226,11 +232,11 @@ body {
 
 .role_button:hover {
   background-color:#ffd000;
-  /* transition: 0.2s; */
 }
 
 .role_selection_item {
-  /* display: table; */
+  background-color:#777777;
+  border-radius: 10%;
   display: grid;
   gap: 0rem;
   grid-template-columns: 66px 22px;
@@ -244,7 +250,7 @@ body {
 
 .outer_role_grid {
   display: grid;
-  /* grid-template-rows: auto; */
+  padding-top: 10px;
   grid-template-columns: repeat(5, 100px);
   gap: 1em;
 }
