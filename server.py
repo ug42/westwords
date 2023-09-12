@@ -48,13 +48,11 @@ socketio = SocketIO(app)
 # Add UI element to show selected roles
 
 # UI mechanics
-# TODO: Add role selection mechanics
 # TODO: Add ability to add own questions
 # TODO: Figure out delete vs answer vs mayor prompt
 #   Set delete and answer to be gated as close to state change as possible now.
 #   Not mutex locking, so still possible.
 #   Mayor questions on deleted questions should be updated.
-# TODO: Add role to players killed page
 # TODO: Fix how the refresh timer function interval gets reinitialize many times
 #   whenever states refreshes/questions asked, etc.
 # TODO: Show current game state so people know why we're waiting for people.
@@ -68,43 +66,107 @@ socketio = SocketIO(app)
 #   Could be tied to the multiple timer updaters on game state/question updates
 #   Yes, it's sending multiple requests.
 # TODO: Move most javascript listeners off to be gated by control vars (set a
-# secondary variable to true while running sort of thing.)
+# secondary variable to true while running sort of thing.) Nvm, this doesn't
+# work, it's like there's global scope, but it doesn't recognize it in other
+# threads?
 
 # TODO: move this off to a backing store.
 SOCKET_MAP = {}
 COMMON_QUESTIONS = [
     'Can it fly?',
+    'Can you build it yourself?',
+    'Can you build it yourself?',
     'Can you control it?',
+    'Can you lift it?',
+    'Can you lift it?',
+    'Can you nail it?',
     'Can you own more than one?',
     'Can you own one?',
     'Can you purchase it?',
+    'Can you safely eat it?',
     'Can you see it?',
+    'Can you ship it?',
+    'Can you smell it?',
     'Can you touch it?',
+    'Do people regularly use it?',
     'Do you have more than one?',
     'Do you have one?',
+    'Does it cost more than $20?',
+    'Does it have a blade?',
     'Does it have feelings?',
+    'Does it have hinge on it?',
     'Does it have opposable digits?',
+    'Does it hold something inside it?',
+    'Does it run on electricity?',
+    'Does it weigh more than 100 lbs?',
+    'Does it weigh more than 20 lbs?',
+    'Does one exist in the Seattle metro area?',
     'Has it ever been alive?',
+    'Is it a body of water?',
+    'Is it a building?',
     'Is it a concept?',
+    'Is it a game?',
+    'Is it a physical thing?',
     'Is it a plant?',
     'Is it a proper noun?',
+    'Is it a store?',
+    'Is it a thing?',
     'Is it a tool?',
-    'Is it an action?',
     'Is it alive?',
+    'Is it an action?',
+    'Is it art?',
+    'is it associated with cars?',
     'Is it bigger than a bread box?',
+    'Is it bigger than a car?'
     'Is it bigger than a planet?',
     'Is it considered expensive?',
     'Is it edible?',
+    'Is it edible?',
+    'Is it entertainment?',
+    'Is it expensive?',
     'Is it food?',
     'Is it found in a house?',
     'Is it found on Earth?',
+    'Is it geographic?',
+    'Is it hand-held?',
+    'Is it industrial?',
+    'Is it larger than a bread box?',
+    'Is it larger than a breadbox?',
+    'is it larger than a car?',
     'Is it larger than a house?',
+    'is it living?',
+    'Is it made of metal?',
     'Is it mechanical?',
+    'is it motorized?',
+    'is it physical?',
+    'Is it real?',
+    'is it smaller than a car?',
+    'Is it something someone can enter?',
     'Is it something that is used daily?',
+    'Is it something you go into on a weekly basis?',
+    'Is it sports related?',
+    'Is it tall?',
     'Is it taught in elementary school?',
     'Is it taught in high school?',
+    'Is it transportation related?',
+    'Is it used for construction?',
+    'Is it used in food preparation?',
+    'Is it used outside?',
+    'Is it used to make other things?',
+    'Is it used with hands?',
+    'Is it usually made of metal?',
+    'Is it usually made of plastic?',
+    'Is it usually made of wood?',
     'Is the person alive?',
+    'It is exercise-related?',
+    'Was it ever alive?',
+    'Will i find it at a hardware store?',
+    'Would a typical person own one?',
+    'Would people use it regularly?',
+    'Would someone have more than one?',
     'Would you find it in a garage?',
+    'Would you find it somewhere other than a garage?',
+    'Would you hold it to use it?',
 ]
 
 
