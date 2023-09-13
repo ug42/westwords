@@ -3,6 +3,146 @@ import typing
 
 from westwords.enums import AnswerToken
 
+ADVERBS = [
+    'accordingly',
+    'additionally',
+    'also',
+    'anyway',
+    'besides',
+    'certainly',
+    'conversely',
+    'finally',
+    'hence',
+    'however',
+    'instead',
+    'lately',
+    'likewise',
+    'moreover',
+    'namely',
+    'nevertheless',
+    'so',
+    'then',
+    'yet',
+    'always',
+    'usually',
+    'often',
+    'sometimes',
+    'rarely',
+    'never',
+    'ever',
+    'hardly ever',
+    'occasionally',
+    'seldom',
+    'generally',
+    'frequently',
+    'normally',
+    'once',
+    'twice',
+    'behind',
+    'above',
+    'nearby',
+    'backward',
+    'toward',
+    'outside',
+    'inside',
+    'around',
+    'over',
+    'overseas',
+    'close',
+    'away',
+    'upstairs',
+    'downstairs',
+    'here',
+    'there',
+    'everywhere',
+]
+
+PREPOSITIONS = [
+    'about',
+    'above',
+    'across',
+    'after',
+    'against',
+    'along',
+    'among',
+    'around',
+    'as',
+    'at',
+    'before',
+    'behind',
+    'below',
+    'beneath',
+    'beside',
+    'between',
+    'beyond',
+    'by',
+    'despite',
+    'down',
+    'during',
+    'except',
+    'for',
+    'from',
+    'in',
+    'inside',
+    'into',
+    'like',
+    'near',
+    'of',
+    'off',
+    'on',
+    'onto',
+    'opposite',
+    'out',
+    'outside',
+    'over',
+    'past',
+    'round',
+    'since',
+    'than',
+    'through',
+    'to',
+    'towards',
+    'under',
+    'underneath',
+    'unlike',
+    'until',
+    'up',
+    'upon',
+    'via',
+    'with',
+    'within',
+    'without',
+]
+
+AUX_VERBS = [
+    'is',
+    'am',
+    'are',
+    'was',
+    'were',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'having',
+    'do',
+    'does',
+    'did',
+    'can',
+    'could',
+    'shall',
+    'should',
+    'will',
+    'would',
+    'may',
+    'might',
+    'must',
+    'dare',
+    'need',
+    'used to',
+    'ought to',
+]
 
 ARTICLES = [
     'a',
@@ -11,53 +151,54 @@ ARTICLES = [
 ]
 
 PRONOUNS = [
-  'i',
-  'you',
-  'my',
-  'mine',
-  'myself'
-  'we',
-  'us',
-  'our',
-  'ours',
-  'ourselves'
-  'you',
-  'you',
-  'your',
-  'yours',
-  'yourself'
-  'you',
-  'you',
-  'your',
-  'your',
-  'yourselves'
-  'he',
-  'him',
-  'his',
-  'his',
-  'himself'
-  'she',
-  'her',
-  'her',
-  'her',
-  'herself'
-  'it',
-  'it',
-  'its',
-  'itself'
-  'they',
-  'them',
-  'their',
-  'theirs',
-  'themself'
-  'they',
-  'them',
-  'their',
-  'theirs',
-  'themselves'
+    'i',
+    'you',
+    'my',
+    'mine',
+    'myself'
+    'we',
+    'us',
+    'our',
+    'ours',
+    'ourselves'
+    'you',
+    'you',
+    'your',
+    'yours',
+    'yourself'
+    'you',
+    'you',
+    'your',
+    'your',
+    'yourselves'
+    'he',
+    'him',
+    'his',
+    'his',
+    'himself'
+    'she',
+    'her',
+    'her',
+    'her',
+    'herself'
+    'it',
+    'it',
+    'its',
+    'itself'
+    'they',
+    'them',
+    'their',
+    'theirs',
+    'themself'
+    'they',
+    'them',
+    'their',
+    'theirs',
+    'themselves'
 ]
 
-REMOVAL = ARTICLES + PRONOUNS
+REMOVAL =  ADVERBS + PREPOSITIONS + AUX_VERBS + ARTICLES + PRONOUNS
+
 
 class QuestionError(BaseException):
     """Simple exception class for Question objects."""
@@ -88,7 +229,7 @@ class Question(object):
 
         # generate ordered list of only core sentence elements
         components = [i for i in question_string.split() if i not in REMOVAL]
-        
+
         # Return a _very_ loose regex on sentence structure.
         return re.compile('.*'.join(components), re.IGNORECASE)
 

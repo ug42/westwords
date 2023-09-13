@@ -864,11 +864,14 @@ class Game(object):
 
             for question_obj in self.questions:
 
-                if re.search(question_obj.text_match_regex(), question):
-                    question_matches.append(question_obj.question_text)
+                if re.search(question_obj.text_match_regex, question_text):
+                    question_obj_text = question_obj.question_text
+                    if question_obj.answer:
+                        question_obj_text += f' ({question_obj.answer.token_text})'
+                    question_matches.append(question_obj_text)
 
-                if question_matches:
-                    raise QuestionError(question_matches)
+            if question_matches:
+                raise QuestionError('\n'.join(question_matches))
 
         question_id = self._get_next_question_id()
         self.questions.append(question)

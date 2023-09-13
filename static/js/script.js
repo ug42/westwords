@@ -46,13 +46,13 @@ function ack_reveal() {
 }
 function ask_question(game_id, question, force) {
     socket.emit('question', game_id, question, force, (response) => {
-        if (response.status === 'OK') {
-            question.value = "";
-        } else if (response.status === 'DUPLICATE') {
-            dialog.innerHTML = data;
+        if (response.status === 'DUPLICATE') {
+            let dialog = document.querySelector('dialog');
+            dialog.innerHTML = response.html;
             dialog.showModal();
         }
     });
+    document.getElementById('question').value = "";
 }
 function skip_question(game_id, question_id) {
     socket.emit('skip_question', game_id, question_id);

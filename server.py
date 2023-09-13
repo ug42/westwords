@@ -49,7 +49,6 @@ socketio = SocketIO(app)
 
 # UI mechanics
 # TODO: Add ability to add own questions
-# TODO: Remove question from autocomplete if already asked.
 
 # TODO: move this off to a backing store.
 SOCKET_MAP = {}
@@ -576,17 +575,18 @@ def add_question(game_id: str, question_text: str, force: bool=False):
     if game_id in GAMES:
         try:
             success, _ = GAMES[game_id].add_question(
-                session['sid'], question_text, False)
+                session['sid'], question_text, force)
         except GameError as e:
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')
             return {'status': 'ERROR', 'html': ''}
         except QuestionError as e:
+            duplicate_questions = str(e).split('\n')
             return {'status': 'DUPLICATE', 'html': render_template(
                 'duplicate_question.html.j2',
                 game_id=game_id,
                 question=question_text,
-                duplicate_questions=e,
+                duplicate_questions=duplicate_questions,
             )}
             
         if success:
@@ -855,6 +855,7 @@ def get_words(game_id: str):
                     words=words,
                     player_role=str(role),
                     image=role.get_image_name(),
+                    image_theme=session['image_theme'],
                     game_id=game_id,
                 )}
     return 'Unable to provide word choices.'
@@ -1021,6 +1022,7 @@ def get_results(game_id: str):
                 vote_count=vote_count,
                 vote_information=vote_information,
                 non_voting_players=non_voting_players,
+                word=GAMES[game_id].get_word(),
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
             ),
         }
@@ -1046,6 +1048,7 @@ def get_player_revealed_information(game_id: str):
                 image=role.get_image_name(),
                 known_players=known_players,
                 known_word=known_word,
+                image_theme=session['image_theme'],
                 mayor=PLAYERS[GAMES[game_id].mayor].name,
                 role_description=role.get_role_description().strip(),
             ),

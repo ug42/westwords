@@ -1,9 +1,8 @@
 <div class="common-font">
-    {# <h5> #}
         Your role is {{player_role}}
-    {# </h5> #}
-    {% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5><br> {% endif %}
-    {% if image is not none %}<center><img class="role_image" src="{{ url_for('static', filename='img/' + image) }}"
+
+    {% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5>{% endif %}
+    {% if image is not none %}<center><img class="role_image" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
             title="{{role_description}}" width="200" height="200"></center><br> {% endif %}
 
     {% if known_players|length %}
