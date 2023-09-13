@@ -3,7 +3,7 @@
     <div class="role_selection_item">
         <span class="role_count_image_container">
             {%- if role.image|length -%}<img class="role_image"
-                src="{{ url_for('static', filename='img/' + role.image) }}"
+                src="{{ url_for('static', filename='img/' + image_theme + '/' + role.image) }}"
                 title="{{role.role_description}}" width="66" height="66">{% endif %}
         </span>
         <span>

@@ -44,8 +44,15 @@ function ack_reveal() {
     close_dialog();
     socket.emit('acknowledge_revealed_info', local_game_state.game_id);
 }
-function ask_question(game_id, question) {
-    socket.emit('question', game_id, question);
+function ask_question(game_id, question, force) {
+    socket.emit('question', game_id, question, force, (response) => {
+        if (response.status === 'OK') {
+            question.value = "";
+        } else if (response.status === 'DUPLICATE') {
+            dialog.innerHTML = data;
+            dialog.showModal();
+        }
+    });
 }
 function skip_question(game_id, question_id) {
     socket.emit('skip_question', game_id, question_id);
@@ -148,7 +155,7 @@ function start_timer() {
         timer_running = true;
         let game_timer = document.getElementById('game_timer');
         console.log('refresh: ' + typeof refresh_timer)
-        
+
         if (local_game_state.game_state === 'DAY_PHASE_QUESTIONS' &&
             typeof refresh_timer === 'undefined') {
             local_game_state.end_timestamp_ms = Date.now() + local_game_state.remaining_time_ms;
@@ -244,7 +251,7 @@ function refresh_questions(game_id) {
 })();
 
 function refresh_game_state(g) {
-    console.log('Attempting to refresh game state')
+    // console.log('Attempting to refresh game state')
     local_game_state = g;
     close_dialog()
 
@@ -256,31 +263,7 @@ function refresh_game_state(g) {
         game_timer.innerHTML = "00:00";
     }
     game_timer.hidden = false;
-    refresh_players(local_game_state.game_id);
-    let player_info = document.getElementById('player_info')
-    player_info.hidden = false;
-
-    let question_input = document.getElementById('question_input');
-    question_input.hidden = true;
-    let dialog_box = document.getElementById('dialog-box');
-    dialog_box.hidden = true;
-    let controls = document.getElementById('controls');
-    controls.hidden = false;
-    let dialog = document.querySelector('dialog');
-
-
     let roles_div = document.getElementById('roles')
-    let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
-    if (local_game_state.mayor !== null) {
-        nominate_for_mayor_btn.hidden = true;
-    } else {
-        if (local_game_state.spectating === true ||
-            local_game_state.nominated_for_mayor === true) {
-            nominate_for_mayor_btn.hidden = true;
-        } else {
-            nominate_for_mayor_btn.hidden = false;
-        }
-    }
     if (local_game_state.game_state === 'SETUP') {
         game_setup_buttons();
         refresh_questions(local_game_state.game_id);
@@ -295,6 +278,31 @@ function refresh_game_state(g) {
         game_started_buttons();
         roles_div.hidden = true;
     }
+    refresh_players(local_game_state.game_id);
+    let player_info = document.getElementById('player_info')
+    player_info.hidden = false;
+
+    let question_input = document.getElementById('question_input');
+    question_input.hidden = true;
+    let dialog_box = document.getElementById('dialog-box');
+    dialog_box.hidden = true;
+    let controls = document.getElementById('controls');
+    controls.hidden = false;
+    let dialog = document.querySelector('dialog');
+
+
+    let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
+    if (local_game_state.mayor !== null) {
+        nominate_for_mayor_btn.hidden = true;
+    } else {
+        if (local_game_state.spectating === true ||
+            local_game_state.nominated_for_mayor === true) {
+            nominate_for_mayor_btn.hidden = true;
+        } else {
+            nominate_for_mayor_btn.hidden = false;
+        }
+    }
+
 
     let title_bar_role = document.getElementById('title-bar-role');
     if (local_game_state.role !== 'None') {
@@ -396,23 +404,23 @@ function refresh_game_state(g) {
         } else {
             reset_game_btn.hidden = true;
         }
-        let boot_players = document.getElementById('boot_players');
-        if (boot_players !== null) {
-            boot_players.addEventListener("click", function () {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                socket.emit('get_bootable_players', local_game_state.game_id, (response) => {
-                    if (response.status === 'OK') {
-                        content.innerHTML = response.html;
-                    }
-                });
-                if (content.style.display === "block") {
-                    content.style.display = "none";
-                } else {
-                    content.style.display = "block";
-                }
-            });
-        }
+        // let boot_players = document.getElementById('boot_players');
+        // if (boot_players !== null) {
+        //     boot_players.addEventListener("click", function () {
+        //         this.classList.toggle("active");
+        //         var content = this.nextElementSibling;
+        //         socket.emit('get_bootable_players', local_game_state.game_id, (response) => {
+        //             if (response.status === 'OK') {
+        //                 content.innerHTML = response.html;
+        //             }
+        //         });
+        //         if (content.style.display === "block") {
+        //             content.style.display = "none";
+        //         } else {
+        //             content.style.display = "block";
+        //         }
+        //     });
+        // }
 
 
     }
@@ -466,9 +474,7 @@ ready(function () {
     dialog.showModal();
     dialog.close();
 
-    socket.on('connect', function () {
-        console.log('You are like connected and stuff.');
-    });
+    socket.on('connect', function () {});
     socket.on('disconnect', function (data) {
         console.log('Socket disconnected.');
     });
@@ -523,24 +529,22 @@ ready(function () {
         question.addEventListener('keypress', function (event) {
             if (event.key === "Enter") {
                 if (question.value != "") {
-                    socket.emit('question', local_game_state.game_id, question.value);
-                    question.value = "";
+                    ask_question(local_game_state.game_id, question.value, false);
                 }
             }
         });
         document.getElementById('question_submit').addEventListener('click', function () {
             if (question.value != "") {
-                socket.emit('question', local_game_state.game_id, question.value);
-                question.value = "";
+                ask_question(local_game_state.game_id, question.value, false);
             }
         });
     }
-    var username_input = document.getElementById('username_change');
-    if (username_input !== null) {
-        username_input.addEventListener('keypress', function (event) {
-            if (event.key === "Enter") {
-                username_input.submit()
-            }
+    var username_change = document.getElementById('username_change');
+    if (username_change !== null) {
+        username_change.addEventListener('submit', function (event) {
+            let titlebar_username = document.getElementById('titlebar-username');
+            let username = document.getElementById('username_input').value;
+            titlebar_username.innerHTML = username;
         });
     }
     var game_timer_input = document.getElementById('game_timer_input');
@@ -556,25 +560,27 @@ ready(function () {
         });
     }
     let nominate_for_mayor_btn = document.getElementById('nominate_for_mayor');
-    nominate_for_mayor_btn.addEventListener('click', function () {
-        const nominate_promise = new Promise((resolve, error) => {
-            socket.emit('nominate_for_mayor', local_game_state.game_id, (response) => {
-                if (response.status === 'OK') {
-                    resolve(response.status);
-                } else {
-                    error(response.status + ': Unable to nominate. ' +
-                        'Possibly already nominated.');
+    if (nominate_for_mayor_btn !== null) {
+        nominate_for_mayor_btn.addEventListener('click', function () {
+            const nominate_promise = new Promise((resolve, error) => {
+                socket.emit('nominate_for_mayor', local_game_state.game_id, (response) => {
+                    if (response.status === 'OK') {
+                        resolve(response.status);
+                    } else {
+                        error(response.status + ': Unable to nominate. ' +
+                            'Possibly already nominated.');
+                    }
+                });
+            })
+            nominate_promise.then(
+                (resolve) => {
+                    console.log('Successfully nominated: ' + resolve)
+                    nominate_for_mayor_btn.hidden = true;
+                },
+                (error) => {
+                    console.log(error)
                 }
-            });
-        })
-        nominate_promise.then(
-            (resolve) => {
-                console.log('Successfully nominated: ' + resolve)
-                nominate_for_mayor_btn.hidden = true;
-            },
-            (error) => {
-                console.log(error)
-            }
-        )
-    });
+            )
+        });
+    }
 });

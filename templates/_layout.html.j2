@@ -45,7 +45,7 @@
   <div class="mdl-snackbar__text"></div>
   <button class="mdl-snackbar__action" type="button"></button>
 </div>
-
+<iframe name="hidden_frame" hidden></iframe>
 <!-- Always shows a header, even in smaller screens. -->
 <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
   <header class="mdl-layout__header">
@@ -61,18 +61,12 @@
     </div>
   </header>
   <div class="mdl-layout__drawer">
-    <span class="mdl-layout-title"><a href="/">Westwords</a></span>
+    <span class="mdl-layout-title">Westwords</span>
     <nav class="mdl-navigation">
-      <p>
-      <form action="/username" id="username_change" method="POST">
-        {%- if game_id|length -%}
-        <input hidden id="requesting_url" name="requesting_url" value="/game/{{ game_id }}" />
-        {%- endif -%}
-        Username: <input type="text" name="username" id="username" value="{{ session.username }}">
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-          onclick="document.getElementById('username_change').submit()">Change username</button>
-      </form>
-      </p>
+        <a href="/">
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Home</button>
+        </a>
+        <hr>
       <p>
         {% if game_id|length %}
         <button type="button" onclick="location.href='/spectate/{{ game_id }}'"
@@ -85,13 +79,19 @@
           id="leave_game">Quit Game</button>
       </p>
       <div id="nav_game_reset" hidden>
-        <button onclick="send_reset_req('{{ game_id }}')"
+        <button onclick="send_reset_req('{{ game_id }}'); "
           class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored">Reset
           game</button>
       </div>
-      <button type="button" class="collapsible" id="boot_players">Boot Players</button>
-      <div id="boot_players_content" class="content">
+      <hr>
+      {% else %}
+      <div>
+        <form method="post" action="/create">
+          <input type="text" name="game_id" placeholder="Join game name..." autocomplete="off">
+          <button type="submit" class="mdl-button mdl-js-button mdl-button--raised">Join</button>
+        </form>
       </div>
+      <hr>
       {% endif %}
       <a href="/settings">
         <button class="mdl-button mdl-js-button mdl-button--raised">Settings</button>

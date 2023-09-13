@@ -1,5 +1,6 @@
 # Game and player-related classes
 import logging
+import re
 import time
 from collections import UserDict
 from copy import deepcopy
@@ -26,16 +27,16 @@ class RoleDict(UserDict):
 
 
 ROLES = RoleDict({
+    'werewolf': Werewolf(),
+    'villager': Villager(),
+    'fortuneteller': FortuneTeller(),
+    'seer': Seer(),
+    'minion': Minion(),
+    'doppelganger': Doppelganger(),
     'apprentice': Apprentice(),
     'beholder': Beholder(),
-    'doppelganger': Doppelganger(),
-    'fortuneteller': FortuneTeller(),
     'mason': Mason(),
-    'minion': Minion(),
-    'seer': Seer(),
     'esper': Esper(),
-    'villager': Villager(),
-    'werewolf': Werewolf(),
 })
 
 
@@ -371,6 +372,9 @@ class Game(object):
             self.game_state = GameState.FINISHED
             return True
         return False
+    
+    def is_in_setup(self) -> bool:
+        return self.game_state == GameState.SETUP
 
     def is_started(self) -> bool:
         return self.game_state == GameState.DAY_PHASE_QUESTIONS
@@ -830,7 +834,7 @@ class Game(object):
 
     # Question functions
 
-    def add_question(self, sid, question_text):
+    def add_question(self, sid, question_text, force):
         """Add a question to the game.
 
         Args:
@@ -853,9 +857,24 @@ class Game(object):
             raise GameError('Game is not yet started.')
 
         question = Question(sid, question_text)
+        if not force:
+            # Assuming this has not already been checked for a previous similar
+            # question.
+            question_matches = []
+
+            for question_obj in self.questions:
+
+                if re.search(question_obj.text_match_regex(), question):
+                    question_matches.append(question_obj.question_text)
+
+                if question_matches:
+                    raise QuestionError(question_matches)
+
         question_id = self._get_next_question_id()
         self.questions.append(question)
         return (True, question_id)
+            
+
 
     def delete_question(self, question_id):
         q = self.get_question(question_id)

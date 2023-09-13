@@ -14,7 +14,17 @@
         <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input">
         <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value);
             document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
-    </div><br>
+        <div id="boot_players_content" class="content">
+            {% for p in players %}
+            <button style="border: 0; background: none; -webkit-appearance: none;"
+                onclick="boot_player('{{ game_id }}', '{{ p.sid }}')">
+                <span class="material-icons" style="font-size: 14px; color: white;" title="Remove Player">close</span>
+            </button> &nbsp {{ p.name }}<br>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="roles" hidden></div>
+    <br>
     <div id="player_info" hidden>
         <div id="players"></div>
     </div>
@@ -36,18 +46,18 @@
             hidden>Join Game</button>
 
         <div id="question_input" hidden>
-                <input id="question" autocomplete="off" class="question-box" type="search" list="questions" placeholder="Ask a question...">
-                {%  if autocomplete_enabled is true %}
-                <datalist id="questions">
+            <input id="question" autocomplete="off" class="question-box" type="search" list="questions"
+                placeholder="Ask a question...">
+            {% if autocomplete_enabled is true %}
+            <datalist id="questions">
                 {% for q in common_questions %}
                 <option value="{{ q }}" />
                 {% endfor %}
-                </datalist>
-                {% endif %}
-                <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
+            </datalist>
+            {% endif %}
+            <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
         </div>
     </div>
-    <div id="roles" hidden></div>
     <div id="mayor_display" class="mayor_controls" style="display: inline;" hidden>
         <div hidden class="mayor_controls" id="mayor_controls">
             <button onclick="undo_answer('{{ game_id }}')" class="material-symbols-outlined">undo</button>Undo last

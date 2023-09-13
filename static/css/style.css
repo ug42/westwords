@@ -177,6 +177,7 @@ body {
 }
 
 .role_count_name {
+  font-size: 12px;
   text-align: center;
   grid-area: role_name;
   padding-left: 3px;
@@ -223,7 +224,7 @@ body {
 
 .role_image {
   border-radius: 50%;
-  filter: grayscale(1);
+  filter: grayscale(0.5);
 }
 
 img.role_image:hover {
@@ -258,9 +259,8 @@ img.role_image:hover {
 
 .outer_role_grid {
   display: grid;
-  padding-top: 10px;
-  grid-template-columns: repeat(5, 100px);
-  gap: 1em;
+  grid-template-columns: repeat(4, 88px);
+  gap: 10px;
 }
 
 

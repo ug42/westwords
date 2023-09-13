@@ -27,8 +27,8 @@ from flask import (Flask, flash, make_response, redirect, render_template,
 from flask_socketio import SocketIO, emit, join_room, rooms
 
 import westwords
-from westwords.enums import AnswerToken
-from westwords.game import GameError
+from westwords.enums import AnswerToken, ImageThemes
+from westwords.game import GameError, QuestionError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
@@ -49,21 +49,7 @@ socketio = SocketIO(app)
 
 # UI mechanics
 # TODO: Add ability to add own questions
-# TODO: Figure out delete vs answer vs mayor prompt
-#   Set delete and answer to be gated as close to state change as possible now.
-#   Not mutex locking, so still possible.
-#   Mayor questions on deleted questions should be updated.
-# TODO: Add a timer to the reveal section or do away with the ACK part
 # TODO: Remove question from autocomplete if already asked.
-# TODO: Add roles to the logged function
-# TODO: Reported unable to answer question but still marks question.
-#   Also reports success. Possibly getting multiple handlers registered?
-#   Could be tied to the multiple timer updaters on game state/question updates
-#   Yes, it's sending multiple requests.
-# TODO: Move most javascript listeners off to be gated by control vars (set a
-# secondary variable to true while running sort of thing.) Nvm, this doesn't
-# work, it's like there's global scope, but it doesn't recognize it in other
-# threads?
 
 # TODO: move this off to a backing store.
 SOCKET_MAP = {}
@@ -291,6 +277,9 @@ def check_session_config() -> str:
         session['sid'] = str(uuid4())
     if 'autocomplete_enabled' not in session:
         session['autocomplete_enabled'] = False
+    if 'image_theme' not in session:
+        app.logger.debug('Image theme was not set for some reason, resetting.')
+        session['image_theme'] = 'oil_painting'
     if 'username' not in session:
         app.logger.debug('adding username')
         u = f'Not_a_wolf_{randint(1000,9999)}'
@@ -351,6 +340,23 @@ def username():
     if 'requesting_url' in session:
         return redirect(session.pop('requesting_url'))
     return redirect('/')
+
+
+@app.route('/theme', methods=['POST'])
+def theme():
+    # Don't need the redirect check since it's singular in the settings.
+    _ = check_session_config()
+    app.logger.debug(f'Got request to change theme')
+
+
+    if request.method == 'POST' and request.form.get('selected_theme'):
+        selected_theme = request.form.get('selected_theme').upper()
+        app.logger.debug(f'Got request to change theme to {selected_theme}')
+        if selected_theme in ImageThemes._member_names_:
+            session['image_theme'] = ImageThemes[selected_theme].directory
+            app.logger.debug(f'Found theme and set session param. {session["image_theme"]}')
+    return redirect('/')
+
 
 
 @app.route('/privacy_policy')
@@ -506,8 +512,12 @@ def settings(setting: str = None):
     redirect_url = check_session_config()
     if redirect_url:
         return redirect(redirect_url)
-    return render_template('settings.html.j2',
-                           autocomplete_enabled=session['autocomplete_enabled'])
+    return render_template(
+        'settings.html.j2',
+        autocomplete_enabled=session['autocomplete_enabled'],
+        themes=ImageThemes,
+        currently_selected_theme=session['image_theme'],
+        )
 
 
 @app.route('/login')
@@ -562,15 +572,23 @@ def disconnect():
 
 
 @socketio.on('question')
-def add_question(game_id: str, question_text: str):
+def add_question(game_id: str, question_text: str, force: bool=False):
     if game_id in GAMES:
         try:
             success, _ = GAMES[game_id].add_question(
-                session['sid'], question_text)
+                session['sid'], question_text, False)
         except GameError as e:
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')
-            return False
+            return {'status': 'ERROR', 'html': ''}
+        except QuestionError as e:
+            return {'status': 'DUPLICATE', 'html': render_template(
+                'duplicate_question.html.j2',
+                game_id=game_id,
+                question=question_text,
+                duplicate_questions=e,
+            )}
+            
         if success:
             GAMES[game_id].log(
                 f'{PLAYERS[session["sid"]].name} asked question: '
@@ -658,12 +676,12 @@ def get_players(game_id: str):
         for player_sid in player_sids:
             tokens = GAMES[game_id].get_player_token_count(player_sid)
             token_count = []
-            voted = False
+            voting = False
             spectators = []
             for spectator in GAMES[game_id].get_spectators():
                 spectators.append(PLAYERS[spectator].name)
             if GAMES[game_id].is_voting():
-                voted = (player_sid in
+                voting = (player_sid in
                          GAMES[game_id].get_players_needing_to_vote())
             for token in tokens:
                 token_count.append({'token': token, 'count': tokens[token]})
@@ -672,12 +690,18 @@ def get_players(game_id: str):
                 'token_count': token_count,
                 'mayor': player_sid == mayor,
                 'admin': player_sid == admin,
-                'voted': voted,
+                'player_sid': player_sid,
+                'voting': voting,
             })
+            admin_view = False
+            if GAMES[game_id].is_in_setup():
+                admin_view = session['sid'] == admin
         players_html = render_template(
             'player_layout.html.j2',
+            game_id=game_id,
             players=players,
             spectators=spectators,
+            admin_view=admin_view,
             mayor_token_count=mayor_token_count)
         return {
             'status': 'OK',
@@ -773,6 +797,11 @@ def start_vote(game_id: str):
     if game_id in GAMES and GAMES[game_id].mayor == session['sid']:
         GAMES[game_id].log(
             f'{PLAYERS[session["sid"]].name} attempting to start voting.')
+        GAMES[game_id].log('Role information:')
+        player_roles = GAMES[game_id].get_players()
+        for player_sid in player_roles:
+            GAMES[game_id].log(f'{PLAYERS[player_sid].name} was '
+                               f'{str(player_roles[player_sid])}')
         success = GAMES[game_id].start_vote()
         if success:
             GAMES[game_id].log('Voting is started.')
@@ -1265,6 +1294,7 @@ def get_roles(game_id: str):
             'role_html': render_template('role_layout.html.j2',
                                          game_id=game_id,
                                          roles=roles,
+                                         image_theme=session['image_theme'],
                                          player_is_admin=player_is_admin,
                                          )
         }

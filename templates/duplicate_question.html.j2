@@ -1,0 +1,13 @@
+<p>
+Your question:
+{{ question }}
+</p>
+<p>
+Possible duplicates:
+{% for q in duplicate_questions %}
+<ul>{{q}}</ul>
+{% endfor %}
+</p>
+Submit anyway?<br>
+<button type="button" class="mdl-button mdl-button--accent mdl-button--raised close" onclick="ask_question('{{game_id}}', '{{question}}', true); close_dialog();">YES</button>
+<button type="button" class="mdl-button mdl-button--accent mdl-button--raised close" onclick="close_dialog()">NO</button>

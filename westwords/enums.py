@@ -63,3 +63,30 @@ class Affiliation(Enum):
     VILLAGE = "Village"
     # To be determined in course of game
     UNKNOWN = "Unknown"
+
+
+class ImageThemes(Enum):
+    OIL_PAINTING = ("oil_painting", "Oil Painting")
+    ANIME = ("anime", "Anime Styled")
+    CHIBI = ("chibi", "Chibi Anime Styled")
+    STICK_FIGURE = ("stick_figure", "Classic Bad Art Stick Figures")    
+
+    def __new__(cls, *args, **_):
+        obj = object.__new__(cls)
+        obj._value_ = args[0]
+        return obj
+
+    def __init__(self,
+                 directory: str,
+                 description: str,
+                 ):
+        self._directory = directory
+        self._description = description
+
+    @property
+    def directory(self):
+        return self._directory
+
+    @property
+    def description(self):
+        return self._description

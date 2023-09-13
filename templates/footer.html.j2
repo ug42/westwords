@@ -15,7 +15,7 @@ Waiting for players to vote
 
 {%- if known_word is not none -%}Word: <u>{{ known_word }}</u> &emsp;{%- endif -%}
 {%- for p in known_players -%}
-Player: <b>{{ p.name }} {%- if p.name == mayor -%} (Mayor) {%- endif -%}</b> ({{ p.role }}) &emsp;
+Players you know: {{ p.name }}{% if p.name == mayor %}, the Mayor, {% endif %} is ({{ p.role }}) &emsp;
 {%- endfor -%}
 {%- endif -%}
 </div>

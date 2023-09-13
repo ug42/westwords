@@ -1,8 +1,20 @@
 <table>
     {%- for player in players -%}
     <tr class="player-table">
-        <td id="voted" width=30>
-            {% if player.voted %}
+        {% if admin_view %}
+        <td>
+            <button class="mdl-button mdl-js-button mdl-button--icon"
+                onclick="boot_player('{{ game_id }}', '{{ player.player_sid }}')"
+                title="Boot {{ player.name }}">
+                <i class="material-icons">cancel</i>
+            </button>
+            {# <ul ul class="mdl-menu mdl-menu--top-left mdl-js-menu mdl-js-ripple-effect" data-mdl-for="boot-player-{{ player.name }}">
+                <li class="mdl-menu__item" >Boot player to Spectate</li>
+            </ul> #}
+        </td>
+        {% endif %}
+        <td id="voting" width=30>
+            {% if player.voting %}
             <img src="{{ url_for('static', filename='img/voting-white.png') }}" width="24" height="24">
             {% endif %}
         </td>
@@ -55,10 +67,9 @@
     </tr>
     {%- endfor -%}
 </table>
-<table>
+<table class="player-table">
     {%- for spectator in spectators -%}
     <tr>
-        <td width=30></td>
         <td class="player-table">
             {{ spectator }} (Spectator)
         </td>
