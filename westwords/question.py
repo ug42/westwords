@@ -151,50 +151,38 @@ ARTICLES = [
 ]
 
 PRONOUNS = [
+    'he',
+    'her',
+    "her's",
+    'herself',
+    'him',
+    'himself',
+    'his',
     'i',
-    'you',
-    'my',
+    'it',
+    'its',
+    'itself',
     'mine',
-    'myself'
-    'we',
-    'us',
+    'my',
+    'myself',
     'our',
     'ours',
-    'ourselves'
-    'you',
+    'ourselves',
+    'she',
+    'their',
+    'theirs',
+    'them',
+    'themself',
+    'themselves',
+    'they',
+    'they',
+    'us',
+    'we',
     'you',
     'your',
     'yours',
-    'yourself'
-    'you',
-    'you',
-    'your',
-    'your',
-    'yourselves'
-    'he',
-    'him',
-    'his',
-    'his',
-    'himself'
-    'she',
-    'her',
-    'her',
-    'her',
-    'herself'
-    'it',
-    'it',
-    'its',
-    'itself'
-    'they',
-    'them',
-    'their',
-    'theirs',
-    'themself'
-    'they',
-    'them',
-    'their',
-    'theirs',
-    'themselves'
+    'yourself',
+    'yourselves',
 ]
 
 REMOVAL =  ADVERBS + PREPOSITIONS + AUX_VERBS + ARTICLES + PRONOUNS
@@ -228,10 +216,23 @@ class Question(object):
         question_string = re.sub(r'[^\w]', ' ', question_string)
 
         # generate ordered list of only core sentence elements
-        components = [i for i in question_string.split() if i not in REMOVAL]
-
+        remove_regex_part = '|'.join(REMOVAL)
+        remove_regex = re.compile(rf'[^\w]{remove_regex_part}[^\w]')
+        question_string = re.sub(remove_regex, ' ', question_string)
+        
+        components = question_string.split()
+        component_count = len(components)
+        
         # Return a _very_ loose regex on sentence structure.
-        return re.compile('.*'.join(components), re.IGNORECASE)
+        # In general this any term that is not surrounded by an alphanumeric
+        # character up to the number of times seen in the original question.
+        # This is likely very computationally expensive, so something like RE2
+        # would be nice to cut down computation costs, but that is costly to the
+        # image size, as well. This might be a tradeoff that needs to happen
+        # later.
+        question_regex = re.compile(rf'(.*([^\w]{"|".join(components)}[^\w]).*){{{component_count}}}', re.IGNORECASE)
+
+        return question_regex
 
     def get_answer(self) -> typing.Optional[AnswerToken]:
         if self.answer:

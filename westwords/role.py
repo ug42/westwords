@@ -5,9 +5,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-ROLE_SET = {
-
-}
+ROLE_SET = {}
 
 
 class RoleSet(object):
@@ -260,6 +258,7 @@ class FortuneTeller(Role):
         self.image_name = 'fortune_teller.png'
         self.sees_word = False
         self.required_players = 5
+        self.max_instances = 4
         self.team_loses_if_killed = True
 
     def __str__(self):

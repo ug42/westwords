@@ -70,6 +70,7 @@ class ImageThemes(Enum):
     ANIME = ("anime", "Anime Styled")
     CHIBI = ("chibi", "Chibi Anime Styled")
     STICK_FIGURE = ("stick_figure", "Classic Bad Art Stick Figures")    
+    NO_IMAGE = ("no_image", "No images")
 
     def __new__(cls, *args, **_):
         obj = object.__new__(cls)
