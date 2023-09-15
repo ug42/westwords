@@ -216,11 +216,8 @@ class Question(object):
         question_string = re.sub(r'[^\w]', ' ', question_string)
 
         # generate ordered list of only core sentence elements
-        remove_regex_part = '|'.join(REMOVAL)
-        remove_regex = re.compile(rf'[\s]{remove_regex_part}[\s]')
-        question_string = re.sub(remove_regex, ' ', question_string)
         
-        components = question_string.split()
+        components = [i for i in question_string.split() if i not in REMOVAL]
         component_count = len(components)
         
         # Return a _very_ loose regex on sentence structure.
