@@ -251,7 +251,6 @@ function refresh_questions(game_id) {
 })();
 
 function refresh_game_state(g) {
-    // console.log('Attempting to refresh game state')
     local_game_state = g;
     close_dialog()
 
@@ -371,18 +370,6 @@ function refresh_game_state(g) {
                 dialog_box.innerHTML = response.results_html;
                 dialog_box.hidden = false;
                 controls.hidden = true;
-                let vote_details = document.getElementById('vote_details');
-                if (vote_details !== null) {
-                    vote_details.addEventListener("click", function () {
-                        this.classList.toggle("active");
-                        var content = this.nextElementSibling;
-                        if (content.style.display === "block") {
-                            content.style.display = "none";
-                        } else {
-                            content.style.display = "block";
-                        }
-                    });
-                }
             }
         });
     }
@@ -404,25 +391,6 @@ function refresh_game_state(g) {
         } else {
             reset_game_btn.hidden = true;
         }
-        // let boot_players = document.getElementById('boot_players');
-        // if (boot_players !== null) {
-        //     boot_players.addEventListener("click", function () {
-        //         this.classList.toggle("active");
-        //         var content = this.nextElementSibling;
-        //         socket.emit('get_bootable_players', local_game_state.game_id, (response) => {
-        //             if (response.status === 'OK') {
-        //                 content.innerHTML = response.html;
-        //             }
-        //         });
-        //         if (content.style.display === "block") {
-        //             content.style.display = "none";
-        //         } else {
-        //             content.style.display = "block";
-        //         }
-        //     });
-        // }
-
-
     }
     if (local_game_state.player_is_mayor) {
         let mayor_controls = document.getElementById('mayor_controls');

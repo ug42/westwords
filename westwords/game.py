@@ -863,12 +863,13 @@ class Game(object):
             question_matches = []
 
             for question_obj in self.questions:
-
-                if re.search(question_obj.text_match_regex, question_text):
+                regex = question_obj.text_match_regex
+                if regex and re.search(regex, question_text):
                     question_obj_text = question_obj.question_text
                     if question_obj.answer:
                         question_obj_text += f' ({question_obj.answer.token_text})'
                     question_matches.append(question_obj_text)
+                    print(f'Question match found with regex: {regex}')
 
             if question_matches:
                 raise QuestionError('\n'.join(question_matches))

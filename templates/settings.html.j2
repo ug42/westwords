@@ -1,21 +1,28 @@
 {% extends "_layout.html.j2" %}
 {% block body %}
 <form action="/toggle_autocomplete" id="toggle_autocomplete" target="hidden_frame" method="POST">
-<label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="autocomplete">
-    <input onclick="document.getElementById('toggle_autocomplete').submit();" type="checkbox" id="autocomplete" class="mdl-checkbox__input"{% if autocomplete_enabled %} checked{% endif %}    >
-    <span class="mdl-checkbox__label">Autocomplete</span>
-</label>
+    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="autocomplete">
+        <input onclick="document.getElementById('toggle_autocomplete').submit();" type="checkbox" id="autocomplete"
+            class="mdl-checkbox__input" {% if autocomplete_enabled %} checked{% endif %}>
+        <span class="mdl-checkbox__label">Autocomplete</span>
+    </label>
+</form>
+<form action="/toggle_check_for_duplicate" id="toggle_check_for_duplicate" target="hidden_frame" method="POST">
+    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="check_for_duplicate">
+        <input onclick="document.getElementById('toggle_check_for_duplicate').submit();" type="checkbox"
+            id="check_for_duplicate" class="mdl-checkbox__input" {% if check_for_duplicate %} checked{% endif %}>
+        <span class="mdl-checkbox__label">Check for duplicate questions on submit</span>
+    </label>
 </form>
 <p>
 <form action="/theme" method="POST" target="hidden_frame">
-
-
-<select name="selected_theme" id="selected_theme">
-{% for theme in themes %}
-  <option value="{{theme.name}}"{% if theme.directory == currently_selected_theme %} selected{% endif %}>{{theme.description}}</option>
-{% endfor %}
-</select>
-<button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+    <select name="selected_theme" id="selected_theme">
+        {% for theme in themes %}
+        <option value="{{theme.name}}" {% if theme.directory==currently_selected_theme %} selected{% endif %}>
+            {{theme.description}}</option>
+        {% endfor %}
+    </select>
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
         type="submit">Change theme</button>
 </form>
 </p>
@@ -23,7 +30,8 @@
 
 <form action="/username" id="username_change" method="POST" target="hidden_frame">
     <div class="mdl-textfield mdl-js-textfield">
-    <input class="mdl-textfield__input" type="text" name="username" id="username_input" value="{{ session.username }}">
+        <input class="mdl-textfield__input" type="text" name="username" id="username_input"
+            value="{{ session.username }}">
     </div>
     <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
         type="submit">Change username</button>

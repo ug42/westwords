@@ -58,7 +58,6 @@ COMMON_QUESTIONS = [
     'Can you build it yourself?',
     'Can you control it?',
     'Can you lift it?',
-    'Can you lift it?',
     'Can you nail it?',
     'Can you own more than one?',
     'Can you own one?',
@@ -276,6 +275,8 @@ def check_session_config() -> str:
         session['sid'] = str(uuid4())
     if 'autocomplete_enabled' not in session:
         session['autocomplete_enabled'] = False
+    if 'check_for_duplicate' not in session:
+        session['check_for_duplicate'] = True
     if 'image_theme' not in session:
         app.logger.debug('Image theme was not set for some reason, resetting.')
         session['image_theme'] = 'oil_painting'
@@ -506,6 +507,18 @@ def toggle_autocomplete():
     return redirect('/')
 
 
+@app.route('/toggle_check_for_duplicate', methods=['POST'])
+def toggle_check_for_duplicate():
+    check_session_config()
+    session['check_for_duplicate'] = not session['check_for_duplicate']
+    if request.form.get('requesting_url') and 'requesting_url' not in session:
+        session['requesting_url'] = request.form.get("requesting_url")
+
+    if 'requesting_url' in session:
+        return redirect(session.pop('requesting_url'))
+    return redirect('/')
+
+
 @app.route('/settings', methods=['GET'])
 def settings(setting: str = None):
     redirect_url = check_session_config()
@@ -514,6 +527,7 @@ def settings(setting: str = None):
     return render_template(
         'settings.html.j2',
         autocomplete_enabled=session['autocomplete_enabled'],
+        check_for_duplicate=session['check_for_duplicate'],
         themes=ImageThemes,
         currently_selected_theme=session['image_theme'],
         )
@@ -573,6 +587,10 @@ def disconnect():
 @socketio.on('question')
 def add_question(game_id: str, question_text: str, force: bool=False):
     if game_id in GAMES:
+        # User has disabled the check for duplicate, so we just force it on
+        # through
+        if not session['check_for_duplicate']:
+            force = True
         try:
             success, _ = GAMES[game_id].add_question(
                 session['sid'], question_text, force)

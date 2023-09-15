@@ -217,7 +217,7 @@ class Question(object):
 
         # generate ordered list of only core sentence elements
         remove_regex_part = '|'.join(REMOVAL)
-        remove_regex = re.compile(rf'[^\w]{remove_regex_part}[^\w]')
+        remove_regex = re.compile(rf'[\s]{remove_regex_part}[\s]')
         question_string = re.sub(remove_regex, ' ', question_string)
         
         components = question_string.split()
@@ -230,7 +230,11 @@ class Question(object):
         # would be nice to cut down computation costs, but that is costly to the
         # image size, as well. This might be a tradeoff that needs to happen
         # later.
-        question_regex = re.compile(rf'(.*([^\w]{"|".join(components)}[^\w]).*){{{component_count}}}', re.IGNORECASE)
+        # question_regex = re.compile(rf'(.*([^\w]{"|".join(components)}[^\w]).*){{{component_count}}}', re.IGNORECASE)
+        regex_string = '.*'.join(components)
+        question_regex = None
+        if component_count > 1 and len(regex_string) > 5:
+            question_regex = re.compile(regex_string, re.IGNORECASE)
 
         return question_regex
 
