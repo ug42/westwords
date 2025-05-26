@@ -1348,5 +1348,62 @@ def get_role_count(game_id: str, role: str):
     return {'status': 'ERROR', 'count': '', 'element_id': ''}
 
 
+@socketio.on('get_my_role')
+def get_my_role(game_id: str):
+    try:
+        player_sid = session.get('sid')
+        if not player_sid:
+            app.logger.error("Session ID not found in get_my_role")
+            emit('my_role_info', {'status': 'ERROR', 'message': 'Session ID not found.'}, to=request.sid)
+            return
+
+        game_id_lower = game_id.casefold()
+        if game_id_lower not in GAMES:
+            app.logger.warn(f"Game not found: {game_id_lower} for player {player_sid}")
+            emit('my_role_info', {'status': 'ERROR', 'message': 'Game not found.'}, to=request.sid)
+            return
+
+        game = GAMES[game_id_lower]
+        role = game.get_player_role(player_sid)
+
+        if not role:
+            player_name = PLAYERS[player_sid].name if player_sid in PLAYERS else "Unknown Player"
+            app.logger.info(f"Role not found for player {player_name} ({player_sid}) in game {game_id_lower}. Assigning spectator role info.")
+            emit('my_role_info', {
+                'status': 'OK',
+                'role_name': 'Spectator',
+                'role_description': 'You are observing the game. Roles are typically assigned when the game starts.',
+                'role_image': url_for('static', filename='img/spectator.png')
+            }, to=request.sid)
+            return
+
+        role_name = str(role)
+        role_description = role.get_role_description()
+        role_image_name = role.get_image_name()
+        image_theme = session.get('image_theme', 'oil_painting') 
+
+        try:
+            role_image_path = url_for('static', filename=f"img/{image_theme}/{role_image_name}.png")
+        except Exception as e:
+            app.logger.error(f"Error generating image path for role '{role_name}', image '{role_image_name}', theme '{image_theme}': {e}", exc_info=True)
+            role_image_path = url_for('static', filename='img/unknown.png')
+
+        app.logger.info(f"Sending role info for player {PLAYERS[player_sid].name} ({player_sid}) in game {game_id_lower}: Role {role_name}")
+        emit('my_role_info', {
+            'status': 'OK',
+            'role_name': role_name,
+            'role_description': role_description,
+            'role_image': role_image_path,
+        }, to=request.sid)
+
+    except KeyError as e:
+        # This could happen if PLAYERS[player_sid] fails, or session['sid'] is missing at a critical point
+        app.logger.error(f"KeyError in get_my_role for game {game_id.casefold() if game_id else 'UnknownGame'}, player SID {session.get('sid')}: {e}", exc_info=True)
+        emit('my_role_info', {'status': 'ERROR', 'message': f"Essential game or player data lookup failed: {e}."}, to=request.sid)
+    except Exception as e:
+        app.logger.error(f"Unexpected error in get_my_role for game {game_id.casefold() if game_id else 'UnknownGame'}, player {session.get('sid')}: {e}", exc_info=True)
+        emit('my_role_info', {'status': 'ERROR', 'message': f"An unexpected server error occurred. Please try again."}, to=request.sid)
+
+
 if __name__ == '__main__':
     socketio.run(app)
