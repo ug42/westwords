@@ -302,6 +302,23 @@ function refresh_game_state(g) {
         }
     }
 
+    // Show My Role button visibility
+    const showRoleButton = document.getElementById('show_role_button');
+    if (showRoleButton) {
+        if (local_game_state.game_state === 'SETUP' || local_game_state.game_state === 'FINISHED') {
+            showRoleButton.style.display = 'none';
+        } else {
+            // Show button if player is not spectating. If they are spectating, their role is 'Spectator' and can be shown.
+            // The button is part of the 'controls' div, which is hidden for spectators indirectly by other logic.
+            // However, explicit control here is good.
+            if (local_game_state.spectating === true) {
+                 showRoleButton.style.display = 'none';
+            } else {
+                 showRoleButton.style.display = 'inline'; // Or 'block'
+            }
+        }
+    }
+
 
     let title_bar_role = document.getElementById('title-bar-role');
     if (local_game_state.role !== 'None') {
@@ -550,5 +567,87 @@ ready(function () {
                 }
             )
         });
+    }
+    // New function to request role information
+    window.showMyRole = function() {
+        const pathParts = window.location.pathname.split('/');
+        let gameId = pathParts[pathParts.length - 1];
+        // Basic validation: if the last part is 'game' or empty, try the second to last.
+        // This handles cases like /game/gameId or /game/gameId/
+        if (gameId.toLowerCase() === 'game' || gameId.trim() === '') {
+            if (pathParts.length > 1) {
+                gameId = pathParts[pathParts.length - 2];
+            } else {
+                 console.error('Could not determine game_id from URL:', window.location.pathname);
+                 // Attempt to use local_game_state.game_id if available
+                 if (local_game_state && local_game_state.game_id) {
+                     gameId = local_game_state.game_id;
+                     console.log('Using game_id from local_game_state:', gameId);
+                 } else {
+                    alert('Error: Could not determine Game ID.');
+                    return;
+                 }
+            }
+        }
+        
+        if (!gameId || gameId.trim() === '') {
+            console.error('Error: Game ID is empty or invalid from URL and local_game_state.');
+            alert('Error: Game ID is missing or invalid.');
+            return;
+        }
+
+        console.log('Requesting role for game:', gameId);
+        socket.emit('get_my_role', gameId);
+    }
+
+    // New listener for receiving role information
+    socket.on('my_role_info', function(data) {
+        console.log('Received my_role_info:', data);
+        let dialogBox = document.getElementById('dialog-box'); 
+        if (!dialogBox) {
+            console.error('Element with ID "dialog-box" not found.');
+            // alert('Error: UI element for displaying role information is missing.');
+            return;
+        }
+
+        let htmlContent = '';
+        if (data.status === 'OK') {
+            // Ensure data fields exist to prevent 'undefined' in output
+            const roleImage = data.role_image || 'static/img/unknown.png'; // Fallback image
+            const roleName = data.role_name || 'Role Name Not Available';
+            const roleDescription = data.role_description || 'No description provided.';
+
+            htmlContent = `
+                <div style="text-align: center; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px; margin: 20px auto;">
+                    <img src="${roleImage}" alt="${roleName}" style="max-width: 100px; max-height: 100px; margin-bottom: 15px; border-radius: 4px; object-fit: contain;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">${roleName}</h3>
+                    <p style="margin-bottom: 20px; color: #555; font-size: 0.9em; white-space: pre-wrap;">${roleDescription}</p>
+                    <button onclick="closeRoleDialog()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            `;
+        } else {
+            console.error('Error getting role:', data.message);
+            const errorMessage = data.message || 'An unknown error occurred while fetching your role.';
+            htmlContent = `
+                <div style="text-align: center; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px; margin: 20px auto;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #d9534f;">Error Retrieving Role</h3>
+                    <p style="margin-bottom: 20px; color: #555; font-size: 0.9em;">${errorMessage}</p>
+                    <button onclick="closeRoleDialog()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            `;
+        }
+        dialogBox.innerHTML = htmlContent;
+        dialogBox.hidden = false; 
+        dialogBox.style.display = 'block'; 
+    });
+
+    // New helper function to close the role dialog (dialog-box div)
+    window.closeRoleDialog = function() {
+        let dialogBox = document.getElementById('dialog-box');
+        if (dialogBox) {
+            dialogBox.innerHTML = ''; 
+            dialogBox.style.display = 'none'; 
+            dialogBox.hidden = true; 
+        }
     }
 });
