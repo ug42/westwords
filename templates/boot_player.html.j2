@@ -1,6 +1,6 @@
 {% for p in players %}
-<button style="border: 0; background: none; -webkit-appearance: none;"
+<button class="btn btn-danger btn-sm" title="Remove Player"
     onclick="boot_player('{{ game_id }}', '{{ p.sid }}')">
-    <span class="material-icons" style="font-size: 14px; color: white;" title="Remove Player">close</span>
-</button> &nbsp {{ p.name }}<br>
+    &times; {# Using a times symbol for 'close' #}
+</button> &nbsp; {{ p.name }}<br>
 {% endfor %}

@@ -1,45 +1,42 @@
 {% extends "_layout.html.j2" %}
 {% block body %}
-<form action="/toggle_autocomplete" id="toggle_autocomplete" target="hidden_frame" method="POST">
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="autocomplete">
+<form action="/toggle_autocomplete" id="toggle_autocomplete" target="hidden_frame" method="POST" class="mb-3">
+    <div class="form-check">
         <input onclick="document.getElementById('toggle_autocomplete').submit();" type="checkbox" id="autocomplete"
-            class="mdl-checkbox__input" {% if autocomplete_enabled %} checked{% endif %}>
-        <span class="mdl-checkbox__label">Autocomplete</span>
-    </label>
-</form>
-<form action="/toggle_check_for_duplicate" id="toggle_check_for_duplicate" target="hidden_frame" method="POST">
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="check_for_duplicate">
-        <input onclick="document.getElementById('toggle_check_for_duplicate').submit();" type="checkbox"
-            id="check_for_duplicate" class="mdl-checkbox__input" {% if check_for_duplicate %} checked{% endif %}>
-        <span class="mdl-checkbox__label">Check for duplicate questions on submit</span>
-    </label>
-</form>
-<p>
-<form action="/theme" method="POST" target="hidden_frame">
-    <select name="selected_theme" id="selected_theme">
-        {% for theme in themes %}
-        <option value="{{theme.name}}" {% if theme.directory==currently_selected_theme %} selected{% endif %}>
-            {{theme.description}}</option>
-        {% endfor %}
-    </select>
-    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-        type="submit">Change theme</button>
-</form>
-</p>
-<p>
-
-<form action="/username" id="username_change" method="POST" target="hidden_frame">
-    <div class="mdl-textfield mdl-js-textfield">
-        <input class="mdl-textfield__input" type="text" name="username" id="username_input"
-            value="{{ session.username }}">
+            class="form-check-input" {% if autocomplete_enabled %} checked{% endif %}>
+        <label class="form-check-label" for="autocomplete">Autocomplete</label>
     </div>
-    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
-        type="submit">Change username</button>
 </form>
-</p>
-<p>
+<form action="/toggle_check_for_duplicate" id="toggle_check_for_duplicate" target="hidden_frame" method="POST" class="mb-3">
+    <div class="form-check">
+        <input onclick="document.getElementById('toggle_check_for_duplicate').submit();" type="checkbox"
+            id="check_for_duplicate" class="form-check-input" {% if check_for_duplicate %} checked{% endif %}>
+        <label class="form-check-label" for="check_for_duplicate">Check for duplicate questions on submit</label>
+    </div>
+</form>
+<div class="mb-3">
+    <form action="/theme" method="POST" target="hidden_frame" class="d-flex align-items-center">
+        <select name="selected_theme" id="selected_theme" class="form-select me-2">
+            {% for theme in themes %}
+            <option value="{{theme.name}}" {% if theme.directory==currently_selected_theme %} selected{% endif %}>
+                {{theme.description}}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-secondary" type="submit">Change theme</button>
+    </form>
+</div>
+<div class="mb-3">
+    <form action="/username" id="username_change" method="POST" target="hidden_frame" class="d-flex align-items-center">
+        <div class="me-2">
+            <input class="form-control" type="text" name="username" id="username_input"
+                value="{{ session.username }}">
+        </div>
+        <button class="btn btn-secondary" type="submit">Change username</button>
+    </form>
+</div>
+<div class="mt-3">
     <a href="/">
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Home</button>
+        <button class="btn btn-primary">Home</button>
     </a>
-</p>
+</div>
 {% endblock %}

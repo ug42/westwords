@@ -1,34 +1,34 @@
 <div>
     <span>
         {% if player_is_mayor and not question_object.answer and not question_object.skipped -%}
-        <div style="display: inline">
+        <div style="display: inline" class="ms-2"> {# Added ms-2 for spacing #}
             {% for token in tokens %}
             <button onclick="answer('{{ game_id }}', {{ question_object.id }}, '{{ token.value }}')"
-                class="material-icons" title="{{ token.token_text }}">
-                {{ token.token_icon }}
+                class="btn btn-outline-secondary btn-sm me-1" title="{{ token.token_text }}">
+                {{ token.token_icon }} {# Assuming token_icon is text/emoji #}
             </button>
             {% endfor %}
-            <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" class="material-symbols-outlined"
+            <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" class="btn btn-outline-warning btn-sm"
                 title="Skip">
-                stat_minus_3
+                Skip
             </button>
         </div>
         {% endif %}
     </span>
     {{ question_object.player }}: {{ question_object.question }}
     {% if question_object.answer %}
-    <span class="material-icons" style="font-size: 18px;" title="{{ question_object.answer.token_text}}">
-        {{ question_object.answer.token_icon }}
+    <span style="font-size: 18px;" title="{{ question_object.answer.token_text}}">
+        {{ question_object.answer.token_icon }} {# Removed material-icons, kept content #}
     </span>
     {% endif %}
     {% if question_object.skipped %}
-    <span class="material-symbols-outlined" style="font-size: 16px;" title="Skipped">stat_minus_3</span>
+    <span style="font-size: 16px;" title="Skipped">Skipped</span> {# Replaced icon with text #}
     {% endif %}
     {% if own_question and not question_object.answer %}
-    <div style="display: inline;">
-        <button style="border: 0; background: none; -webkit-appearance: none;"
-            onclick="delete_question('{{ game_id }}', {{ question_object.id }})">
-            <span class="material-icons" style="font-size: 14px;" title="Delete question">close</span>
+    <div style="display: inline;" class="ms-1"> {# Added ms-1 for spacing #}
+        <button class="btn btn-outline-danger btn-sm py-0 px-1" {# Adjusted padding for smallness #}
+            onclick="delete_question('{{ game_id }}', {{ question_object.id }})" title="Delete question">
+            &times; {# Times symbol for delete #}
         </button>
     </div>
     {% endif %}

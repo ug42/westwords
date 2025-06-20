@@ -6,19 +6,19 @@
     <br>
     <div class="game_timer">
         <div style="display: inline;" id="game_timer" class="game_timer" hidden></div>
-        <div id="game_timer_settings" class="material-icons game_timer game_timer_settings" hidden
+        <div id="game_timer_settings" class="game_timer game_timer_settings" hidden
             onclick="let d = document.getElementById('timer_controls'); if (d.style.display === 'none') { d.style.display = 'block'; } else { d.style.display = 'none'; }">
-            settings</div>
+            Settings</div>
     </div>
     <div style="text-align: center; display: none;" id="timer_controls">
-        <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input">
-        <button onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value);
+        <input style="width: 70px;" value="{{ game_timer }}" id="game_timer_input" class="form-control-sm">
+        <button class="btn btn-outline-secondary btn-sm" onclick="set_timer('{{ game_id }}', document.getElementById('game_timer_input').value);
             document.getElementById('timer_controls').style.display = 'none'; ">Set timer seconds</button>
         <div id="boot_players_content" class="content">
             {% for p in players %}
-            <button style="border: 0; background: none; -webkit-appearance: none;"
+            <button class="btn btn-danger btn-sm" title="Remove Player"
                 onclick="boot_player('{{ game_id }}', '{{ p.sid }}')">
-                <span class="material-icons" style="font-size: 14px; color: white;" title="Remove Player">close</span>
+                &times;
             </button> &nbsp {{ p.name }}<br>
             {% endfor %}
         </div>
@@ -31,23 +31,23 @@
     <!-- TODO: Move out of the material design bits or improve ugly buttons -->
     <div style="display:inline;" id="admin_controls" hidden>
         <button onclick="send_start_req('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+            class="btn btn-primary"
             id="game_start">Start game</button>
         <button onclick="send_reset_req('{{ game_id }}')"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="game_reset"
+            class="btn btn-warning" id="game_reset"
             hidden>Reset game</button>
     </div>
     <div style="display:inline;" id="controls" hidden>
         <!-- These two controls should be gated -->
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"
+        <button class="btn btn-success"
             id="nominate_for_mayor">Run for Mayor!</button>
         <button onclick="window.location.href='/join/{{ game_id }}'"
-            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" id="join_game"
+            class="btn btn-info" id="join_game"
             hidden>Join Game</button>
         <button id="show_role_button" onclick="showMyRole()">Show My Role</button>
 
         <div id="question_input" hidden>
-            <input id="question" autocomplete="off" class="question-box" type="search" list="questions"
+            <input id="question" autocomplete="off" class="question-box form-control" type="search" list="questions"
                 placeholder="Ask a question...">
             {% if autocomplete_enabled is true %}
             <datalist id="questions">
@@ -56,12 +56,12 @@
                 {% endfor %}
             </datalist>
             {% endif %}
-            <a href="#" id="question_submit"><img src="{{ url_for('static', filename='img/submit.png') }}"></a>
+            <button id="question_submit" class="btn btn-primary">Submit</button>
         </div>
     </div>
     <div id="mayor_display" class="mayor_controls" style="display: inline;" hidden>
         <div hidden class="mayor_controls" id="mayor_controls">
-            <button onclick="undo_answer('{{ game_id }}')" class="material-symbols-outlined">undo</button>Undo last
+            <button onclick="undo_answer('{{ game_id }}')" class="btn btn-warning btn-sm">Undo</button>Undo last
             answer<br>
         </div>
         <div hidden class="mayor_controls" id="mayor_question">

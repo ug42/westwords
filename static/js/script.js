@@ -19,8 +19,13 @@ function get_game_state(game_id) {
     });
 }
 function close_dialog() {
-    let dialog = document.querySelector('dialog');
-    dialog.close();
+    let modalElement = document.getElementById('modal-example');
+    if (modalElement) {
+        var myModalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (myModalInstance) {
+            myModalInstance.hide();
+        }
+    }
 }
 function set_timer(game_id, timer_seconds) {
     socket.emit('set_timer', game_id, timer_seconds);
@@ -37,8 +42,9 @@ function delete_question(game_id, question_id) {
 }
 function send_word(game_id, word) {
     socket.emit('set_word', game_id, word);
-    let dialog = document.querySelector('dialog');
-    dialog.close();
+    // let dialog = document.querySelector('dialog'); // No longer needed
+    // dialog.close(); // No longer needed
+    close_dialog(); // Use the updated global close_dialog
 }
 function ack_reveal() {
     close_dialog();
@@ -47,9 +53,22 @@ function ack_reveal() {
 function ask_question(game_id, question, force) {
     socket.emit('question', game_id, question, force, (response) => {
         if (response.status === 'DUPLICATE') {
-            let dialog = document.querySelector('dialog');
-            dialog.innerHTML = response.html;
-            dialog.showModal();
+            let modalElement = document.getElementById('modal-example');
+            if (modalElement) {
+                var modalBody = modalElement.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.innerHTML = response.html;
+                } else {
+                    console.error('Modal body not found for ID modal-example');
+                }
+                // Ensure modal title is appropriate or cleared for generic content
+                var modalTitle = modalElement.querySelector('.modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Duplicate Question?'; // Or extract from response.html if possible
+                }
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
         }
     });
     document.getElementById('question').value = "";
@@ -345,16 +364,42 @@ function refresh_game_state(g) {
         local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
         socket.emit('get_night_action_page', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
-                dialog.innerHTML = response.night_action_html;
-                dialog.showModal();
+                let modalElement = document.getElementById('modal-example');
+                if (modalElement) {
+                    var modalBody = modalElement.querySelector('.modal-body');
+                    if (modalBody) {
+                        modalBody.innerHTML = response.night_action_html;
+                    } else {
+                        console.error('Modal body not found for ID modal-example');
+                    }
+                    var modalTitle = modalElement.querySelector('.modal-title');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Night Action';
+                    }
+                    var myModal = new bootstrap.Modal(modalElement);
+                    myModal.show();
+                }
             }
         });
     }
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
-                dialog.innerHTML = response.reveal_html;
-                dialog.showModal();
+                let modalElement = document.getElementById('modal-example');
+                if (modalElement) {
+                    var modalBody = modalElement.querySelector('.modal-body');
+                    if (modalBody) {
+                        modalBody.innerHTML = response.reveal_html;
+                    } else {
+                        console.error('Modal body not found for ID modal-example');
+                    }
+                    var modalTitle = modalElement.querySelector('.modal-title');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Role Information';
+                    }
+                    var myModal = new bootstrap.Modal(modalElement);
+                    myModal.show();
+                }
             }
         });
     }
@@ -429,10 +474,22 @@ function refresh_game_state(g) {
         }
         if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE') {
             socket.emit('get_words', local_game_state.game_id, (response) => {
-                let dialog = document.querySelector('dialog');
-                if (response.status === 'OK') {
-                    dialog.innerHTML = response.word_html;
-                    dialog.showModal();
+                let modalElement = document.getElementById('modal-example');
+                if (modalElement) {
+                    if (response.status === 'OK') {
+                        var modalBody = modalElement.querySelector('.modal-body');
+                        if (modalBody) {
+                            modalBody.innerHTML = response.word_html;
+                        } else {
+                            console.error('Modal body not found for ID modal-example');
+                        }
+                        var modalTitle = modalElement.querySelector('.modal-title');
+                        if (modalTitle) {
+                            modalTitle.textContent = 'Choose a Word';
+                        }
+                        var myModal = new bootstrap.Modal(modalElement);
+                        myModal.show();
+                    }
                 }
             });
         }
@@ -451,42 +508,95 @@ function ready(fn) {
     }
 }
 ready(function () {
-    var dialog = document.querySelector('dialog');
-    if (!dialog.showModal) {
-        dialogPolyfill.registerDialog(dialog);
-    }
-    var snackbarContainer = document.querySelector('#demo-toast-example');
-    dialog.showModal();
-    dialog.close();
+    // MDL Dialog polyfill and initial show/close removed.
+    // var dialog = document.querySelector('dialog'); // Old MDL
+    // if (!dialog.showModal) { // Old MDL
+    //     dialogPolyfill.registerDialog(dialog); // Old MDL
+    // } // Old MDL
+    // dialog.showModal(); // Old MDL
+    // dialog.close(); // Old MDL
+
+    // var snackbarContainer = document.querySelector('#demo-toast-example'); // Will be handled in Phase 2
 
     socket.on('connect', function () {});
     socket.on('disconnect', function (data) {
         console.log('Socket disconnected.');
     });
     socket.on('user_info', function (message) {
-        snackbarContainer.MaterialSnackbar.showSnackbar({ message: message });
+        // snackbarContainer.MaterialSnackbar.showSnackbar({ message: message }); // Old MDL
+        var toastLiveExample = document.getElementById('liveToast'); // ID of the Bootstrap toast container
+        if (toastLiveExample) {
+            var toastBody = toastLiveExample.querySelector('.toast-body');
+            if (toastBody) {
+                toastBody.textContent = message; // Assuming message is plain text
+            } else {
+                console.error('Toast body not found in #liveToast');
+            }
+            var toast = new bootstrap.Toast(toastLiveExample);
+            toast.show();
+        } else {
+            console.error('Toast element #liveToast not found');
+        }
     });
 
 
     socket.on('mayor_error', function (data) {
         if (local_game_state.player_is_mayor === true) {
-            let dialog = document.querySelector('dialog');
-            dialog.innerHTML = data;
-            dialog.showModal();
+            let modalElement = document.getElementById('modal-example');
+            if (modalElement) {
+                var modalBody = modalElement.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.innerHTML = data; // Assuming data is HTML string
+                } else {
+                    console.error('Modal body not found for ID modal-example');
+                }
+                var modalTitle = modalElement.querySelector('.modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Mayor Notification';
+                }
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
         }
     });
     socket.on('mayor_question', function (data) {
+        // This event seems to be for simple text, not full HTML for modal body.
+        // For now, will put it in modal body, but might need adjustment if it's just a string.
         if (local_game_state.player_is_mayor === true) {
-            let dialog = document.querySelector('dialog');
-            dialog.innerHTML = data;
-            dialog.showModal();
+            let modalElement = document.getElementById('modal-example');
+            if (modalElement) {
+                var modalBody = modalElement.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.innerHTML = data; // Assuming data is HTML string
+                } else {
+                    console.error('Modal body not found for ID modal-example');
+                }
+                var modalTitle = modalElement.querySelector('.modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Mayor Question';
+                }
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
         }
     });
     socket.on('admin_error', function (data) {
         if (local_game_state.player_is_admin === true) {
-            let dialog = document.querySelector('dialog');
-            dialog.innerHTML = data;
-            dialog.showModal();
+            let modalElement = document.getElementById('modal-example');
+            if (modalElement) {
+                var modalBody = modalElement.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.innerHTML = data; // Assuming data is HTML string
+                } else {
+                    console.error('Modal body not found for ID modal-example');
+                }
+                var modalTitle = modalElement.querySelector('.modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Admin Notification';
+                }
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
         }
     });
     socket.on('game_state_update', function (data) {

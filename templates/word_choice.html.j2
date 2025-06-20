@@ -1,4 +1,4 @@
-<span class="mdl-dialog__content">
+<div class="modal-body"> {# Changed span to div for proper block display #}
     <span>
     <b>
     Your role is {{player_role}}
@@ -8,12 +8,12 @@
     {% if image|length %}<img class="role_image" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
             title="{{role_description}}" width="24" height="24"><br> {% endif %}
     </span>
-</span>
-<div class="mdl-dialog__content">
+</div>
+<div class="modal-body">
     Select a word:
 </div>
-<div class="mdl-dialog__actions mdl-dialog__actions--full-width">
+<div class="modal-footer d-flex flex-wrap"> {# Added flex-wrap for button wrapping #}
     {% for w in words %}
-    <button type="button" class="mdl-button close" onclick="send_word('{{game_id}}', '{{w}}')">{{w}}</button>
+    <button type="button" class="btn btn-outline-primary me-2 mb-2 close" onclick="send_word('{{game_id}}', '{{w}}')">{{w}}</button> {# Added me-2 mb-2 for spacing #}
     {% endfor %}
 </div>

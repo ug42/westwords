@@ -3,10 +3,10 @@
     <tr class="player-table">
         {% if admin_view %}
         <td>
-            <button class="mdl-button mdl-js-button mdl-button--icon"
+            <button class="btn btn-outline-danger btn-sm"
                 onclick="boot_player('{{ game_id }}', '{{ player.player_sid }}')"
                 title="Boot {{ player.name }}">
-                <i class="material-icons">cancel</i>
+                &times; {# Replaced material icon with times symbol #}
             </button>
             {# <ul ul class="mdl-menu mdl-menu--top-left mdl-js-menu mdl-js-ripple-effect" data-mdl-for="boot-player-{{ player.name }}">
                 <li class="mdl-menu__item" >Boot player to Spectate</li>
@@ -33,15 +33,14 @@
         {%- for t in mayor_token_count -%}
         {%- if t.token.token_text == 'Yes/No' or t.token.token_text == 'Maybe' %}
         <td class="player-table">
-            <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
-                title="{{t.token.token_text}}">
-                {{ t.token.token_icon }}
+            <span title="{{t.token.token_text}}">
+                {{ t.token.token_icon }} <span class="badge bg-secondary ms-1">{{ t.count }}</span>
             </span>
         </td>
         {%- elif t.count > 0 -%}
         <td class="player-table">
-            <span class="material-icons mdl-badge mdl-badge--overlap" title="{{t.token.token_text}}">
-                {{ t.token.token_icon }}
+            <span title="{{t.token.token_text}}">
+                {{ t.token.token_icon }} {# Assuming no count shown if not Yes/No/Maybe, but icon is present #}
             </span>
         </td>
         {%- endif -%}
@@ -50,15 +49,14 @@
         {%- for t in player.token_count -%}
         {%- if t.token.token_text == 'Yes' or t.token.token_text == 'No' or t.token.token_text == 'Maybe' %}
         <td class="player-table">
-            <span class="material-icons mdl-badge mdl-badge--overlap" data-badge="{{ t.count }}"
-                title="{{t.token.token_text}}">
-                {{ t.token.token_icon }}
+            <span title="{{t.token.token_text}}">
+                {{ t.token.token_icon }} <span class="badge bg-secondary ms-1">{{ t.count }}</span>
             </span>
         </td>
         {%- elif t.count > 0 -%}
         <td class="player-table">
-            <span class="material-icons mdl-badge mdl-badge--overlap" title="{{t.token.token_text}}">
-                {{ t.token.token_icon }}
+            <span title="{{t.token.token_text}}">
+                {{ t.token.token_icon }} {# Assuming no count shown if not Yes/No/Maybe, but icon is present #}
             </span>
         </td>
         {%- endif -%}

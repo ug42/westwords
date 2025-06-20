@@ -2,9 +2,9 @@
 The word was: {{word}}<br>
 </strong>
     {{voting_text}}
-<div>
+<div class="mt-2"> {# Added margin-top for spacing #}
     {% for c in candidates %}
-    <button type="button" class="mdl-button mdl-js-button mdl-button--raised close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
+    <button type="button" class="btn btn-outline-primary me-1 mb-1 close" onclick="vote_player('{{game_id}}', '{{c.sid}}')">{{c.name}}</button> {# Added me-1 and mb-1 for button spacing #}
     {% endfor %}
 </div>
 <br>
