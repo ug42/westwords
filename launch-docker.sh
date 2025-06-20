@@ -1,5 +1,6 @@
 #!/bin/bash
 DOCKER_BIN="/usr/bin/docker"
+set -x
 
 $DOCKER_BIN run \
   --log-driver=local \
@@ -7,5 +8,5 @@ $DOCKER_BIN run \
   -l debug \
   --log-opt max-file=6 \
   --name=westwords \
-  -p 8000:8000 \
-  -d westwords:latest
+  -p 80:80 \
+  -d westwords:${1:-latest}
