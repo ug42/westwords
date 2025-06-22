@@ -19,7 +19,7 @@ function get_game_state(game_id) {
     });
 }
 function close_dialog() {
-    let modalElement = document.getElementById('modal-example');
+    let modalElement = document.getElementById('main-modal');
     if (modalElement) {
         var myModalInstance = bootstrap.Modal.getInstance(modalElement);
         if (myModalInstance) {
@@ -53,13 +53,13 @@ function ack_reveal() {
 function ask_question(game_id, question, force) {
     socket.emit('question', game_id, question, force, (response) => {
         if (response.status === 'DUPLICATE') {
-            let modalElement = document.getElementById('modal-example');
+            let modalElement = document.getElementById('main-modal');
             if (modalElement) {
                 var modalBody = modalElement.querySelector('.modal-body');
                 if (modalBody) {
                     modalBody.innerHTML = response.html;
                 } else {
-                    console.error('Modal body not found for ID modal-example');
+                    console.error('Modal body not found for ID main-modal');
                 }
                 // Ensure modal title is appropriate or cleared for generic content
                 var modalTitle = modalElement.querySelector('.modal-title');
@@ -364,13 +364,13 @@ function refresh_game_state(g) {
         local_game_state.game_state === 'NIGHT_PHASE_TARGETTING') {
         socket.emit('get_night_action_page', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
-                let modalElement = document.getElementById('modal-example');
+                let modalElement = document.getElementById('main-modal');
                 if (modalElement) {
                     var modalBody = modalElement.querySelector('.modal-body');
                     if (modalBody) {
                         modalBody.innerHTML = response.night_action_html;
                     } else {
-                        console.error('Modal body not found for ID modal-example');
+                        console.error('Modal body not found for ID main-modal');
                     }
                     var modalTitle = modalElement.querySelector('.modal-title');
                     if (modalTitle) {
@@ -385,13 +385,13 @@ function refresh_game_state(g) {
     if (local_game_state.game_state === 'NIGHT_PHASE_REVEAL') {
         socket.emit('get_player_revealed_information', local_game_state.game_id, (response) => {
             if (response.status === 'OK') {
-                let modalElement = document.getElementById('modal-example');
+                let modalElement = document.getElementById('main-modal');
                 if (modalElement) {
                     var modalBody = modalElement.querySelector('.modal-body');
                     if (modalBody) {
                         modalBody.innerHTML = response.reveal_html;
                     } else {
-                        console.error('Modal body not found for ID modal-example');
+                        console.error('Modal body not found for ID main-modal');
                     }
                     var modalTitle = modalElement.querySelector('.modal-title');
                     if (modalTitle) {
@@ -474,14 +474,14 @@ function refresh_game_state(g) {
         }
         if (local_game_state.game_state === 'NIGHT_PHASE_WORD_CHOICE') {
             socket.emit('get_words', local_game_state.game_id, (response) => {
-                let modalElement = document.getElementById('modal-example');
+                let modalElement = document.getElementById('main-modal');
                 if (modalElement) {
                     if (response.status === 'OK') {
                         var modalBody = modalElement.querySelector('.modal-body');
                         if (modalBody) {
                             modalBody.innerHTML = response.word_html;
                         } else {
-                            console.error('Modal body not found for ID modal-example');
+                            console.error('Modal body not found for ID main-modal');
                         }
                         var modalTitle = modalElement.querySelector('.modal-title');
                         if (modalTitle) {
@@ -524,31 +524,31 @@ ready(function () {
     });
     socket.on('user_info', function (message) {
         // snackbarContainer.MaterialSnackbar.showSnackbar({ message: message }); // Old MDL
-        var toastLiveExample = document.getElementById('liveToast'); // ID of the Bootstrap toast container
+        var toastLiveExample = document.getElementById('toast-container'); // ID of the Bootstrap toast container
         if (toastLiveExample) {
             var toastBody = toastLiveExample.querySelector('.toast-body');
             if (toastBody) {
                 toastBody.textContent = message; // Assuming message is plain text
             } else {
-                console.error('Toast body not found in #liveToast');
+                console.error('Toast body not found in #toast-container');
             }
             var toast = new bootstrap.Toast(toastLiveExample);
             toast.show();
         } else {
-            console.error('Toast element #liveToast not found');
+            console.error('Toast element #toast-container not found');
         }
     });
 
 
     socket.on('mayor_error', function (data) {
         if (local_game_state.player_is_mayor === true) {
-            let modalElement = document.getElementById('modal-example');
+            let modalElement = document.getElementById('main-modal');
             if (modalElement) {
                 var modalBody = modalElement.querySelector('.modal-body');
                 if (modalBody) {
                     modalBody.innerHTML = data; // Assuming data is HTML string
                 } else {
-                    console.error('Modal body not found for ID modal-example');
+                    console.error('Modal body not found for ID main-modal');
                 }
                 var modalTitle = modalElement.querySelector('.modal-title');
                 if (modalTitle) {
@@ -563,13 +563,13 @@ ready(function () {
         // This event seems to be for simple text, not full HTML for modal body.
         // For now, will put it in modal body, but might need adjustment if it's just a string.
         if (local_game_state.player_is_mayor === true) {
-            let modalElement = document.getElementById('modal-example');
+            let modalElement = document.getElementById('main-modal');
             if (modalElement) {
                 var modalBody = modalElement.querySelector('.modal-body');
                 if (modalBody) {
                     modalBody.innerHTML = data; // Assuming data is HTML string
                 } else {
-                    console.error('Modal body not found for ID modal-example');
+                    console.error('Modal body not found for ID main-modal');
                 }
                 var modalTitle = modalElement.querySelector('.modal-title');
                 if (modalTitle) {
@@ -582,13 +582,13 @@ ready(function () {
     });
     socket.on('admin_error', function (data) {
         if (local_game_state.player_is_admin === true) {
-            let modalElement = document.getElementById('modal-example');
+            let modalElement = document.getElementById('main-modal');
             if (modalElement) {
                 var modalBody = modalElement.querySelector('.modal-body');
                 if (modalBody) {
                     modalBody.innerHTML = data; // Assuming data is HTML string
                 } else {
-                    console.error('Modal body not found for ID modal-example');
+                    console.error('Modal body not found for ID main-modal');
                 }
                 var modalTitle = modalElement.querySelector('.modal-title');
                 if (modalTitle) {
