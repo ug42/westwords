@@ -210,7 +210,7 @@ class testWestwordsRoles(unittest.TestCase):
         self.assertEqual(
             self.player_sids['fortuneteller'].get_required_players(), 5)
         self.assertEqual(self.player_sids['fortuneteller'].get_max_instances(),
-                         1)
+                         4)
         self.assertFalse(self.player_sids['fortuneteller'].is_required())
         # Is the mayor
         self.assertEqual(

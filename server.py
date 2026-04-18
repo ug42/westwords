@@ -593,7 +593,7 @@ def add_question(game_id: str, question_text: str, force: bool=False):
             force = True
         try:
             success, _ = GAMES[game_id].add_question(
-                session['sid'], question_text, force)
+                session['sid'], question_text, force=force)
         except GameError as e:
             app.logger.debug(e)
             app.logger.error(f'Unable to add question for game {game_id}')

@@ -834,7 +834,7 @@ class Game(object):
 
     # Question functions
 
-    def add_question(self, sid, question_text, force):
+    def add_question(self, sid, question_text, force=False):
         """Add a question to the game.
 
         Args:
