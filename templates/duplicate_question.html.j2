@@ -1,13 +1,43 @@
-<p>
-Your question:
-{{ question }}
-</p>
-<p>
-Possible duplicates:
-{% for q in duplicate_questions %}
-<ul>{{q}}</ul>
-{% endfor %}
-</p>
-Submit anyway?<br>
-<button type="button" class="btn btn-primary close" onclick="ask_question('{{game_id}}', '{{question}}', true); close_dialog();">YES</button>
-<button type="button" class="btn btn-secondary close" onclick="close_dialog()">NO</button>
+<div class="p-3">
+    <!-- Duplicate Warning Header -->
+    <div class="text-center mb-4">
+        <span class="material-symbols-outlined text-warning" style="font-size: 3rem; text-shadow: 0 0 10px rgba(255,193,7,0.3);">warning</span>
+        <h4 class="text-gold mt-2" style="font-family: var(--ww-font-heading); font-size: 1.2rem; letter-spacing: 0.05em; text-transform: uppercase;">Similar Inquiry Found</h4>
+    </div>
+
+    <!-- User Question preview -->
+    <div class="p-3 mb-3 rounded" style="background: rgba(0, 0, 0, 0.25); border-left: 3px solid var(--ww-accent-gold);">
+        <span class="text-muted small d-block mb-1" style="font-family: var(--ww-font-heading); text-transform: uppercase; font-size: 0.75rem;">Your Question:</span>
+        <span class="text-light" style="font-size: 1.05rem;">"{{ question }}"</span>
+    </div>
+
+    <!-- Potential duplicates list -->
+    <div class="mb-4">
+        <span class="text-muted small d-block mb-2" style="font-family: var(--ww-font-heading); text-transform: uppercase; font-size: 0.75rem;">Existing Inquiries in the Village:</span>
+        <div class="d-flex flex-column gap-2">
+            {% for q in duplicate_questions %}
+            <div class="p-2 rounded border border-secondary" style="background: rgba(255, 255, 255, 0.02); font-size: 0.95rem;">
+                "{{ q }}"
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <hr class="border-secondary my-3">
+
+    <!-- Submit Prompts -->
+    <div class="text-center">
+        <p class="text-light mb-3">Do you still wish to submit this inquiry to the Mayor?</p>
+        <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-primary px-4 close" 
+                    onclick="ask_question('{{ game_id }}', '{{ question }}', true); close_dialog();"
+                    style="font-family: var(--ww-font-heading); text-transform: uppercase; letter-spacing: 0.05em;">
+                Yes, Submit
+            </button>
+            <button type="button" class="btn btn-secondary px-4 close" onclick="close_dialog()"
+                    style="font-family: var(--ww-font-heading); text-transform: uppercase; letter-spacing: 0.05em;">
+                No, Retract
+            </button>
+        </div>
+    </div>
+</div>

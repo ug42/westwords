@@ -1,347 +1,720 @@
-html,
-body {
-  font-family: "Lato", sans-serif;
-  overflow-x: hidden;
-  height: 100%;
-  color: rgb(255, 255, 255);
-  box-sizing: border-box;
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --ww-bg-primary: #070a13;
+  --ww-bg-secondary: #0f1322;
+  --ww-bg-surface: rgba(16, 21, 38, 0.7);
+  --ww-bg-glass: rgba(10, 14, 26, 0.75);
+  
+  --ww-accent-gold: #d4a44c;
+  --ww-accent-gold-bright: #ffd175;
+  --ww-accent-gold-glow: rgba(212, 164, 76, 0.4);
+  
+  --ww-danger-red: #a63d40;
+  --ww-danger-red-bright: #e65c5f;
+  --ww-danger-red-glow: rgba(166, 61, 64, 0.4);
+  
+  --ww-village-green: #2d6a4f;
+  --ww-village-green-bright: #40916c;
+  
+  --ww-text-primary: #f3f4f6;
+  --ww-text-secondary: #9ca3af;
+  --ww-text-muted: #6b7280;
+  --ww-text-gold: #e2b45c;
+  
+  --ww-border-gold: rgba(212, 164, 76, 0.25);
+  --ww-border-gold-focus: rgba(212, 164, 76, 0.6);
+  --ww-border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --ww-font-heading: 'Cinzel', Georgia, serif;
+  --ww-font-body: 'Inter', system-ui, sans-serif;
+  
+  --ww-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --ww-gold-shadow: 0 0 15px rgba(212, 164, 76, 0.15);
 }
 
-body {
-  background: rgb(75, 75, 75);
-  align-self: center;
-  padding: 0;
+/* Base resets & theme foundations */
+html, body {
+  font-family: var(--ww-font-body);
+  background-color: var(--ww-bg-primary);
+  color: var(--ww-text-primary);
+  min-height: 100%;
   margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  letter-spacing: 0.015em;
 }
 
-.pad-right {
-  /* border-radius: 25px; */
-  background: #292929;
-  /* border-color:rgb(0, 0, 0); */
-  padding: 20px;
-  margin-right: 20px;
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-/* Format autocomplete bits */
-/* * { box-sizing: border-box; } */
-.autocomplete {
-  /*the container must be positioned relative:*/
+/* Atmospheric backgrounds */
+body {
+  background: radial-gradient(circle at 50% 30%, #151b30 0%, #070a13 70%);
+  background-attachment: fixed;
   position: relative;
-  display: inline-block;
 }
 
-/* input {
-  border: 1px solid transparent;
-  background-color: #f1f1f1;
-  padding: 10px;
-  font-size: 16px;
-} */
-.autocomplete-items {
-  position: absolute;
-  border: 1px solid #d4d4d4;
-  color: rgb(0, 0, 0);
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  top: 100%;
+/* CSS Starfield backdrop overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
   left: 0;
-  right: 0;
-}
-
-.autocomplete-items div {
-  padding: 2px;
-  cursor: pointer;
-  background-color: #fff;
-  border-bottom: 1px solid #d4d4d4;
-}
-
-.autocomplete-items div:hover {
-  /*when hovering an item:*/
-  background-color: #e9e9e9;
-}
-
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: DodgerBlue !important;
-  color: #ffffff;
-}
-
-/* Format all the autocomplete bits */
-
-
-/* Style the button that is used to open and close the collapsible content */
-.collapsible {
-  background-color: #686868;
-  color: #444;
-  cursor: pointer;
-  padding: 5px;
   width: 100%;
-  border: none;
-  text-align: left;
-  outline: none;
-  font-size: 15px;
+  height: 100%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 30% 40%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 50% 10%, #fff, transparent),
+    radial-gradient(2px 2px at 70% 60%, rgba(212, 164, 76, 0.4), transparent),
+    radial-gradient(1px 1px at 90% 30%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 20% 80%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 80% 90%, #fff, transparent);
+  background-size: 550px 550px;
+  opacity: 0.35;
+  z-index: -2;
+  pointer-events: none;
+  animation: starTwinkle 120s linear infinite;
 }
 
-/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
-.active,
-.collapsible:hover {
-  background-color: #858585;
+/* Fog overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(7, 10, 19, 0.8) 0%, transparent 60%);
+  z-index: -1;
+  pointer-events: none;
 }
 
-/* Style the collapsible content. Note: hidden by default */
-.content {
-  padding: 0 18px;
-  display: none;
-  overflow: hidden;
-  color: white;
-  background-color: #000000;
+/* Starfield animation */
+@keyframes starTwinkle {
+  from { background-position: 0 0; }
+  to { background-position: 550px 1100px; }
 }
 
-
-/* Player table styling */
-.player-table {
-  vertical-align: middle;
-  font-size: 14pt;
+/* Typography styles */
+h1, h2, h3, h4, h5, h6, .ww-heading {
+  font-family: var(--ww-font-heading);
+  color: var(--ww-text-primary);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* Mayor controls and icons for voting  */
-.mayor_controls {
-  font-size: 12pt;
-  padding-left: 10px;
+.text-gold {
+  color: var(--ww-text-gold) !important;
 }
 
-.material-icons {
-  font-size: 18px;
+.username {
+  font-weight: 600;
+  color: var(--ww-accent-gold);
 }
 
-/* Gamer timer config */
+/* Navigation - Frosted Glass Glassmorphism */
+.navbar.ww-navbar, .navbar.bg-dark {
+  background: var(--ww-bg-glass) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ww-border-gold);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  padding: 0.75rem 1.5rem;
+}
+
+.navbar-brand {
+  font-family: var(--ww-font-heading);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--ww-accent-gold) !important;
+  text-shadow: 0 0 10px var(--ww-accent-gold-glow);
+  transition: all 0.3s ease;
+}
+
+.navbar-brand:hover {
+  color: var(--ww-accent-gold-bright) !important;
+  text-shadow: 0 0 15px var(--ww-accent-gold-bright);
+}
+
+/* Offcanvas Sidebar styling */
+.offcanvas.text-bg-dark {
+  background-color: var(--ww-bg-secondary) !important;
+  border-right: 1px solid var(--ww-border-gold);
+  box-shadow: var(--ww-card-shadow);
+}
+
+.offcanvas-header {
+  border-bottom: 1px solid var(--ww-border-subtle);
+  font-family: var(--ww-font-heading);
+}
+
+.offcanvas-title {
+  color: var(--ww-accent-gold);
+  letter-spacing: 0.05em;
+}
+
+/* Beautiful Cards / Sections */
+.ww-card, .pad-right, .box-shadow-fuzz {
+  background: var(--ww-bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--ww-border-gold);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--ww-card-shadow), var(--ww-gold-shadow);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ww-card:hover {
+  border-color: var(--ww-border-gold-focus);
+  box-shadow: var(--ww-card-shadow), 0 0 20px rgba(212, 164, 76, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Full Moon Glowing Timer */
 .game_timer {
-  font-size: 36pt;
-  height: 40px;
+  font-family: var(--ww-font-heading);
+  font-size: 3.5rem;
+  font-weight: 800;
+  height: auto;
+  min-height: 80px;
+  line-height: 1;
   text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1.5rem auto;
+  color: var(--ww-accent-gold);
+  text-shadow: 0 0 20px rgba(212, 164, 76, 0.4);
+}
+
+#game_timer {
+  background: radial-gradient(circle, rgba(212, 164, 76, 0.15) 0%, transparent 70%);
+  padding: 10px 40px;
+  border-radius: 50%;
+  animation: moonPulse 4s ease-in-out infinite alternate;
+  display: inline-block !important;
+}
+
+@keyframes moonPulse {
+  0% {
+    text-shadow: 0 0 15px rgba(212, 164, 76, 0.3);
+    box-shadow: 0 0 20px rgba(212, 164, 76, 0.05);
+  }
+  100% {
+    text-shadow: 0 0 30px rgba(255, 209, 117, 0.7), 0 0 10px rgba(212, 164, 76, 0.4);
+    box-shadow: 0 0 40px rgba(212, 164, 76, 0.15);
+  }
+}
+
+.game_timer_settings {
+  font-size: 1.1rem;
+  font-family: var(--ww-font-heading);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ww-text-secondary);
+  border: 1px solid var(--ww-border-gold);
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  background: rgba(212, 164, 76, 0.05);
+  transition: all 0.2s ease;
+  max-width: 150px;
 }
 
 .game_timer_settings:hover {
-  cursor: pointer;
+  background: rgba(212, 164, 76, 0.15);
+  color: var(--ww-accent-gold-bright);
+  border-color: var(--ww-accent-gold-bright);
 }
 
-/* Voting results style */
-.box-shadow-fuzz {
-  border: 1px solid;
+/* Custom Buttons */
+.btn {
+  font-family: var(--ww-font-heading);
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+  background-color: var(--ww-accent-gold) !important;
+  border-color: var(--ww-accent-gold) !important;
+  color: #070a13 !important;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--ww-accent-gold-bright) !important;
+  border-color: var(--ww-accent-gold-bright) !important;
+  box-shadow: 0 0 15px rgba(212, 164, 76, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--ww-border-subtle) !important;
+  color: var(--ww-text-primary) !important;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.btn-danger {
+  background-color: var(--ww-danger-red) !important;
+  border-color: var(--ww-danger-red) !important;
+  color: var(--ww-text-primary) !important;
+}
+
+.btn-danger:hover {
+  background-color: var(--ww-danger-red-bright) !important;
+  border-color: var(--ww-danger-red-bright) !important;
+  box-shadow: 0 0 15px var(--ww-danger-red-glow);
+}
+
+.btn-success {
+  background-color: var(--ww-village-green) !important;
+  border-color: var(--ww-village-green) !important;
+  color: var(--ww-text-primary) !important;
+}
+
+.btn-success:hover {
+  background-color: var(--ww-village-green-bright) !important;
+  border-color: var(--ww-village-green-bright) !important;
+  box-shadow: 0 0 15px rgba(45, 106, 79, 0.4);
+}
+
+.btn-outline-primary {
+  color: var(--ww-accent-gold) !important;
+  border-color: var(--ww-accent-gold) !important;
+  background: transparent !important;
+}
+
+.btn-outline-primary:hover {
+  background: var(--ww-accent-gold) !important;
+  color: #070a13 !important;
+  box-shadow: 0 0 15px var(--ww-accent-gold-glow);
+}
+
+/* Form Controls & Autocomplete */
+.form-control, .form-select, .username-input {
+  background-color: rgba(7, 10, 19, 0.8) !important;
+  border: 1px solid var(--ww-border-gold) !important;
+  color: var(--ww-text-primary) !important;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--ww-border-gold-focus) !important;
+  box-shadow: 0 0 8px var(--ww-accent-gold-glow) !important;
+  outline: none;
+}
+
+.autocomplete-items {
+  background-color: var(--ww-bg-secondary) !important;
+  border: 1px solid var(--ww-accent-gold) !important;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--ww-card-shadow);
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.autocomplete-items div {
+  padding: 10px 15px !important;
+  background-color: var(--ww-bg-secondary) !important;
+  color: var(--ww-text-primary) !important;
+  border-bottom: 1px solid var(--ww-border-subtle) !important;
+  transition: background-color 0.2s ease;
+}
+
+.autocomplete-items div:hover {
+  background-color: rgba(212, 164, 76, 0.15) !important;
+  color: var(--ww-accent-gold-bright) !important;
+}
+
+.autocomplete-active {
+  background-color: rgba(212, 164, 76, 0.25) !important;
+  color: var(--ww-accent-gold-bright) !important;
+}
+
+/* Tarot-style Role Selection Items */
+.outer_role_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 15px;
   padding: 10px;
-  box-shadow: 5px 10px 8px #888888;
-}
-
-.voted-dead {
-  color: rgb(216, 68, 68);
-}
-
-/* Question input box styling */
-.question-box {
-  width: 500px;
-}
-
-/* Make it visible for us old folk */
-.common-font {
-  font-size: 14pt;
-}
-
-.werewolf {
-  color: rgb(216, 68, 68);
-}
-
-/* For the extended material icons like skip icon (stat_down_3) */
-.material-symbols-outlined {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
-}
-
-/* Footer placement and style for box and contents */
-.footer {
-  background-color: #222222;
-  height: 50px;
-  width: 100%;
-  background-image: none;
-  background-repeat: repeat;
-  background-attachment: scroll;
-  background-position: 0% 0%;
-  position: fixed;
-  bottom: 0pt;
-  left: 0pt;
-}
-
-.role_count_name {
-  font-size: 12px;
-  text-align: center;
-  grid-area: role_name;
-  padding-left: 3px;
-}
-
-.role_count {
-  font-size: 20px;
-  font-weight: bold;
-  width: 22px;
-  height: 18px;
-  grid-area: role_count;
-  text-align: center;
-  vertical-align: center;
-  padding: 1px 1px 1px 1px;
-}
-
-.role_count_plus {
-  font-size: 14px;
-  width: 22px;
-  height: 22px;
-  grid-area: role_plus;
-  text-align: center;
-  padding-left: 2px;
-  vertical-align: center;
-}
-
-.role_count_minus {
-  font-size: 14px;
-  width: 22px;
-  height: 22px;
-  grid-area: role_minus;
-  text-align: center;
-  vertical-align: center;
-}
-
-.role_count_image_container {
-  display: inline-block;
-  /* background: white; */
-  grid-area: role_image;
-  width: 66px;
-  height: 66px;
-  border-radius: 15%;
-}
-
-.role_image {
-  border-radius: 50%;
-  filter: grayscale(0.5);
-}
-
-img.role_image:hover {
-  transition: 0.2s;
-  filter: grayscale(0);
-}
-
-.role_button {
-  border-radius: 50%;
-  font-size: 10px;
-  width: 22px;
-  height: 22px;
-}
-
-.role_button:hover {
-  background-color:#ffd000;
 }
 
 .role_selection_item {
-  background-color:#777777;
-  border-radius: 10%;
-  display: grid;
-  gap: 0rem;
-  grid-template-columns: 66px 22px;
-  grid-template-rows: auto;
-  grid-template-areas: 
-    "role_image role_plus"
-    "role_image role_count"
-    "role_image role_minus"
-    "role_name role_name";
+  background: linear-gradient(135deg, rgba(16, 21, 38, 0.8) 0%, rgba(8, 11, 20, 0.9) 100%);
+  border: 1px solid var(--ww-border-gold);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.outer_role_grid {
-  display: grid;
-  grid-template-columns: repeat(4, 88px);
-  gap: 10px;
+.role_selection_item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--ww-accent-gold), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
 }
 
+.role_selection_item:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: var(--ww-accent-gold-bright);
+  box-shadow: 0 8px 25px rgba(212, 164, 76, 0.25);
+}
+
+.role_count_image_container {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.3);
+  border: 2px solid var(--ww-border-gold);
+  padding: 3px;
+  transition: all 0.3s ease;
+}
+
+.role_image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  filter: grayscale(0.2) sepia(0.2);
+  transition: all 0.3s ease;
+}
+
+.role_selection_item:hover .role_count_image_container {
+  border-color: var(--ww-accent-gold);
+  box-shadow: 0 0 12px var(--ww-accent-gold-glow);
+}
+
+.role_selection_item:hover .role_image {
+  filter: grayscale(0) sepia(0);
+}
+
+.role_count_name {
+  font-family: var(--ww-font-heading);
+  font-size: 0.9rem;
+  color: var(--ww-text-primary);
+  margin-bottom: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  height: 24px;
+}
+
+/* Card Control buttons (Plus / Minus) */
+.role_count_controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--ww-border-subtle);
+}
+
+.role_count {
+  font-family: var(--ww-font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ww-accent-gold-bright);
+  min-width: 20px;
+  text-align: center;
+}
+
+.role_button {
+  background: transparent;
+  border: none;
+  color: var(--ww-text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role_button:hover {
+  color: var(--ww-accent-gold-bright);
+  transform: scale(1.2);
+}
+
+/* Players List */
+.player-table-container {
+  background: rgba(10, 14, 26, 0.4);
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid var(--ww-border-subtle);
+}
+
+.player-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  font-size: 1.05rem;
+}
+
+.player-table tr {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.player-table tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.player-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+  border-top: 1px solid var(--ww-border-subtle);
+  border-bottom: 1px solid var(--ww-border-subtle);
+}
+
+.player-table td:first-child {
+  border-left: 1px solid var(--ww-border-subtle);
+  border-radius: 6px 0 0 6px;
+}
+
+.player-table td:last-child {
+  border-right: 1px solid var(--ww-border-subtle);
+  border-radius: 0 6px 6px 0;
+}
+
+.player-table .badge {
+  font-family: var(--ww-font-heading);
+  letter-spacing: 0.05em;
+  background-color: var(--ww-bg-secondary) !important;
+  color: var(--ww-accent-gold) !important;
+  border: 1px solid var(--ww-border-gold);
+}
+
+/* Werewolf Team styles */
+.werewolf {
+  color: var(--ww-danger-red-bright) !important;
+  text-shadow: 0 0 10px rgba(230, 92, 95, 0.3);
+  font-weight: bold;
+}
+
+.voted-dead {
+  color: var(--ww-danger-red-bright) !important;
+  text-shadow: 0 0 8px rgba(166, 61, 64, 0.5);
+  font-style: italic;
+}
+
+/* Beautiful Questions styling */
+.questions {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-top: 15px;
+}
+
+.questions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.questions::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.questions::-webkit-scrollbar-thumb {
+  background: var(--ww-border-gold);
+  border-radius: 3px;
+}
+
+.questions::-webkit-scrollbar-thumb:hover {
+  background: var(--ww-accent-gold);
+}
+
+.questions > div {
+  background: rgba(16, 21, 38, 0.4);
+  border-left: 3px solid var(--ww-accent-gold);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.questions > div:hover {
+  background: rgba(16, 21, 38, 0.6);
+  transform: translateX(3px);
+}
+
+/* Red side-border for questions answered CORRECT */
+.questions > div.q-correct {
+  border-left-color: var(--ww-village-green-bright);
+}
+
+/* Frosted glass persistent Footer */
+.footer {
+  background: var(--ww-bg-glass) !important;
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border-top: 1px solid var(--ww-border-gold);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.6);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
 
 .footer-contents {
-  height: 40px;
+  font-family: var(--ww-font-heading);
+  color: var(--ww-text-gold);
+  font-size: 1.15rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  height: auto;
+  line-height: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.footer-contents u {
+  color: var(--ww-text-primary);
+  font-weight: 700;
+  text-decoration-color: var(--ww-accent-gold);
+  font-size: 1.25rem;
+  padding: 0 4px;
+}
+
+/* Themed Modals */
+.modal-content, .ww-modal .modal-content {
+  background-color: var(--ww-bg-secondary) !important;
+  background-image: radial-gradient(circle at 50% 10%, #171d34 0%, #0c0f1b 100%);
+  border: 1px solid var(--ww-accent-gold) !important;
+  box-shadow: var(--ww-card-shadow), 0 0 30px rgba(212, 164, 76, 0.3) !important;
+  border-radius: 14px !important;
+  color: var(--ww-text-primary) !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--ww-border-subtle) !important;
+  font-family: var(--ww-font-heading);
+}
+
+.modal-title {
+  color: var(--ww-accent-gold) !important;
+  letter-spacing: 0.05em;
+}
+
+.btn-close, .btn-close-white {
+  filter: invert(1) grayscale(1) brightness(2);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--ww-border-subtle) !important;
+}
+
+/* Settings, Login Cards centering */
+.ww-landing-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 160px);
+}
+
+.ww-landing-card {
+  max-width: 480px;
   width: 100%;
   text-align: center;
-  font-size: 18pt;
-  /* font-weight:bold; */
-  background-image: none;
-  background-repeat: repeat;
-  background-attachment: scroll;
-  background-position: 0% 0%;
-  position: fixed;
-  bottom: 0pt;
-  left: 0pt;
+  border: 1px solid var(--ww-border-gold);
+  background: var(--ww-bg-surface);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: var(--ww-card-shadow), var(--ww-gold-shadow);
 }
 
-/* Question formatting after asking */
-.questions {
-  font-size: 14pt;
-  line-height: 1.3em;
+.ww-landing-logo {
+  font-family: var(--ww-font-heading);
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: var(--ww-accent-gold);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 15px var(--ww-accent-gold-glow);
 }
 
-/* Material design lite customizations, can probably remove maybe */
-.mdl-layout__content {
-  margin-left: 20px;
-  margin-top: 20px;
-  margin-bottom: 50px;
+.ww-landing-tagline {
+  font-family: var(--ww-font-heading);
+  font-size: 0.9rem;
+  color: var(--ww-text-secondary);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
 }
 
-.mdl-dialog {
-  border: none;
-  box-shadow: 0 9px 46px 8px rgba(0, 0, 0, 0.14), 0 11px 15px -7px rgba(0, 0, 0, 0.12), 0 24px 38px 3px rgba(0, 0, 0, 0.2);
-  width: 500px;
-  overflow-y: scroll;
+/* Custom styling for collapsibles */
+.collapsible {
+  background-color: var(--ww-bg-secondary);
+  color: var(--ww-accent-gold);
+  border: 1px solid var(--ww-border-gold);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: var(--ww-font-heading);
+  letter-spacing: 0.05em;
+  font-weight: bold;
 }
 
-.mdl-dialog__title {
-  padding: 24px 24px 0;
-  margin: 0;
-  font-size: 2.5rem;
+.collapsible:hover {
+  background-color: rgba(212, 164, 76, 0.1);
+  color: var(--ww-accent-gold-bright);
 }
 
-.mdl-dialog__actions {
-  padding: 8px 8px 8px 24px;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-flex-direction: row-reverse;
-  -ms-flex-direction: row-reverse;
-  flex-direction: row-reverse;
-  -webkit-flex-wrap: wrap;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
+.content {
+  background-color: rgba(0,0,0,0.2);
+  border: 1px solid var(--ww-border-subtle);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 15px;
 }
 
-.mdl-dialog__actions>* {
-  margin-right: 8px;
-  height: 36px;
-}
-
-.mdl-dialog__actions>*:first-child {
-  margin-right: 0;
-}
-
-.mdl-dialog__actions--full-width {
-  padding: 0 0 8px 0;
-}
-
-.mdl-dialog__actions--full-width>* {
-  height: 48px;
-  -webkit-flex: 0 0 100%;
-  -ms-flex: 0 0 100%;
-  flex: 0 0 100%;
-  padding-right: 16px;
-  margin-right: 0;
-  text-align: right;
-}
-
-.mdl-dialog__content {
-  padding: 20px 24px 24px 24px;
-  color: rgba(0, 0, 0, 0.54);
+/* Dialog Box wrapper */
+#dialog-box {
+  background: rgba(10, 14, 26, 0.9);
+  border: 2px solid var(--ww-accent-gold);
+  box-shadow: 0 0 35px var(--ww-accent-gold-glow);
 }

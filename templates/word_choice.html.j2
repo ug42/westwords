@@ -1,19 +1,32 @@
-<div class="modal-body"> {# Changed span to div for proper block display #}
-    <span>
-    <b>
-    Your role is {{player_role}}
-    </b>
-    </span>
-    <span>
-    {% if image|length %}<img class="role_image" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
-            title="{{role_description}}" width="24" height="24"><br> {% endif %}
-    </span>
-</div>
-<div class="modal-body">
-    Select a word:
-</div>
-<div class="modal-footer d-flex flex-wrap"> {# Added flex-wrap for button wrapping #}
-    {% for w in words %}
-    <button type="button" class="btn btn-outline-primary me-2 mb-2 close" onclick="send_word('{{game_id}}', '{{w}}')">{{w}}</button> {# Added me-2 mb-2 for spacing #}
-    {% endfor %}
+<div class="text-center p-3">
+    <!-- Role Reveal & Badge -->
+    <div class="d-flex flex-column align-items-center mb-4">
+        {% if image|length %}
+        <div class="role_count_image_container mb-2" style="width: 90px; height: 90px; border-color: var(--ww-accent-gold); box-shadow: 0 0 15px var(--ww-accent-gold-glow);">
+            <img class="role_image img-fluid" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
+                 title="{{ role_description }}" alt="{{ player_role }}" style="filter: none;">
+        </div>
+        {% endif %}
+        <h4 class="text-gold mt-2" style="font-family: var(--ww-font-heading); font-size: 1.15rem; letter-spacing: 0.1em; text-transform: uppercase;">
+            You are the <strong class="text-light">{{ player_role }}</strong>
+        </h4>
+        <p class="text-muted" style="font-size: 0.85rem; max-width: 320px;">{{ role_description }}</p>
+    </div>
+
+    <hr class="border-secondary my-3">
+
+    <!-- Instructions -->
+    <h5 class="text-gold mb-3" style="font-family: var(--ww-font-heading); font-size: 1rem; letter-spacing: 0.05em; text-transform: uppercase;">Select the Secret Word</h5>
+    <p class="text-muted small mb-4">Choose the mystery word the townspeople must decipher. Beware of the wolves listening in the dark...</p>
+
+    <!-- Word Buttons Grid -->
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-2">
+        {% for w in words %}
+        <button type="button" class="btn btn-outline-primary py-2 px-3 close font-weight-bold" 
+                onclick="send_word('{{ game_id }}', '{{ w }}')"
+                style="min-width: 130px; letter-spacing: 0.05em; font-family: var(--ww-font-heading);">
+            {{ w }}
+        </button>
+        {% endfor %}
+    </div>
 </div>

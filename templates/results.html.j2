@@ -1,54 +1,91 @@
-<h4>{{winner}} team won!</h4>
-<div class="common-font">
-    The word was 
-    {% if player_won is sameas true %}
-    You won as a {{role}}.
-    {% elif player_won is sameas false%}
-    You lost as a {{role}}.
-    {% endif %}
-    <p>
-        {% for vote in vote_count %}
-        <strong>
-            {% if vote.killed %}
-            <div class="voted-dead">
-                {{vote.name}} ({{vote.role}}): {{vote.count}}
+{%- set is_werewolf_win = 'Werewolf' in winner -%}
+{%- set player_victory = player_won is sameas true -%}
+<div class="p-3 text-center">
+    <!-- Winner Celebration Panel -->
+    <div class="mb-4 py-3 rounded" 
+         style="background: {% if is_werewolf_win %}rgba(166, 61, 64, 0.08){% else %}rgba(45, 106, 79, 0.08){% endif %}; 
+                border: 1px solid {% if is_werewolf_win %}var(--ww-danger-red){% else %}var(--ww-village-green){% endif %};">
+        <h5 class="text-muted mb-1" style="font-family: var(--ww-font-heading); font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase;">The Chronicle Concludes</h5>
+        <h2 style="font-family: var(--ww-font-heading); font-size: 2.25rem; font-weight: 800; letter-spacing: 0.05em; 
+                   color: {% if is_werewolf_win %}var(--ww-danger-red-bright){% else %}var(--ww-village-green-bright){% endif %}; 
+                   text-shadow: 0 0 15px {% if is_werewolf_win %}var(--ww-danger-red-glow){% else %}rgba(45, 106, 79, 0.3){% endif %};">
+            {{ winner }} TEAM WINS!
+        </h2>
+    </div>
+
+    <!-- Personal Game Status Card -->
+    <div class="ww-card mb-4 border-gold" style="background: rgba(255, 255, 255, 0.02);">
+        <h5 class="text-gold mb-2" style="font-family: var(--ww-font-heading); font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase;">Your Destiny</h5>
+        {% if player_victory %}
+        <div class="text-success font-weight-bold" style="font-size: 1.5rem; text-shadow: 0 0 10px rgba(40,167,69,0.2);">
+            VICTORY!
+        </div>
+        <p class="text-muted small mt-1">You triumphed in the shadows as a <strong>{{ role }}</strong>.</p>
+        {% else %}
+        <div class="text-danger font-weight-bold" style="font-size: 1.5rem; text-shadow: 0 0 10px rgba(220,53,69,0.2);">
+            DEFEAT...
+        </div>
+        <p class="text-muted small mt-1">You were overcome in the shadows as a <strong>{{ role }}</strong>.</p>
+        {% endif %}
+    </div>
+
+    <!-- Vote Tally Summary -->
+    <div class="text-start mb-4">
+        <h5 class="text-gold border-bottom pb-2 mb-3" style="font-family: var(--ww-font-heading); font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase;">The Death Toll</h5>
+        <div class="d-flex flex-column gap-2">
+            {% for vote in vote_count %}
+            <div class="d-flex align-items-center justify-content-between p-2 rounded" 
+                 style="background: {% if vote.killed %}rgba(166, 61, 64, 0.1){% else %}rgba(255, 255, 255, 0.02){% endif %}; 
+                        border: 1px solid {% if vote.killed %}var(--ww-danger-red){% else %}rgba(255, 255, 255, 0.05){% endif %};">
+                <span class="d-flex align-items-center flex-wrap gap-2">
+                    <strong class="{% if vote.killed %}voted-dead{% else %}text-light{% endif %}">{{ vote.name }}</strong>
+                    <span class="badge bg-dark border-secondary text-gold">{{ vote.role }}</span>
+                    {% if vote.killed %}
+                    <span class="badge bg-danger text-light py-0 px-1 border-0" style="font-size: 0.75rem;">Banished</span>
+                    {% endif %}
+                </span>
+                <span class="badge bg-dark border-gold text-gold font-weight-bold" style="font-size: 1rem;">
+                    {{ vote.count }} votes
+                </span>
             </div>
-            {% else %}
-            <div>
-                {{vote.name}} ({{vote.role}}): {{vote.count}}
-            </div>
-            {% endif %}
-        </strong>
-        {% endfor %}
-    </p>
-</div>
-<div >
-    <h6>Votes</h6>
-    <table width="100%">
-        <tr>
-            <thead>
-                <td width="50%">Player</td>
-                <td>Vote</td>
-            </thead>
-        </tr>
-        {% for v in vote_information %}
-        <tr>
-            <td>
-                {{ v.voter }} ({{ v.voter_role }})
-            </td>
-            <td>
-                {{ v.target }} ({{ v.target_role }})
-            </td>
-        </tr>
-        {%endfor%}
-        {% for p in non_voting_players %}
-        <tr>
-            <td>
-                {{ p.player }} ({{ p.role }})
-            </td>
-            <td>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Detailed Ledger of Votes Table -->
+    <div class="text-start">
+        <h5 class="text-gold border-bottom pb-2 mb-3" style="font-family: var(--ww-font-heading); font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase;">Ledger of Accusations</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover align-middle" style="background: rgba(0,0,0,0.25); border-radius: 8px; overflow: hidden; border: 1px solid var(--ww-border-subtle);">
+                <thead>
+                    <tr style="background: rgba(212, 164, 76, 0.08); font-family: var(--ww-font-heading); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">
+                        <th class="border-secondary text-gold">Accuser Player</th>
+                        <th class="border-secondary text-gold">Accused Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vote_information %}
+                    <tr>
+                        <td class="border-secondary text-light">
+                            {{ v.voter }} <span class="badge bg-dark border-secondary text-muted ms-2">{{ v.voter_role }}</span>
+                        </td>
+                        <td class="border-secondary text-light">
+                            {{ v.target }} <span class="badge bg-dark border-secondary text-muted ms-2">{{ v.target_role }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% for p in non_voting_players %}
+                    <tr>
+                        <td class="border-secondary text-muted italic">
+                            {{ p.player }} <span class="badge bg-dark border-secondary text-muted ms-2">{{ p.role }}</span>
+                        </td>
+                        <td class="border-secondary text-muted italic">
+                            Silently abstained
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

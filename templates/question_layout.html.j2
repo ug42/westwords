@@ -1,35 +1,56 @@
-<div>
-    <span>
+{%- set is_correct = question_object.answer and question_object.answer.value == 'correct' -%}
+<div class="d-flex align-items-center justify-content-between p-3 mb-2 rounded {% if is_correct %}q-correct{% endif %}" 
+     style="background: rgba(16, 21, 38, 0.45); border-left: 3px solid {% if is_correct %}var(--ww-village-green-bright){% else %}var(--ww-accent-gold){% endif %}; transition: all 0.2s ease;">
+    
+    <!-- Question Text and Info -->
+    <div class="d-flex flex-column gap-1 flex-grow-1">
+        <div class="d-flex align-items-center gap-2">
+            <span class="username text-gold" style="font-size: 0.95rem; font-family: var(--ww-font-heading);">{{ question_object.player }}</span>
+            <span class="text-muted" style="font-size: 0.75rem;">inquired:</span>
+        </div>
+        <div class="text-light" style="font-size: 1.05rem;">
+            {{ question_object.question }}
+        </div>
+    </div>
+
+    <!-- Mayor Answer / Action Controls -->
+    <div class="d-flex align-items-center gap-2">
+        {% if question_object.answer %}
+        <span class="badge bg-dark border-gold p-2 d-flex align-items-center justify-content-center" 
+              title="{{ question_object.answer.token_text }}" 
+              style="font-size: 1.25rem; box-shadow: 0 0 8px var(--ww-accent-gold-glow);">
+            {{ question_object.answer.token_icon }}
+        </span>
+        {% endif %}
+        
+        {% if question_object.skipped %}
+        <span class="badge bg-dark border-danger p-2 text-danger d-flex align-items-center gap-1" title="Skipped">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">block</span> Skipped
+        </span>
+        {% endif %}
+        
         {% if player_is_mayor and not question_object.answer and not question_object.skipped -%}
-        <div style="display: inline" class="ms-2"> {# Added ms-2 for spacing #}
+        <div class="d-flex flex-wrap gap-1">
             {% for token in tokens %}
             <button onclick="answer('{{ game_id }}', {{ question_object.id }}, '{{ token.value }}')"
-                class="btn btn-outline-secondary btn-sm me-1" title="{{ token.token_text }}">
-                {{ token.token_icon }} {# Assuming token_icon is text/emoji #}
+                class="btn btn-outline-primary btn-sm px-2 py-1" title="{{ token.token_text }}"
+                style="font-size: 1rem;">
+                {{ token.token_icon }}
             </button>
             {% endfor %}
-            <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" class="btn btn-outline-warning btn-sm"
-                title="Skip">
+            <button onclick="skip_question('{{ game_id }}', {{ question_object.id }})" 
+                class="btn btn-danger btn-sm px-2 py-1" title="Skip Question">
                 Skip
             </button>
         </div>
         {% endif %}
-    </span>
-    {{ question_object.player }}: {{ question_object.question }}
-    {% if question_object.answer %}
-    <span style="font-size: 18px;" title="{{ question_object.answer.token_text}}">
-        {{ question_object.answer.token_icon }} {# Removed material-icons, kept content #}
-    </span>
-    {% endif %}
-    {% if question_object.skipped %}
-    <span style="font-size: 16px;" title="Skipped">Skipped</span> {# Replaced icon with text #}
-    {% endif %}
-    {% if own_question and not question_object.answer %}
-    <div style="display: inline;" class="ms-1"> {# Added ms-1 for spacing #}
-        <button class="btn btn-outline-danger btn-sm py-0 px-1" {# Adjusted padding for smallness #}
-            onclick="delete_question('{{ game_id }}', {{ question_object.id }})" title="Delete question">
-            &times; {# Times symbol for delete #}
+        
+        {% if own_question and not question_object.answer %}
+        <button class="btn btn-outline-danger btn-sm p-1 ms-2" 
+            onclick="delete_question('{{ game_id }}', {{ question_object.id }})" title="Retract Question"
+            style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 1;">
+            &times;
         </button>
+        {% endif %}
     </div>
-    {% endif %}
 </div>

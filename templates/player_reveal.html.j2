@@ -1,51 +1,62 @@
-<div class="common-font">
-        Your role is {{player_role}}
+<div class="text-center p-3">
+    <!-- Majestic Role Reveal Title -->
+    <div class="mb-4">
+        <h5 class="text-muted mb-1" style="font-family: var(--ww-font-heading); font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase;">Your True Nature is Revealed</h5>
+        <h3 class="text-gold" style="font-family: var(--ww-font-heading); font-size: 1.75rem; letter-spacing: 0.05em; text-shadow: 0 0 10px var(--ww-accent-gold-glow);">
+            {{ player_role }}
+        </h3>
+    </div>
 
-    {% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5>{% endif %}
-    {% if image is not none %}<center><img class="role_image" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
-            title="{{role_description}}" width="200" height="200"></center><br> {% endif %}
-
-    {% if known_players|length %}
-    <p>Players who revealed themselves to you in the night:
-    {% for p in known_players %}
-    <br><b>{{ p.name }} {% if p.name == mayor %}, the Mayor, {% endif %} is </b> role: <b>{{ p.role }}</b><br>
-    {% endfor %}
-    {% endif %}
-    <button type="button" class="btn btn-primary close" onclick="ack_reveal()">OK</button>
-</div>
-
-
-{# Bootstrap version of the above... is it just me or does it look more verbose by far? #}
-{# <div class="modal" tabindex="-1">
-        <div class="modal-dialog">
-                <div class="modal-content">
-                        <div class="modal-header">
-                                <h5 class="modal-title">
-                                        Your role is {{player_role}}
-                                </h5>
-                                <div class="modal-body">
-                                </div>
-                                <div class="modal-body">
-
-                                        {% if known_word is not none %}<h5>Word: <u>{{known_word}}</u></h5>{% endif %}
-                                        {% if image is not none %}<center><img class="role_image"
-                                                        src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
-                                                        title="{{role_description}}" width="200" height="200"></center>
-                                        <br> {% endif %}
-
-                                        {% if known_players|length %}
-                                        <p>Players who revealed themselves to you in the night:
-                                                {% for p in known_players %}
-                                                <br><b>{{ p.name }} {% if p.name == mayor %}, the Mayor, {% endif %} is
-                                                </b> role: <b>{{ p.role }}</b><br>
-                                                {% endfor %}
-                                                {% endif %}
-                                </div>
-                                <div class="modal-footer">
-                                        <button type="button" class="btn btn-primary close"
-                                                onclick="ack_reveal()">OK</button>
-                                </div>
-                        </div>
-                </div>
+    <!-- Majestic Role Art Card -->
+    {% if image is not none %}
+    <div class="d-flex justify-content-center mb-4">
+        <div class="role_count_image_container" style="width: 160px; height: 160px; border-width: 3px; border-color: var(--ww-accent-gold); box-shadow: 0 0 25px rgba(212, 164, 76, 0.4); padding: 4px;">
+            <img class="role_image img-fluid" src="{{ url_for('static', filename='img/' + image_theme + '/' + image) }}"
+                 title="{{ role_description }}" alt="{{ player_role }}" style="filter: none;">
         </div>
-</div> #}
+    </div>
+    {% endif %}
+
+    <!-- Role Description -->
+    <p class="text-light small mx-auto mb-4" style="max-width: 340px; font-style: italic; line-height: 1.4;">
+        "{{ role_description }}"
+    </p>
+
+    <!-- Hidden secret word scroll panel -->
+    {% if known_word is not none %}
+    <div class="p-3 mb-4 rounded border border-gold" style="background: rgba(212, 164, 76, 0.06); box-shadow: inset 0 0 10px rgba(212, 164, 76, 0.05);">
+        <span class="text-muted small d-block mb-1" style="font-family: var(--ww-font-heading); letter-spacing: 0.05em; text-transform: uppercase;">The Secret Word</span>
+        <span class="text-gold font-weight-bold" style="font-size: 1.6rem; font-family: var(--ww-font-heading); letter-spacing: 0.05em; text-shadow: 0 0 8px var(--ww-accent-gold-glow);">
+            {{ known_word }}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Teammates revealed -->
+    {% if known_players|length > 0 %}
+    <div class="text-start p-3 mb-4 rounded" style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--ww-border-subtle);">
+        <h6 class="text-gold mb-3 text-center" style="font-family: var(--ww-font-heading); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Shadow Alliances Revealed</h6>
+        <div class="d-flex flex-column gap-2">
+            {% for p in known_players %}
+            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                <span>
+                    <strong class="username text-light">{{ p.name }}</strong>
+                    {% if p.name == mayor %}<span class="badge bg-dark border-gold text-gold py-0 px-1 ms-1">Mayor</span>{% endif %}
+                </span>
+                <span class="badge bg-dark border-secondary text-gold font-weight-bold" style="font-family: var(--ww-font-heading);">
+                    {{ p.role }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- OK confirmation button -->
+    <div class="pt-2">
+        <button type="button" class="btn btn-primary w-100 py-3 font-weight-bold close" onclick="ack_reveal()" 
+                style="letter-spacing: 0.1em; text-transform: uppercase; font-size: 1rem;">
+            Enter the Village
+        </button>
+    </div>
+</div>

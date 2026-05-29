@@ -1,21 +1,49 @@
-<div class="footer-contents">
+<div class="footer-contents px-3 text-center">
 {%- if game_state == 'SETUP' -%}
-Waiting for {{ admin }} to setup and start game...
+    <span class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined text-gold" style="font-size: 1.3rem;">hourglass_empty</span>
+        Waiting for <strong class="text-gold">{{ admin }}</strong> to marshal the townspeople...
+    </span>
 {%- elif game_state == 'NIGHT_PHASE_WORD_CHOICE' -%}
-Waiting for {{ mayor }} to choose word...
+    <span class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined text-gold" style="font-size: 1.3rem;">nights_stay</span>
+        Waiting for Mayor <strong class="text-gold">{{ mayor }}</strong> to receive the secret word...
+    </span>
 {%- elif game_state == 'NIGHT_PHASE_DOPPELGANGER' -%}
-Waiting for the doppelganger(s)...
+    <span class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined text-gold" style="font-size: 1.3rem;">masks</span>
+        The night falls... The <strong class="text-gold">Doppelgangers</strong> choose their form...
+    </span>
 {%- elif game_state == 'NIGHT_PHASE_TARGETTING' -%}
-Waiting for night phase targetting roles...
+    <span class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined text-gold" style="font-size: 1.3rem;">visibility</span>
+        The night falls... Shadows whisper in the dark...
+    </span>
 {%- elif game_state == 'NIGHT_PHASE_REVEAL' -%}
-Waiting for players to OK their roles
+    <span class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined text-gold" style="font-size: 1.3rem;">key</span>
+        Waiting for wanderers to acknowledge their true nature...
+    </span>
 {%- elif game_state == 'VOTING' -%}
-Waiting for players to vote
+    <span class="d-flex align-items-center gap-2 text-danger">
+        <span class="material-symbols-outlined" style="font-size: 1.3rem; animation: pulse 1s infinite alternate;">gavel</span>
+        The town gathers... Cast your vote to banish a soul!
+    </span>
 {%- else -%}
-
-{%- if known_word is not none -%}Word: <u>{{ known_word }}</u> &emsp;{%- endif -%}
-{%- for p in known_players -%}
-Players you know: {{ p.name }}{% if p.name == mayor %}, the Mayor, {% endif %} is ({{ p.role }}) &emsp;
-{%- endfor -%}
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3" style="font-size: 0.95rem;">
+        {%- if known_word is not none -%}
+        <span class="badge bg-dark border-gold py-1 px-3 text-gold d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">menu_book</span>
+            Word: <u>{{ known_word }}</u>
+        </span>
+        {%- endif -%}
+        
+        {%- for p in known_players -%}
+        <span class="badge bg-dark border-secondary py-1 px-3 text-light d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined text-gold" style="font-size: 1rem;">person</span>
+            {{ p.name }}{% if p.name == mayor %}, the Mayor,{% endif %} is <strong class="text-gold">({{ p.role }})</strong>
+        </span>
+        {%- endfor -%}
+    </div>
 {%- endif -%}
 </div>

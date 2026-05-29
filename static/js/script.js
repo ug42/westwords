@@ -728,21 +728,26 @@ ready(function () {
             const roleDescription = data.role_description || 'No description provided.';
 
             htmlContent = `
-                <div style="text-align: center; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px; margin: 20px auto;">
-                    <img src="${roleImage}" alt="${roleName}" style="max-width: 100px; max-height: 100px; margin-bottom: 15px; border-radius: 4px; object-fit: contain;">
-                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">${roleName}</h3>
-                    <p style="margin-bottom: 20px; color: #555; font-size: 0.9em; white-space: pre-wrap;">${roleDescription}</p>
-                    <button onclick="closeRoleDialog()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                <div class="text-center p-4 rounded" style="background: var(--ww-bg-secondary); border: 2px solid var(--ww-accent-gold); max-width: 320px; margin: 20px auto; box-shadow: var(--ww-card-shadow), 0 0 25px var(--ww-accent-gold-glow);">
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="role_count_image_container" style="width: 80px; height: 80px; border-color: var(--ww-accent-gold); box-shadow: 0 0 10px var(--ww-accent-gold-glow); padding: 3px;">
+                            <img src="${roleImage}" alt="${roleName}" class="role_image img-fluid" style="filter: none;">
+                        </div>
+                    </div>
+                    <h3 class="text-gold" style="font-family: var(--ww-font-heading); margin-top: 0; margin-bottom: 10px; font-size: 1.4rem;">${roleName}</h3>
+                    <p class="text-light" style="margin-bottom: 20px; font-size: 0.9rem; white-space: pre-wrap; line-height: 1.4;">${roleDescription}</p>
+                    <button class="btn btn-primary w-100 py-2" onclick="closeRoleDialog()" style="font-family: var(--ww-font-heading); letter-spacing: 0.05em; text-transform: uppercase;">Acknowledge</button>
                 </div>
             `;
         } else {
             console.error('Error getting role:', data.message);
             const errorMessage = data.message || 'An unknown error occurred while fetching your role.';
             htmlContent = `
-                <div style="text-align: center; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 300px; margin: 20px auto;">
-                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #d9534f;">Error Retrieving Role</h3>
-                    <p style="margin-bottom: 20px; color: #555; font-size: 0.9em;">${errorMessage}</p>
-                    <button onclick="closeRoleDialog()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                <div class="text-center p-4 rounded" style="background: var(--ww-bg-secondary); border: 2px solid var(--ww-danger-red); max-width: 320px; margin: 20px auto; box-shadow: var(--ww-card-shadow), 0 0 25px var(--ww-danger-red-glow);">
+                    <span class="material-symbols-outlined text-danger mb-2" style="font-size: 2.5rem;">error</span>
+                    <h3 class="text-danger" style="font-family: var(--ww-font-heading); margin-top: 0; margin-bottom: 10px; font-size: 1.3rem;">Error</h3>
+                    <p class="text-light" style="margin-bottom: 20px; font-size: 0.9rem; line-height: 1.4;">${errorMessage}</p>
+                    <button class="btn btn-secondary w-100 py-2" onclick="closeRoleDialog()" style="font-family: var(--ww-font-heading); letter-spacing: 0.05em; text-transform: uppercase;">Dismiss</button>
                 </div>
             `;
         }

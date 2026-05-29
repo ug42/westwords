@@ -1,11 +1,29 @@
-<div class="modal-body">
-    You are a {{role}}.
-</div>
-<div class="modal-body">
-    {{night_action_text}}
-</div>
-<div class="modal-footer">
-    {% for c in candidates %}
-    <button type="button" class="btn btn-primary close" onclick="{{js_function}}('{{game_id}}', '{{c.sid}}')">{{c.name}}</button>
-    {% endfor %}
+<div class="text-center p-3">
+    <!-- Midnight Role Banner -->
+    <div class="mb-4">
+        <span class="material-symbols-outlined text-gold" style="font-size: 3rem; text-shadow: 0 0 10px var(--ww-accent-gold-glow);">nights_stay</span>
+        <h4 class="text-gold mt-2" style="font-family: var(--ww-font-heading); font-size: 1.25rem; letter-spacing: 0.1em; text-transform: uppercase;">
+            Night Falls: You are the <strong class="text-light">{{ role }}</strong>
+        </h4>
+    </div>
+
+    <!-- Night phase prompt -->
+    <div class="p-3 mb-4 rounded" style="background: rgba(0, 0, 0, 0.25); border-left: 3px solid var(--ww-accent-gold); font-size: 1.05rem;">
+        {{ night_action_text }}
+    </div>
+
+    <hr class="border-secondary my-3">
+
+    <h6 class="text-muted mb-3" style="font-family: var(--ww-font-heading); font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;">Select Your Target</h6>
+    
+    <!-- Candidates selection buttons -->
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+        {% for c in candidates %}
+        <button type="button" class="btn btn-outline-primary py-2 px-4 close font-weight-bold" 
+                onclick="{{ js_function }}('{{ game_id }}', '{{ c.sid }}')"
+                style="letter-spacing: 0.05em; font-family: var(--ww-font-heading); min-width: 140px;">
+            {{ c.name }}
+        </button>
+        {% endfor %}
+    </div>
 </div>

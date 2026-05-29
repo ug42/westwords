@@ -1,11 +1,28 @@
 {% extends "_layout.html.j2" %}
 {% block body %}
-<form method="post" action="/create">
-    <label for="game_id">Game name:</label>
-    <input type="text" id="game_id" name="game_id">
-    <button type="submit" class="btn btn-primary">Join</button>
-</form>
-<a href="/settings">
-    <button class="btn btn-secondary">Settings</button>
-</a>
+<div class="ww-landing-container">
+    <div class="ww-landing-card">
+        <div class="ww-landing-logo">WESTWORDS</div>
+        <div class="ww-landing-tagline">Words &amp; Wolves</div>
+        
+        <form method="post" action="/create" class="mt-4">
+            <div class="form-group mb-4 text-start">
+                <label for="game_id" class="form-label text-gold font-weight-bold" style="font-family: var(--ww-font-heading); letter-spacing: 0.05em;">Enter Game Realm</label>
+                <input type="text" id="game_id" name="game_id" class="form-control form-control-lg text-center" 
+                       placeholder="e.g. moonlit-village" required autocomplete="off"
+                       style="letter-spacing: 0.05em; font-size: 1.25rem;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mb-3" style="font-size: 1.1rem; letter-spacing: 0.1em; text-transform: uppercase;">
+                Begin Adventure
+            </button>
+        </form>
+        
+        <div class="d-flex justify-content-center gap-2 mt-2">
+            <a href="/settings" class="w-100">
+                <button class="btn btn-secondary w-100 py-2">Settings</button>
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}
